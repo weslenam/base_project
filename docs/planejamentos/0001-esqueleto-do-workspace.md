@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** skill `design-system`, rule `central-de-preferencias`
-- **Commits:** ainda não commitado
+- **Commits:** dd8936c (branch `chore/esqueleto-workspace`)
 
 ## Solicitação de origem
 
