@@ -1,0 +1,18 @@
+{
+  "name": "@barbertime/barbertime",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "barbertime",
+    "tags": [
+      "type:app",
+      "scope:front"
+    ]
+  },
+  "type": "module",
+  "dependencies": {
+    "@barbertime/ui-tokens": "workspace:*",
+    "@barbertime/ui-utils": "workspace:*",
+    "@barbertime/ui-vuetify": "workspace:*"
+  }
+}
