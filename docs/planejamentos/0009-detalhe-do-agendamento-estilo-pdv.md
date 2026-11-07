@@ -1,6 +1,6 @@
 # Planejamento 0009: Detalhe do agendamento no estilo PDV
 
-- **Status:** Em andamento
+- **Status:** Concluído
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0006 e 0008, skill `design-system`
@@ -33,11 +33,11 @@ Reorganizar o detalhe do agendamento em duas colunas, com as informações à es
 
 ## Etapas
 
-- [ ] 1. `DsAcao` na lib, com contrato, vitrine e README.
-- [ ] 2. `DsDialogo`: ações quebram linha.
-- [ ] 3. `api.agendamentos.obter` devolve as observações do cliente.
-- [ ] 4. `DetalheAgendamento` em duas colunas com o painel de ações.
-- [ ] 5. Ajustar os testes de tela e rodar `pnpm verificar`.
+- [x] 1. `DsAcao` na lib, com contrato, vitrine e README.
+- [x] 2. `DsDialogo`: ações quebram linha.
+- [x] 3. `api.agendamentos.obter` devolve as observações do cliente.
+- [x] 4. `DetalheAgendamento` em duas colunas com o painel de ações.
+- [x] 5. Ajustar os testes de tela e rodar `pnpm verificar`.
 
 ## Critérios de pronto
 
@@ -47,3 +47,5 @@ Reorganizar o detalhe do agendamento em duas colunas, com as informações à es
 ## Registro de mudanças
 
 - 2026-11-07: Plano criado.
+- 2026-11-07: Concluído. `DsAcao` com 6 testes de contrato; 2 testes de tela novos (ações por estado, informações separadas). Os testes antigos de cancelar e abrir comanda foram ajustados ao novo painel. `pnpm verificar` passa.
+- 2026-11-07: A tabela do kit no README foi reescrita: desde o planejamento 0006 faltavam `useDialogo`, `DsPagina`, `DsFormulario` e `DsTextarea`.

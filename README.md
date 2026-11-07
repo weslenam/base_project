@@ -124,24 +124,41 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 ## Kit de UI (`@barbertime/ui`)
 
-| Item                             | Para quê                                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `DsApp`                          | raiz obrigatória: tema, notificações e confirmações                                              |
-| `DsLayout`                       | cabeçalho com slot `marca`, menu lateral (`itensMenu: [{ titulo, rota, icone? }]`) e conteúdo    |
-| `DsBotao`                        | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                               |
-| `DsInput` / `DsSelect`           | campos com `rotulo`, `obrigatorio`, `regras`, `erro` (`opcoes: [{ valor, rotulo }]`)             |
-| `DsTabela`                       | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`                  |
-| `DsDialogo`                      | `v-model`, `titulo`, slot `acoes`                                                                |
-| `DsIcone`                        | ícone por nome do catálogo (`agenda`, `clientes`, `caixa`, `whatsapp`...; ver `NOMES_DE_ICONES`) |
-| `DsSelo`                         | status com palavra: confirmado, pendente, assinante, fila, faltou, neutro                        |
-| `DsCartao`                       | superfície com `titulo`, conteúdo e slots `acoes` e `cabecalho-acoes`                            |
-| `DsHorarios`                     | escolha de horário: `opcoes: [{ hora, disponivel }]`, `v-model` com a hora                       |
-| `DsBlocoAgenda`                  | bloco da agenda: `cliente`, `servico`, `inicio`, `fim`, `estado`, `clicavel`                     |
-| `DsInputTelefone` / `DsInputCpf` | máscara e validação; o modelo guarda só dígitos                                                  |
-| `DsInputMoeda`                   | valor em reais digitado como centavos; o modelo é número                                         |
-| `useNotificacao()`               | `.sucesso()`, `.erro()`, `.aviso()`, `.info()`                                                   |
-| `useConfirmacao()`               | `await confirmar('Excluir?')` devolve `true`/`false`                                             |
-| `useTema()`                      | aplica o tema claro/escuro (a escolha é preferência, ADR 0006)                                   |
+**Estrutura e formulários**
+
+| Item                             | Para quê                                                                                                   |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `DsApp`                          | raiz obrigatória: tema, notificações e diálogos                                                            |
+| `DsLayout`                       | cabeçalho com slot `marca`, menu lateral (`itensMenu: [{ titulo, rota, icone? }]`) e conteúdo              |
+| `DsPagina`                       | cabeçalho de tela: `titulo`, `sobretitulo`, slot `acoes`                                                   |
+| `DsCartao`                       | superfície com `titulo`, conteúdo e slots `acoes` e `cabecalho-acoes`                                      |
+| `DsDialogo`                      | `v-model`, `titulo`, `largura` (sm/md/lg), slot `acoes`                                                    |
+| `DsFormulario`                   | valida tudo e só emite `enviar` se válido; `DsBotao formulario="id"` envia de fora (ex.: ações do diálogo) |
+| `DsInput` / `DsSelect`           | `rotulo`, `obrigatorio`, `regras`, `erro`; `tipo` inclui `data` e `hora`; `opcoes: [{ valor, rotulo }]`    |
+| `DsTextarea`                     | texto longo com `rotulo`, `maxCaracteres`, `obrigatorio`                                                   |
+| `DsInputTelefone` / `DsInputCpf` | máscara e validação; o modelo guarda só dígitos                                                            |
+| `DsInputMoeda`                   | valor em reais digitado como centavos; o modelo é número                                                   |
+
+**Ações e exibição**
+
+| Item            | Para quê                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| `DsBotao`       | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                                     |
+| `DsAcao`        | botão de ação estilo PDV (ícone, título, descrição; primario/secundario/perigo), para painéis de ações |
+| `DsIcone`       | ícone por nome do catálogo (`agenda`, `caixa`, `clientes`, `whatsapp`...; ver `NOMES_DE_ICONES`)       |
+| `DsSelo`        | status com palavra: confirmado, pendente, assinante, fila, faltou, neutro                              |
+| `DsTabela`      | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`                        |
+| `DsHorarios`    | escolha de horário: `opcoes: [{ hora, disponivel }]`, `v-model` com a hora                             |
+| `DsBlocoAgenda` | bloco da agenda: `cliente`, `servico`, `inicio`, `fim`, `estado`, `clicavel`                           |
+
+**Composables**
+
+| Item               | Para quê                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `useDialogo()`     | `confirmar` (sim/não → boolean), `advertir` (Voltar/Continuar → boolean), `negar` (só "Entendi") |
+| `useConfirmacao()` | atalho de `useDialogo().confirmar`                                                               |
+| `useNotificacao()` | `.sucesso()`, `.erro()`, `.aviso()`, `.info()`                                                   |
+| `useTema()`        | aplica o tema claro/escuro (a escolha é preferência, ADR 0006)                                   |
 
 Vitrine em `/componentes` no app. Os contratos de comportamento ficam em `libs/ui-contrato`.
 
