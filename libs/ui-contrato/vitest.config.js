@@ -7,7 +7,7 @@ export default defineConfig(() => ({
     name: 'ui-contrato',
     watch: false,
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs}'],
     reporters: ['default'],
     coverage: {

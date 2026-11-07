@@ -1,10 +1,16 @@
 // Implementação ativa do design system (Vuetify, ADR 0007).
-// Porta de entrada única: tudo que os apps usam sai daqui.
+// Porta de entrada única: os apps importam só '@barbertime/ui' (alias para cá).
 
-/**
- * Registra o framework de UI e seus plugins no app.
- * Ainda vazio: o Vuetify entra junto com o kit base de componentes Ds*.
- */
-export function instalarUi(app) {
-  return app;
-}
+export { instalarUi } from './instalarUi.js';
+
+export { default as DsApp } from './componentes/DsApp.vue';
+export { default as DsLayout } from './componentes/DsLayout.vue';
+export { default as DsBotao } from './componentes/DsBotao.vue';
+export { default as DsInput } from './componentes/DsInput.vue';
+export { default as DsSelect } from './componentes/DsSelect.vue';
+export { default as DsTabela } from './componentes/DsTabela.vue';
+export { default as DsDialogo } from './componentes/DsDialogo.vue';
+
+export { useNotificacao } from './composables/useNotificacao.js';
+export { useConfirmacao } from './composables/useConfirmacao.js';
+export { useTema } from './composables/useTema.js';

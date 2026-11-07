@@ -1,10 +1,10 @@
-# Planejamento 0001: Esqueleto do workspace Nx
+# Planejamento 0002: Esqueleto do workspace Nx
 
 - **Status:** Concluído
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
-- **Relacionado:** skill `design-system`, rule `central-de-preferencias`
-- **Commits:** dd8936c (branch `chore/esqueleto-workspace`)
+- **Relacionado:** planejamento 0001 (escopo, fase 0), ADR 0008, skill `design-system`, rule `central-de-preferencias`
+- **Commits:** dd8936c, 2707872 (PR #1)
 
 ## Solicitação de origem
 
@@ -70,3 +70,5 @@ Transformar o repositório (hoje só skills e configs de agentes) num workspace 
 - 2026-11-07: Plano criado a partir dos esclarecimentos acima.
 - 2026-11-07: Os targets `typecheck` e o build da API com esbuild foram removidos durante a execução, por serem resquícios de TypeScript.
 - 2026-11-07: Concluído. `pnpm verificar` passa nos 6 projetos; `pnpm dev` sobe web e API; `/api/saude` responde direto e pelo proxy; o lint bloqueia `vuetify` e `@barbertime/ui-vuetify` no app.
+- 2026-11-07: Renumerado de 0001 para 0002. O planejamento 0001 (escopo e roadmap), escrito em outra sessão, chegou depois com o mesmo número e foi mantido.
+- 2026-11-07: Os ADRs 0006 e 0007 foram recriados no planejamento 0003; o Quasar (antigo 0003 do protótipo) não ganhou ADR próprio.

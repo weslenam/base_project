@@ -17,5 +17,9 @@
   "main": "./src/index.js",
   "devDependencies": {
     "@barbertime/ui-contrato": "workspace:*"
+  },
+  "dependencies": {
+    "vuetify": "4.3.0",
+    "@barbertime/ui-tokens": "workspace:*"
   }
 }

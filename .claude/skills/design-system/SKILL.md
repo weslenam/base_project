@@ -7,11 +7,10 @@ description: Arquitetura e regras do design system Vue 3 (JavaScript, sem TypeSc
 
 Esta skill define como a interface dos apps Vue do workspace é construída. A ideia central é: **consumir o framework de UI sem depender dele**. As telas falam só com a nossa lib (`@barbertime/ui`); a lib fala com o framework. Assim dá para trocar Quasar por Vuetify (ou outro) reimplementando a lib, sem tocar nas telas.
 
-
 ## Decisões já tomadas
 
 - **Vue 3 com `<script setup>`, JavaScript puro.** Não usar TypeScript.
-- **Framework base: Vuetify 4** (ADR 0007, que substituiu o Quasar do ADR 0003). Cobre os componentes pesados (VDataTable, VAutocomplete) e traz o `VCalendar`, usado no `DsCalendario`.
+- **Framework base: Vuetify 4** (ADR 0007, que substituiu o Quasar do protótipo Agenda). Cobre os componentes pesados (VDataTable, VAutocomplete) e traz o `VCalendar`, usado no `DsCalendario`.
 - **Gráficos: ApexCharts** (`vue3-apexcharts`), também atrás de wrapper (`DsGrafico`).
 - **Não misturar suítes completas.** Vuetify + PrimeVue + outra suíte ao mesmo tempo gera conflito de CSS global, overlays/z-index, tema duplicado e comportamento inconsistente. Exceção só para um componente que o Vuetify não cubra bem (ex.: TreeTable, organograma) — ver `references/excecoes-de-biblioteca.md`.
 - **Identidade visual vem dos tokens**, não das cores padrão do framework.
@@ -61,7 +60,7 @@ Para garantir as regras 1–5 também quando o código for gerado por IA, apliqu
 
 Não embrulhar tudo de uma vez. Começar pelo kit base: **DsBotao, DsInput, DsSelect, DsTabela, DsDialogo, useNotificacao, useConfirmacao, DsLayout**. Criar um novo `Ds*` quando um componente do framework aparecer pela segunda ou terceira vez em telas. Componentes com regra de negócio brasileira são prioridade, pois são reaproveitados entre sistemas: `DsInputCnpj`, `DsInputCpf`, `DsInputMoeda`, `DsSelectUf`, `DsInputCep`.
 
-## Checklist ao criar ou alterar um componente Ds*
+## Checklist ao criar ou alterar um componente Ds\*
 
 1. Definir a API (props, eventos, slots) em português, sem nomes do framework.
 2. Implementar em `libs/ui-vuetify/src/componentes/DsNome.vue`, estilizando só com tokens.

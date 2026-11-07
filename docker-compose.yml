@@ -1,0 +1,90 @@
+# Ambiente de desenvolvimento (ADR 0002). Rode dentro do WSL 2.
+#   docker compose up -d                  → infraestrutura (postgres, redis, mailpit)
+#   docker compose --profile apps up      → também api e web em containers
+name: barbertime
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-barbertime}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-dados:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-dados:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - '${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '${MAILPIT_WEB_PORT:-8025}:8025'
+
+  api:
+    profiles: [apps]
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm nx serve api"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3333
+      NX_DAEMON: 'false'
+      DATABASE_URL: postgres://barbertime_app:${APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-barbertime}
+      REDIS_URL: redis://redis:6379
+      SMTP_URL: smtp://mailpit:1025
+    ports:
+      - '3333:3333'
+    volumes:
+      - .:/app
+      - node-modules:/app/node_modules
+      - pnpm-store:/root/.local/share/pnpm/store
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  web:
+    profiles: [apps]
+    image: node:22-alpine
+    working_dir: /app
+    # Usa as dependências que a api instala no volume compartilhado.
+    command: sh -c "corepack enable && pnpm nx serve barbertime"
+    environment:
+      VITE_HOST: 0.0.0.0
+      API_URL: http://api:3333
+      NX_DAEMON: 'false'
+    ports:
+      - '4200:4200'
+    volumes:
+      - .:/app
+      - node-modules:/app/node_modules
+    depends_on:
+      api: { condition: service_started }
+
+volumes:
+  postgres-dados:
+  redis-dados:
+  node-modules:
+  pnpm-store:

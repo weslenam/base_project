@@ -1,0 +1,8 @@
+/* Fontes servidas pelo próprio app (ADR 0003, LGPD): só o subconjunto latin. */
+@import '@fontsource/big-shoulders/latin-700.css';
+@import '@fontsource/big-shoulders/latin-800.css';
+@import '@fontsource/barlow/latin-400.css';
+@import '@fontsource/barlow/latin-500.css';
+@import '@fontsource/barlow/latin-600.css';
+@import '@fontsource/barlow/latin-700.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';

@@ -5,14 +5,19 @@ const hoje = formatarData(new Date());
 </script>
 
 <template>
-  <main class="inicio">
-    <h1>BarberTime</h1>
-    <p>Workspace pronto. Hoje é {{ hoje }}.</p>
-  </main>
+  <section class="pagina">
+    <p class="ds-rotulo">Hoje, {{ hoje }}</p>
+    <h1 class="ds-titulo">Agenda de hoje</h1>
+    <p class="ds-corpo-lg ds-suave">
+      Workspace pronto. As telas do MVP entram aqui conforme o roadmap.
+    </p>
+  </section>
 </template>
 
 <style scoped>
-.inicio {
-  padding: var(--ds-espaco-lg);
+.pagina {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-6) var(--esp-4);
 }
 </style>
