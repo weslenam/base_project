@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** ADRs 0010 e 0011; planejamentos 0008 (comanda), 0013 (módulos) e 0001 (diferenciais: assinatura e fidelidade)
-- **Commits:** ainda não commitado (branch `feat/backend-acl-modulos`)
+- **Commits:** 1e88d01 (fase 1; branch `feat/backend-acl-modulos`)
 
 ## Solicitação de origem
 
