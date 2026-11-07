@@ -24,6 +24,12 @@ export function criarDadosDeExemplo(hoje) {
       { id: 3, nome: 'Corte + barba', duracao: 50, preco: 70 },
       { id: 4, nome: 'Pigmentação', duracao: 40, preco: 60 },
     ],
+    produtos: [
+      { id: 1, nome: 'Pomada modeladora', preco: 39.9, comissao: 10 },
+      { id: 2, nome: 'Óleo para barba', preco: 34.9, comissao: 10 },
+      { id: 3, nome: 'Shampoo anticaspa', preco: 29.9, comissao: 8 },
+      { id: 4, nome: 'Cera em pó', preco: 44.9, comissao: 10 },
+    ],
     clientes: [
       {
         id: 1,

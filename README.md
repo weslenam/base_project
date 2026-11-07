@@ -85,7 +85,7 @@ O Vite repassa `/api/*` para a API. O Mailpit mostra os e-mails do ambiente em h
 ```
 apps/
   barbertime/   → app Vue 3 + Vite + Vue Router (porta 4200)
-    src/telas/  → telas do MVP (agenda, clientes, serviços e equipe, agendamento público)
+    src/telas/  → telas do MVP (agenda, clientes, equipe, serviços, produtos, agendamento público)
     src/dados/  → camada de dados: hoje em memória com exemplos; amanhã, chamadas à API
   api/          → Fastify, rotas sob /api (porta 3333), roda direto no Node
 libs/
@@ -120,7 +120,7 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 | `/agendar/:slug` | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`): serviço → barbeiro → dia → horário → dados                                                    |
 | `/componentes`   | Vitrine do kit de UI                                                                                                                                              |
 
-**Dados de exemplo:** até a API de negócio existir, as telas usam `src/dados/api.js`, em memória (Barbearia do Zé, 3 barbeiros, 4 serviços, 8 clientes). Recarregar a página volta ao exemplo. As recusas de negócio (horário ocupado, telefone repetido, exclusão em uso) chegam como `ErroDeNegocio` e aparecem no diálogo de negação.
+**Dados de exemplo:** até a API de negócio existir, as telas usam `src/dados/api.js`, em memória (Barbearia do Zé, 3 barbeiros, 4 serviços, 4 produtos, 8 clientes). Recarregar a página volta ao exemplo. As recusas de negócio (horário ocupado, telefone repetido, exclusão em uso) chegam como `ErroDeNegocio` e aparecem no diálogo de negação.
 
 ## Kit de UI (`@barbertime/ui`)
 

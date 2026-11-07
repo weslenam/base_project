@@ -10,7 +10,9 @@ const publica = computed(() => Boolean(route.meta.publica));
 const itensMenu = [
   { titulo: 'Agenda', rota: '/agenda', icone: 'agenda' },
   { titulo: 'Clientes', rota: '/clientes', icone: 'clientes' },
-  { titulo: 'Serviços e equipe', rota: '/servicos', icone: 'servico' },
+  { titulo: 'Equipe', rota: '/equipe', icone: 'equipe' },
+  { titulo: 'Serviços', rota: '/servicos', icone: 'servico' },
+  { titulo: 'Produtos', rota: '/produtos', icone: 'produto' },
   {
     titulo: 'Página pública',
     rota: '/agendar/barbearia-modelo',

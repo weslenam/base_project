@@ -15,9 +15,19 @@ const router = createRouter({
       component: () => import('../telas/clientes/ClientesView.vue'),
     },
     {
+      path: '/equipe',
+      name: 'equipe',
+      component: () => import('../telas/equipe/EquipeView.vue'),
+    },
+    {
       path: '/servicos',
       name: 'servicos',
-      component: () => import('../telas/servicos/ServicosEquipeView.vue'),
+      component: () => import('../telas/servicos/ServicosView.vue'),
+    },
+    {
+      path: '/produtos',
+      name: 'produtos',
+      component: () => import('../telas/produtos/ProdutosView.vue'),
     },
     {
       path: '/componentes',

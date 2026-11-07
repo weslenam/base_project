@@ -21,14 +21,21 @@ describe('layout e rotas', () => {
   it('/ abre a agenda, com o menu do app', async () => {
     app = await montarApp('/');
     await esperar(() => expect(texto()).toContain('Zé Carlos'));
-    for (const t of ['Clientes', 'Serviços e equipe', 'Página pública'])
+    for (const t of [
+      'Clientes',
+      'Equipe',
+      'Serviços',
+      'Produtos',
+      'Página pública',
+    ]) {
       expect(texto()).toContain(t);
+    }
   });
 
   it('página pública não mostra o menu interno', async () => {
     app = await montarApp('/agendar/barbearia-modelo');
     await esperar(() => expect(texto()).toContain('Barbearia do Zé'));
-    expect(texto()).not.toContain('Serviços e equipe');
+    expect(texto()).not.toContain('Produtos');
     expect(texto()).toContain('Agendamento por BarberTime');
   });
 });
@@ -88,7 +95,56 @@ describe('clientes', () => {
   });
 });
 
-describe('serviços e equipe', () => {
+describe('equipe', () => {
+  it('lista os barbeiros e recusa tirar da equipe quem tem agendamento futuro', async () => {
+    app = await montarApp('/equipe');
+    await esperar(() => expect(texto()).toContain('Léo'));
+    expect(texto()).not.toContain('Pigmentação');
+    [...document.querySelectorAll('td')]
+      .find((td) => td.textContent.trim() === 'Léo')
+      .click();
+    await esperar(() => expect(campo('Nome')?.value).toBe('Léo'));
+    await clicar('Tirar da equipe');
+    await clicar('Tirar da equipe', { ultimo: true });
+    await esperar(() =>
+      expect(texto()).toContain('Não é possível excluir "Léo"'),
+    );
+  });
+});
+
+describe('produtos', () => {
+  it('lista os produtos e nega nome repetido', async () => {
+    app = await montarApp('/produtos');
+    await esperar(() => expect(texto()).toContain('Pomada modeladora'));
+    await clicar('Novo produto');
+    await preencher('Nome', 'Pomada Modeladora');
+    await preencher('Preço de venda', '2990');
+    await clicar('Salvar');
+    await esperar(() =>
+      expect(texto()).toContain(
+        'Já existe um produto chamado "Pomada modeladora"',
+      ),
+    );
+  });
+
+  it('cadastra produto novo', async () => {
+    app = await montarApp('/produtos');
+    await clicar('Novo produto');
+    await preencher('Nome', 'Balm pós-barba');
+    await preencher('Preço de venda', '3200');
+    await clicar('Salvar');
+    await esperar(() => expect(texto()).toContain('Balm pós-barba cadastrado'));
+    await esperar(() =>
+      expect(
+        [...document.querySelectorAll('td')].some((td) =>
+          td.textContent.replace(/\s/g, ' ').includes('R$ 32,00'),
+        ),
+      ).toBe(true),
+    );
+  });
+});
+
+describe('serviços', () => {
   it('excluir serviço com agendamentos futuros é negado', async () => {
     app = await montarApp('/servicos');
     await esperar(() => expect(texto()).toContain('Pigmentação'));

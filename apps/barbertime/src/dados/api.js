@@ -156,6 +156,48 @@ export function criarApi({ agora = () => new Date() } = {}) {
       },
     },
 
+    produtos: {
+      async listar() {
+        return copia(banco.produtos).sort((a, b) =>
+          a.nome.localeCompare(b.nome, 'pt-BR'),
+        );
+      },
+      async salvar(dados) {
+        const nome = String(dados.nome ?? '').trim();
+        if (!nome) throw new ErroDeNegocio('Informe o nome do produto.');
+        if (!(dados.preco > 0))
+          throw new ErroDeNegocio('Informe o preço de venda do produto.');
+        const comissao = Number(dados.comissao ?? 0);
+        if (!(comissao >= 0 && comissao <= 100)) {
+          throw new ErroDeNegocio('A comissão precisa estar entre 0% e 100%.');
+        }
+        const repetido = banco.produtos.find(
+          (p) =>
+            p.nome.toLowerCase() === nome.toLowerCase() && p.id !== dados.id,
+        );
+        if (repetido)
+          throw new ErroDeNegocio(
+            `Já existe um produto chamado "${repetido.nome}".`,
+          );
+        const registro = { nome, preco: Number(dados.preco), comissao };
+        let salvo;
+        if (dados.id)
+          salvo = Object.assign(
+            buscar('produtos', dados.id, 'Produto'),
+            registro,
+          );
+        else
+          banco.produtos.push(
+            (salvo = { ...registro, id: proximoId(banco.produtos) }),
+          );
+        return copia(salvo);
+      },
+      async excluir(id) {
+        const produto = buscar('produtos', id, 'Produto');
+        banco.produtos = banco.produtos.filter((p) => p.id !== produto.id);
+      },
+    },
+
     barbeiros: {
       async listar() {
         return copia(banco.barbeiros);

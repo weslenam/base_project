@@ -232,3 +232,44 @@ describe('serviços e equipe', () => {
     );
   });
 });
+
+describe('produtos', () => {
+  it('lista em ordem alfabética', async () => {
+    expect((await api.produtos.listar()).map((p) => p.nome)).toEqual([
+      'Cera em pó',
+      'Óleo para barba',
+      'Pomada modeladora',
+      'Shampoo anticaspa',
+    ]);
+  });
+
+  it('cria, edita e exclui', async () => {
+    const novo = await api.produtos.salvar({
+      nome: 'Balm pós-barba',
+      preco: 32,
+      comissao: 10,
+    });
+    expect(novo.id).toBe(5);
+    await api.produtos.salvar({ ...novo, preco: 35 });
+    expect((await api.produtos.listar()).find((p) => p.id === 5).preco).toBe(
+      35,
+    );
+    await api.produtos.excluir(5);
+    expect((await api.produtos.listar()).some((p) => p.id === 5)).toBe(false);
+  });
+
+  it('recusa nome repetido, preço vazio e comissão fora do intervalo', async () => {
+    await recusa(
+      api.produtos.salvar({ nome: 'pomada MODELADORA', preco: 10 }),
+      'Já existe',
+    );
+    await recusa(
+      api.produtos.salvar({ nome: 'Novo', preco: null }),
+      'preço de venda',
+    );
+    await recusa(
+      api.produtos.salvar({ nome: 'Novo', preco: 10, comissao: 150 }),
+      'entre 0% e 100%',
+    );
+  });
+});

@@ -71,3 +71,4 @@
 - 2026-11-07: Plano criado.
 - 2026-11-07: Concluído. Testes: 96 de contrato na lib, 13 de domínio, 46 de utilitários e 24 no app (16 de dados e 8 de fluxo de tela). Lint e build sem avisos. As rotas viraram imports sob demanda (cada tela tem de 5 a 12 kB).
 - 2026-11-07: Durante a execução entraram `api.servicos.contarFuturos` (advertência ao mudar a duração), o bloqueio de horário na agenda e a vitrine dos três diálogos.
+- 2026-11-07: A tela "Serviços e equipe" foi separada em Equipe, Serviços e Produtos no planejamento 0007.

@@ -2,6 +2,7 @@
 // Telas usam o nome em pt-BR; trocar de pacote de ícones é mudar só este arquivo.
 import {
   mdiAccountClockOutline,
+  mdiAccountGroupOutline,
   mdiAccountMultipleOutline,
   mdiAccountOutline,
   mdiAlertOutline,
@@ -25,6 +26,7 @@ import {
   mdiLogout,
   mdiMagnify,
   mdiMenu,
+  mdiPackageVariantClosed,
   mdiPencilOutline,
   mdiPercentOutline,
   mdiPhoneOutline,
@@ -54,6 +56,7 @@ export const ICONES = Object.freeze({
   configuracoes: mdiCogOutline,
   dinheiro: mdiCashMultiple,
   editar: mdiPencilOutline,
+  equipe: mdiAccountGroupOutline,
   excluir: mdiDeleteOutline,
   fechar: mdiClose,
   fila: mdiAccountClockOutline,
@@ -62,6 +65,7 @@ export const ICONES = Object.freeze({
   inicio: mdiHomeOutline,
   menu: mdiMenu,
   notificacao: mdiBellOutline,
+  produto: mdiPackageVariantClosed,
   proximo: mdiChevronRight,
   relatorios: mdiChartBoxOutline,
   sair: mdiLogout,
