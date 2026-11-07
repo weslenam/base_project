@@ -20,7 +20,7 @@ export function testarDsLayout({ DsApp, DsLayout }, montar) {
 
   it('lista os itens do menu', async () => {
     const itensMenu = [
-      { titulo: 'Agenda', rota: '/agenda' },
+      { titulo: 'Agenda', rota: '/agenda', icone: 'agenda' },
       { titulo: 'Clientes', rota: '/clientes' },
     ];
     const w = montarLayout({ titulo: 'BarberTime', itensMenu });

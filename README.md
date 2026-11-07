@@ -88,7 +88,7 @@ apps/
   api/          → Fastify, rotas sob /api (porta 3333), roda direto no Node
 libs/
   ui-tokens/    → tokens gerados do tokens.json, fontes self-hosted e base tipográfica
-  ui-utils/     → formatarData, formatarMoeda... (sem framework)
+  ui-utils/     → formatação e máscaras brasileiras: datas, moeda, telefone, CPF (sem framework)
   ui-vuetify/   → implementação ativa (Vuetify 4) dos Ds* e composables (alias @barbertime/ui)
   ui-contrato/  → testes de contrato que toda implementação de UI precisa passar
 docker/         → scripts de inicialização dos serviços (postgres/init.sql)
@@ -109,17 +109,24 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 ## Kit de UI (`@barbertime/ui`)
 
-| Item                   | Para quê                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------- |
-| `DsApp`                | raiz obrigatória: tema, notificações e confirmações                                   |
-| `DsLayout`             | cabeçalho com slot `marca`, menu lateral (`itensMenu: [{ titulo, rota }]`) e conteúdo |
-| `DsBotao`              | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                    |
-| `DsInput` / `DsSelect` | campos com `rotulo`, `obrigatorio`, `regras`, `erro` (`opcoes: [{ valor, rotulo }]`)  |
-| `DsTabela`             | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`       |
-| `DsDialogo`            | `v-model`, `titulo`, slot `acoes`                                                     |
-| `useNotificacao()`     | `.sucesso()`, `.erro()`, `.aviso()`, `.info()`                                        |
-| `useConfirmacao()`     | `await confirmar('Excluir?')` devolve `true`/`false`                                  |
-| `useTema()`            | aplica o tema claro/escuro (a escolha é preferência, ADR 0006)                        |
+| Item                             | Para quê                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `DsApp`                          | raiz obrigatória: tema, notificações e confirmações                                              |
+| `DsLayout`                       | cabeçalho com slot `marca`, menu lateral (`itensMenu: [{ titulo, rota, icone? }]`) e conteúdo    |
+| `DsBotao`                        | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                               |
+| `DsInput` / `DsSelect`           | campos com `rotulo`, `obrigatorio`, `regras`, `erro` (`opcoes: [{ valor, rotulo }]`)             |
+| `DsTabela`                       | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`                  |
+| `DsDialogo`                      | `v-model`, `titulo`, slot `acoes`                                                                |
+| `DsIcone`                        | ícone por nome do catálogo (`agenda`, `clientes`, `caixa`, `whatsapp`...; ver `NOMES_DE_ICONES`) |
+| `DsSelo`                         | status com palavra: confirmado, pendente, assinante, fila, faltou, neutro                        |
+| `DsCartao`                       | superfície com `titulo`, conteúdo e slots `acoes` e `cabecalho-acoes`                            |
+| `DsHorarios`                     | escolha de horário: `opcoes: [{ hora, disponivel }]`, `v-model` com a hora                       |
+| `DsBlocoAgenda`                  | bloco da agenda: `cliente`, `servico`, `inicio`, `fim`, `estado`, `clicavel`                     |
+| `DsInputTelefone` / `DsInputCpf` | máscara e validação; o modelo guarda só dígitos                                                  |
+| `DsInputMoeda`                   | valor em reais digitado como centavos; o modelo é número                                         |
+| `useNotificacao()`               | `.sucesso()`, `.erro()`, `.aviso()`, `.info()`                                                   |
+| `useConfirmacao()`               | `await confirmar('Excluir?')` devolve `true`/`false`                                             |
+| `useTema()`                      | aplica o tema claro/escuro (a escolha é preferência, ADR 0006)                                   |
 
 Vitrine em `/componentes` no app. Os contratos de comportamento ficam em `libs/ui-contrato`.
 

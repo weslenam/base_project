@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import DsIcone from './DsIcone.vue';
 import {
   VAppBar,
   VAppBarNavIcon,
@@ -11,7 +12,7 @@ import { VNavigationDrawer } from 'vuetify/components/VNavigationDrawer';
 
 defineProps({
   titulo: { type: String, required: true },
-  /** [{ titulo, rota }] */
+  /** [{ titulo, rota, icone? }] (icone: nome do catálogo do DsIcone) */
   itensMenu: { type: Array, default: () => [] },
 });
 
@@ -81,6 +82,9 @@ const menuAberto = ref(null);
 .ds-layout__menu :deep(.v-list-item--active) {
   background: var(--cobre-suave);
   color: var(--cobre);
+}
+.ds-layout__icone {
+  margin-inline-end: var(--esp-3);
 }
 .ds-layout__conteudo {
   font-family: var(--font-sans);

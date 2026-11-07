@@ -1,11 +1,20 @@
 <script setup>
 import { ref } from 'vue';
 import {
+  DsBlocoAgenda,
   DsBotao,
+  DsCartao,
   DsDialogo,
+  DsHorarios,
+  DsIcone,
   DsInput,
+  DsInputCpf,
+  DsInputMoeda,
+  DsInputTelefone,
   DsSelect,
+  DsSelo,
   DsTabela,
+  NOMES_DE_ICONES,
   useConfirmacao,
   useNotificacao,
 } from '@barbertime/ui';
@@ -18,6 +27,52 @@ const confirmar = useConfirmacao();
 const nome = ref('');
 const servico = ref(null);
 const dialogoAberto = ref(false);
+const telefone = ref('11987654321');
+const cpf = ref(null);
+const preco = ref(45.9);
+const horario = ref('10:00');
+
+const horarios = [
+  '09:00',
+  '09:30',
+  '10:00',
+  '10:30',
+  '11:00',
+  '11:30',
+  '14:00',
+  '14:30',
+].map((hora, i) => ({ hora, disponivel: ![1, 4].includes(i) }));
+const blocos = [
+  {
+    cliente: 'Rafael Souza',
+    servico: 'Corte + barba',
+    inicio: '09:00',
+    fim: '09:50',
+    estado: 'confirmado',
+  },
+  {
+    cliente: 'Bruno Lima',
+    servico: 'Corte',
+    inicio: '10:00',
+    fim: '10:30',
+    estado: 'pendente',
+  },
+  {
+    cliente: 'Diego Alves',
+    servico: 'Barba (plano)',
+    inicio: '10:30',
+    fim: '10:50',
+    estado: 'assinante',
+  },
+  {
+    cliente: 'Encaixe da fila',
+    servico: 'Corte',
+    inicio: '11:00',
+    fim: '11:30',
+    estado: 'encaixe',
+  },
+  { cliente: 'Almoço', inicio: '12:00', fim: '13:00', estado: 'bloqueado' },
+];
 
 const servicos = [
   { valor: 'corte', rotulo: 'Corte' },
@@ -93,6 +148,64 @@ async function excluir() {
       />
     </div>
 
+    <h2 class="ds-subtitulo">Campos brasileiros</h2>
+    <div class="formulario">
+      <DsInputTelefone v-model="telefone" obrigatorio />
+      <DsInputCpf v-model="cpf" />
+      <DsInputMoeda v-model="preco" rotulo="Preço do serviço" />
+    </div>
+    <p class="ds-corpo-sm ds-suave">
+      Modelo: telefone <span class="ds-valor">{{ telefone ?? '—' }}</span> · CPF
+      <span class="ds-valor">{{ cpf ?? '—' }}</span> · preço
+      <span class="ds-valor">{{ preco ?? '—' }}</span>
+    </p>
+
+    <h2 class="ds-subtitulo">Selos</h2>
+    <div class="linha">
+      <DsSelo estado="confirmado" />
+      <DsSelo estado="pendente" />
+      <DsSelo estado="assinante" />
+      <DsSelo estado="fila">3 na fila</DsSelo>
+      <DsSelo estado="faltou" />
+      <DsSelo>Neutro</DsSelo>
+    </div>
+
+    <h2 class="ds-subtitulo">Horários</h2>
+    <DsHorarios
+      v-model="horario"
+      :opcoes="horarios"
+      rotulo="Horários de sábado"
+    />
+
+    <h2 class="ds-subtitulo">Agenda</h2>
+    <div class="blocos">
+      <DsBlocoAgenda
+        v-for="b in blocos"
+        :key="b.inicio"
+        v-bind="b"
+        :clicavel="b.estado !== 'bloqueado'"
+        @selecionar="notificar.info(`Abrir ${b.cliente}`)"
+      />
+    </div>
+
+    <h2 class="ds-subtitulo">Cartão</h2>
+    <DsCartao titulo="Caixa de hoje">
+      <p class="ds-rotulo">Faturamento</p>
+      <p class="ds-display">R$ 1.284</p>
+      <template #acoes>
+        <DsBotao variante="secundario" tamanho="sm">Ver comandas</DsBotao>
+        <DsBotao tamanho="sm">Fechar caixa</DsBotao>
+      </template>
+    </DsCartao>
+
+    <h2 class="ds-subtitulo">Ícones</h2>
+    <div class="icones">
+      <span v-for="icone in NOMES_DE_ICONES" :key="icone" class="icones__item">
+        <DsIcone :nome="icone" tamanho="lg" />
+        <span class="ds-corpo-sm">{{ icone }}</span>
+      </span>
+    </div>
+
     <h2 class="ds-subtitulo">Tabela</h2>
     <DsTabela
       :colunas="colunas"
@@ -134,5 +247,21 @@ async function excluir() {
 }
 h2 {
   margin-top: var(--esp-4);
+}
+.blocos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--esp-2);
+}
+.icones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--esp-2);
+}
+.icones__item {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--grafite);
 }
 </style>

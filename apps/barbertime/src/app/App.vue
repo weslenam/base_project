@@ -4,8 +4,8 @@ import { DsApp, DsLayout } from '@barbertime/ui';
 import Marca from './Marca.vue';
 
 const itensMenu = [
-  { titulo: 'Início', rota: '/' },
-  { titulo: 'Componentes', rota: '/componentes' },
+  { titulo: 'Início', rota: '/', icone: 'inicio' },
+  { titulo: 'Componentes', rota: '/componentes', icone: 'componentes' },
 ];
 </script>
 

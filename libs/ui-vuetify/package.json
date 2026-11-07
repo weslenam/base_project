@@ -19,7 +19,9 @@
     "@barbertime/ui-contrato": "workspace:*"
   },
   "dependencies": {
+    "@barbertime/ui-tokens": "workspace:*",
+    "@mdi/js": "7.4.47",
     "vuetify": "4.3.0",
-    "@barbertime/ui-tokens": "workspace:*"
+    "@barbertime/ui-utils": "workspace:*"
   }
 }

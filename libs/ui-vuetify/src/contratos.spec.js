@@ -10,6 +10,14 @@ import {
   testarUseNotificacao,
   testarUseConfirmacao,
   testarUseTema,
+  testarDsIcone,
+  testarDsSelo,
+  testarDsCartao,
+  testarDsHorarios,
+  testarDsBlocoAgenda,
+  testarDsInputTelefone,
+  testarDsInputCpf,
+  testarDsInputMoeda,
 } from '@barbertime/ui-contrato';
 import {
   instalarUi,
@@ -23,6 +31,15 @@ import {
   useNotificacao,
   useConfirmacao,
   useTema,
+  DsIcone,
+  NOMES_DE_ICONES,
+  DsSelo,
+  DsCartao,
+  DsHorarios,
+  DsBlocoAgenda,
+  DsInputTelefone,
+  DsInputCpf,
+  DsInputMoeda,
 } from './index.js';
 import { montar } from './testes/montar.js';
 
@@ -39,3 +56,15 @@ describe('Vuetify: useNotificacao', () =>
 describe('Vuetify: useConfirmacao', () =>
   testarUseConfirmacao({ DsApp, useConfirmacao }, montar));
 describe('Vuetify: useTema', () => testarUseTema(useTema, montar));
+describe('Vuetify: DsIcone', () =>
+  testarDsIcone({ DsIcone, NOMES_DE_ICONES }, montar));
+describe('Vuetify: DsSelo', () => testarDsSelo(DsSelo, montar));
+describe('Vuetify: DsCartao', () => testarDsCartao(DsCartao, montar));
+describe('Vuetify: DsHorarios', () => testarDsHorarios(DsHorarios, montar));
+describe('Vuetify: DsBlocoAgenda', () =>
+  testarDsBlocoAgenda(DsBlocoAgenda, montar));
+describe('Vuetify: DsInputTelefone', () =>
+  testarDsInputTelefone(DsInputTelefone, montar));
+describe('Vuetify: DsInputCpf', () => testarDsInputCpf(DsInputCpf, montar));
+describe('Vuetify: DsInputMoeda', () =>
+  testarDsInputMoeda(DsInputMoeda, montar));
