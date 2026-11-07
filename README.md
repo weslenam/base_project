@@ -120,6 +120,8 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 | `/agendar/:slug` | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`): serviço → barbeiro → dia → horário → dados                                                    |
 | `/componentes`   | Vitrine do kit de UI                                                                                                                                              |
 
+**Cliente no balcão (comanda e novo agendamento):** busca pelo telefone. Os últimos 4 dígitos já bastam, e quem termina com eles aparece primeiro. Se o número completo não tiver cadastro, dá para cadastrar ali mesmo com o nome. Na comanda, deixar sem cliente grava como **cliente avulso**: entra no caixa e na comissão do barbeiro, mas não vai para o histórico de ninguém. O agendamento sempre exige cliente.
+
 **Dados de exemplo:** até a API de negócio existir, as telas usam `src/dados/api.js`, em memória (Barbearia do Zé, 3 barbeiros, 4 serviços, 4 produtos, 8 clientes, caixa do dia aberto com 3 comandas). Recarregar a página volta ao exemplo. As recusas de negócio (horário ocupado, telefone repetido, exclusão em uso) chegam como `ErroDeNegocio` e aparecem no diálogo de negação.
 
 ## Kit de UI (`@barbertime/ui`)

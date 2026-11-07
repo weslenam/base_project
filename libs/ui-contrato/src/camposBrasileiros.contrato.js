@@ -29,6 +29,14 @@ export function testarDsInputTelefone(DsInputTelefone, montar) {
     await esperar(() => expect(w.text()).toContain('Telefone inválido'));
   });
 
+  it('validarNumero=false não acusa número incompleto (uso em busca)', async () => {
+    const w = montar(DsInputTelefone, { props: { validarNumero: false } });
+    await w.find('input').setValue('1198');
+    expect(ultimoEmitido(w)).toBe('1198');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(w.text()).not.toContain('Telefone inválido');
+  });
+
   it('tem rótulo padrão "Telefone"', () => {
     expect(montar(DsInputTelefone).text()).toContain('Telefone');
   });

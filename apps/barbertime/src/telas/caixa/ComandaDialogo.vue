@@ -19,6 +19,7 @@ import { FORMAS_DE_PAGAMENTO, totalDaComanda } from '@barbertime/dominio';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
 import { rotuloDaForma, seloDaComanda } from './rotulos.js';
+import BuscaCliente from '../clientes/BuscaCliente.vue';
 
 // Comanda (planejamentos 0008 e 0010): itens em abas de serviço e produto à
 // esquerda; pagamento estilo PDV à direita.
@@ -29,7 +30,6 @@ const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const clientes = ref([]);
 const barbeiros = ref([]);
 const catalogo = ref({ servico: [], produto: [] });
 const comanda = ref(null);
@@ -41,13 +41,11 @@ watch(aberto, async (abriu) => {
   if (!abriu) return;
   aba.value = 'servico';
   novoItem.value = { id: null, quantidade: 1 };
-  const [c, b, servicos, produtos] = await Promise.all([
-    api.clientes.listar(),
+  const [b, servicos, produtos] = await Promise.all([
     api.barbeiros.listar(),
     api.servicos.listar(),
     api.produtos.listar(),
   ]);
-  clientes.value = c;
   barbeiros.value = b;
   catalogo.value = { servico: servicos, produto: produtos };
   comanda.value = props.id
@@ -106,9 +104,6 @@ const abas = computed(() =>
   })),
 );
 
-const opcoesClientes = computed(() =>
-  clientes.value.map((c) => ({ valor: c.id, rotulo: c.nome })),
-);
 const opcoesBarbeiros = computed(() =>
   barbeiros.value.map((b) => ({ valor: b.id, rotulo: b.nome })),
 );
@@ -207,13 +202,15 @@ async function cancelar() {
       <!-- Itens -->
       <section class="itens" aria-label="Itens da comanda">
         <div class="dupla">
-          <DsSelect
+          <BuscaCliente
+            v-if="editavel"
             v-model="comanda.clienteId"
-            rotulo="Cliente (vazio = avulso)"
-            :opcoes="opcoesClientes"
-            limpavel
-            :desabilitado="!editavel"
+            permitir-avulso
           />
+          <div v-else class="cliente-leitura">
+            <p class="ds-rotulo">Cliente</p>
+            <p>{{ comanda.clienteNome }}</p>
+          </div>
           <DsSelect
             v-model="comanda.barbeiroId"
             rotulo="Barbeiro"
@@ -378,7 +375,8 @@ async function cancelar() {
 }
 .dupla {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  align-items: start;
   gap: var(--esp-3);
 }
 .painel {

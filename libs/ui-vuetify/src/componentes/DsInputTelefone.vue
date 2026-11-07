@@ -15,6 +15,8 @@ defineProps({
   erro: { type: String, default: '' },
   obrigatorio: Boolean,
   desabilitado: Boolean,
+  /** false: não acusa número incompleto (ex.: campo de busca). */
+  validarNumero: { type: Boolean, default: true },
 });
 
 const extrair = (texto) => somenteDigitos(texto).slice(0, 11) || null;
@@ -25,7 +27,7 @@ const extrair = (texto) => somenteDigitos(texto).slice(0, 11) || null;
     v-model="modelo"
     :formatar="formatarTelefone"
     :extrair="extrair"
-    :validar="validarTelefone"
+    :validar="validarNumero ? validarTelefone : null"
     mensagem-invalida="Telefone inválido"
     modo-teclado="tel"
     dica="(11) 98765-4321"

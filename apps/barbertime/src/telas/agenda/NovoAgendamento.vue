@@ -13,6 +13,7 @@ import {
 import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
+import BuscaCliente from '../clientes/BuscaCliente.vue';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ data: { type: String, required: true } });
@@ -22,7 +23,8 @@ const { advertir } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const clientes = ref([]);
+const clienteEscolhido = ref(null);
+const erroCliente = ref('');
 const barbeiros = ref([]);
 const servicos = ref([]);
 const form = ref(vazio());
@@ -44,8 +46,9 @@ watch(aberto, async (abriu) => {
   if (!abriu) return;
   form.value = vazio();
   erroHorario.value = '';
-  [clientes.value, barbeiros.value, servicos.value] = await Promise.all([
-    api.clientes.listar(),
+  erroCliente.value = '';
+  clienteEscolhido.value = null;
+  [barbeiros.value, servicos.value] = await Promise.all([
     api.barbeiros.listar(),
     api.servicos.listar(),
   ]);
@@ -68,9 +71,6 @@ watch(
   carregarHorarios,
 );
 
-const opcoesClientes = computed(() =>
-  clientes.value.map((c) => ({ valor: c.id, rotulo: c.nome })),
-);
 const opcoesBarbeiros = computed(() =>
   barbeiros.value.map((b) => ({
     valor: b.id,
@@ -88,11 +88,15 @@ const podeMostrarHorarios = computed(
 );
 
 async function agendar() {
+  if (!form.value.clienteId) {
+    erroCliente.value = 'Ache o cliente pelo telefone ou cadastre um novo.';
+    return;
+  }
   if (!form.value.hora) {
     erroHorario.value = 'Escolha um horário.';
     return;
   }
-  const cliente = clientes.value.find((c) => c.id === form.value.clienteId);
+  const cliente = clienteEscolhido.value;
   if (cliente?.faltas) {
     const seguir = await advertir(
       `${cliente.nome} faltou ${cliente.faltas} ${cliente.faltas > 1 ? 'vezes' : 'vez'} recentemente. Agendar mesmo assim?`,
@@ -131,12 +135,11 @@ watch(
 <template>
   <DsDialogo v-model="aberto" titulo="Novo agendamento" largura="md">
     <DsFormulario id="form-novo-agendamento" @enviar="agendar">
-      <DsSelect
+      <BuscaCliente
         v-model="form.clienteId"
-        rotulo="Cliente"
-        :opcoes="opcoesClientes"
-        obrigatorio
+        @selecionado="(c) => ((clienteEscolhido = c), (erroCliente = ''))"
       />
+      <p v-if="erroCliente" class="erro" role="alert">{{ erroCliente }}</p>
       <DsSelect
         v-model="form.servicoId"
         rotulo="Serviço"
@@ -184,6 +187,7 @@ watch(
 .horarios .ds-rotulo {
   margin: 0;
 }
+.erro,
 .horarios__erro {
   margin: 0;
   color: var(--perigo);
