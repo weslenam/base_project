@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0001, 0002 e 0004, ADRs 0006, 0007 e 0008, skill `design-system`
-- **Commits:** ainda não commitado (branch `feat/kit-base-ds`)
+- **Commits:** 527a020 (branch `feat/kit-base-ds`)
 
 ## Solicitação de origem
 

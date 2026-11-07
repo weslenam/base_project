@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0001 (fase 0) e 0003, ADRs 0001, 0002, 0003 e 0008
-- **Commits:** ainda não commitado (branch `feat/kit-base-ds`)
+- **Commits:** 527a020 (branch `feat/kit-base-ds`)
 
 ## Solicitação de origem
 
