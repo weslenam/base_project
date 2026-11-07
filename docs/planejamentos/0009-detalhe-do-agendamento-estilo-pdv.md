@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0006 e 0008, skill `design-system`
-- **Commits:** ainda não commitado (branch `feat/caixa-comanda`)
+- **Commits:** 98e69ac (branch `feat/caixa-comanda`)
 
 ## Solicitação de origem
 
