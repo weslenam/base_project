@@ -33,3 +33,18 @@ export {
   moduloDoCatalogo,
   transicaoDeModulo,
 } from './modulos.js';
+export { somarMeses, diasEntre, inicioDaSemana, diaEMes } from './agenda.js';
+export {
+  FIDELIDADE_PADRAO,
+  validarConfigFidelidade,
+  creditosDaComanda,
+  saldoDeFidelidade,
+} from './fidelidade.js';
+export {
+  TIPOS_DE_PACOTE,
+  validarPacote,
+  vigenciaDoPacote,
+  saldoDoPacote,
+  podeUsarPacote,
+  renovarAssinatura,
+} from './pacotes.js';

@@ -6,7 +6,7 @@
 
 ## Contexto
 
-O produto tem funcionalidades que nem toda barbearia usa ou paga: gateway de pagamento, WhatsApp, NFS-e, fidelidade. O gateway, em particular, deve ser um **serviço adicional**, contratado à parte.
+O produto tem funcionalidades que nem toda barbearia usa ou paga: gateway de pagamento, WhatsApp, NFS-e, fidelidade e pacotes. O gateway, em particular, deve ser um **serviço adicional**, contratado à parte.
 
 ## Decisão
 
@@ -22,3 +22,11 @@ O produto tem funcionalidades que nem toda barbearia usa ou paga: gateway de pag
 
 - Uma funcionalidade opcional nova nasce como módulo do catálogo.
 - O plano do SaaS (Solo, Equipe, Pro, Rede) poderá definir quais módulos vêm inclusos, sem mudar este modelo.
+
+## Catálogo atual
+
+| Módulo                                                                                            | Tipo      | Desde             |
+| ------------------------------------------------------------------------------------------------- | --------- | ----------------- |
+| Agendamento online, Comissões, Lembretes por e-mail                                               | incluso   | planejamento 0013 |
+| Pagamento online (gateway), WhatsApp, Nota fiscal (NFS-e)                                         | adicional | planejamento 0013 |
+| Fidelidade (selos e/ou cashback), Pacotes (por quantidade ou livres; recorrentes ou com validade) | adicional | planejamento 0015 |

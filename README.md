@@ -118,7 +118,7 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 - **Login** por sessão em cookie (ADR 0009). Cada usuário tem um **papel** em cada barbearia: Dono, Gerente, Recepção, Barbeiro ou papéis criados pelo dono com permissões do catálogo (ADR 0010). O menu mostra só o que o papel permite, e a API recusa o resto (403).
 - **Isolamento por barbearia** com RLS no PostgreSQL (ADR 0001), coberto por teste de integração.
-- **Módulos** (ADR 0011): inclusos no plano (agendamento online, comissões, lembretes) a barbearia ativa; **serviços adicionais** (pagamento online/gateway, WhatsApp, NFS-e) são solicitados e ativados depois da contratação.
+- **Módulos** (ADR 0011): inclusos no plano (agendamento online, comissões, lembretes) a barbearia ativa; **serviços adicionais** (pagamento online/gateway, WhatsApp, NFS-e, **fidelidade** e **pacotes**) são solicitados e ativados depois da contratação. A semente de desenvolvimento já ativa fidelidade e pacotes.
 - **Já na API real:** login, cadastro da barbearia, usuários, papéis e módulos. As demais telas ainda usam os dados de exemplo (próxima fase do planejamento 0013).
 
 ## Telas
@@ -130,12 +130,16 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 | `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                         |
 | `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`), em etapas: serviço → barbeiro → dia → horário → dados                                         |
 | `/componentes`          | Vitrine do kit de UI                                                                                                                                              |
+| `/pacotes`              | Pacotes de serviços: por quantidade ou livres, mensais ou de compra única, com intervalo mínimo e/ou máximo por semana (módulo Pacotes)                           |
+| `/fidelidade`           | Cartão de selos e/ou cashback (módulo Fidelidade)                                                                                                                 |
 | `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar                                                                                   |
 | `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                         |
 | `/modulos`              | Módulos inclusos e serviços adicionais                                                                                                                            |
 | `/entrar` · `/cadastro` | Login e cadastro self-service da barbearia                                                                                                                        |
 
 **Cliente no balcão (comanda e novo agendamento):** um campo aceita nome ou telefone. Com letras, busca pelo nome; com números, pelo telefone (os últimos 4 dígitos já bastam). Quem começa com o nome ou termina com os dígitos aparece primeiro. Se nada for encontrado, dá para cadastrar ali mesmo, com o que foi digitado já preenchido. O botão "Procurar na lista" abre todos os clientes com atendimentos, última visita e faltas. Na comanda, deixar sem cliente grava como **cliente avulso**: entra no caixa e na comissão do barbeiro, mas não vai para o histórico de ninguém. O agendamento sempre exige cliente.
+
+**Fidelidade e pacotes no balcão:** o cadastro do cliente mostra os selos, o cashback e os pacotes com saldo por serviço, além de "Vender pacote". O pacote vendido abre uma comanda no caixa e passa a valer quando ela é paga. Na comanda, ao escolher um serviço coberto pelo pacote do cliente, "Usar o pacote" já vem marcado: o serviço sai por R$ 0 e o uso fica registrado, respeitando a quantidade, a vigência e os limites. Receber uma comanda paga com cliente identificado credita o selo e o cashback configurados.
 
 **Dados de exemplo:** até a API de negócio existir, as telas usam `src/dados/api.js`, em memória (Barbearia do Zé, 3 barbeiros, 4 serviços, 4 produtos, 8 clientes, caixa do dia aberto com 3 comandas). Recarregar a página volta ao exemplo. As recusas de negócio (horário ocupado, telefone repetido, exclusão em uso) chegam como `ErroDeNegocio` e aparecem no diálogo de negação.
 

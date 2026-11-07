@@ -68,6 +68,24 @@ export const PERMISSOES = Object.freeze([
     descricao: 'Ativar módulos e solicitar serviços adicionais',
   },
   {
+    chave: 'fidelidade.gerenciar',
+    grupo: 'Fidelidade',
+    descricao: 'Configurar selos e cashback',
+    modulo: 'fidelidade',
+  },
+  {
+    chave: 'pacotes.gerenciar',
+    grupo: 'Pacotes',
+    descricao: 'Montar pacotes de serviços',
+    modulo: 'pacotes',
+  },
+  {
+    chave: 'pacotes.vender',
+    grupo: 'Pacotes',
+    descricao: 'Vender pacotes e usá-los no balcão',
+    modulo: 'pacotes',
+  },
+  {
     chave: 'pagamentos.operar',
     grupo: 'Pagamento online',
     descricao: 'Gerar cobranças online e acompanhar pagamentos',
@@ -109,6 +127,7 @@ export const PAPEIS_PADRAO = Object.freeze([
       'clientes.ver',
       'clientes.editar',
       'caixa.operar',
+      'pacotes.vender',
     ],
   },
   {

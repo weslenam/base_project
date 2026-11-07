@@ -32,6 +32,8 @@ describe('permissões', () => {
     }
     expect(papel('recepcao')).not.toContain('caixa.fechar');
     expect(papel('barbeiro')).toEqual(['agenda.ver_propria']);
+    expect(papel('recepcao')).toContain('pacotes.vender');
+    expect(papel('recepcao')).not.toContain('pacotes.gerenciar');
   });
 
   it('recusa permissão fora do catálogo', () => {
@@ -54,14 +56,18 @@ describe('permissões', () => {
       'Cadastros',
       'Relatórios',
       'Administração',
+      'Fidelidade',
+      'Pacotes',
       'Pagamento online',
     ]);
   });
 });
 
 describe('módulos', () => {
-  it('gateway é serviço adicional', () => {
-    expect(moduloDoCatalogo('pagamentos_online').tipo).toBe('adicional');
+  it('gateway, fidelidade e pacotes são serviços adicionais', () => {
+    for (const m of ['pagamentos_online', 'fidelidade', 'pacotes']) {
+      expect(moduloDoCatalogo(m).tipo).toBe('adicional');
+    }
     expect(MODULOS.some((m) => m.tipo === 'incluso')).toBe(true);
   });
 

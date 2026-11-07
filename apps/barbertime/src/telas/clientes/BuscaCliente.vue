@@ -9,6 +9,7 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import {
+  formatarMoeda,
   formatarTelefone,
   somenteDigitos,
   validarTelefone,
@@ -16,6 +17,7 @@ import {
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
 import ListaClientesDialogo from './ListaClientesDialogo.vue';
+import { moduloAtivo } from '../../sessao/sessao.js';
 
 /**
  * Escolha de cliente no balcão (planejamento 0012): um campo para nome OU
@@ -39,6 +41,13 @@ const buscou = ref(false);
 const novo = ref({ nome: '', telefone: null });
 const cadastrando = ref(false);
 const listaAberta = ref(false);
+const fidelidade = ref(null);
+
+// Saldo de fidelidade do cliente escolhido (planejamento 0015).
+watch(cliente, async (c) => {
+  fidelidade.value =
+    c && moduloAtivo('fidelidade') ? await api.fidelidade.saldo(c.id) : null;
+});
 
 // Cliente já escolhido (ex.: comanda aberta a partir de agendamento).
 watch(
@@ -137,6 +146,12 @@ const cadastroCompleto = computed(
         <p class="ds-valor ds-suave">
           {{ formatarTelefone(cliente.telefone) }}
         </p>
+        <p v-if="fidelidade" class="ds-corpo-sm fidelidade">
+          <template v-if="fidelidade.necessarios"
+            >{{ fidelidade.selos }} selos ·
+          </template>
+          {{ formatarMoeda(fidelidade.cashback) }} de cashback
+        </p>
       </div>
       <DsSelo v-if="cliente.faltas" estado="faltou">
         {{ cliente.faltas }} {{ cliente.faltas > 1 ? 'faltas' : 'falta' }}
@@ -234,6 +249,10 @@ const cadastroCompleto = computed(
   display: grid;
   flex: 1;
   min-width: 10rem;
+}
+.fidelidade {
+  color: var(--sucesso);
+  font-weight: 600;
 }
 .escolhido__nome {
   font-weight: 600;

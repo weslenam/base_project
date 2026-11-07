@@ -18,7 +18,16 @@ const existe = await fastify.db.query(
   "select id from barbearias where slug = 'barbearia-modelo'",
 );
 if (existe.rowCount) {
-  console.log('Semente já aplicada.');
+  // Garante os módulos da semente também em bancos semeados antes do planejamento 0015.
+  await fastify.comBarbearia(existe.rows[0].id, (c) =>
+    c.query(
+      `insert into barbearia_modulos (barbearia_id, modulo, estado)
+       select $1, m, 'ativo' from unnest(array['fidelidade', 'pacotes']) m
+       on conflict (barbearia_id, modulo) do nothing`,
+      [existe.rows[0].id],
+    ),
+  );
+  console.log('Semente já aplicada (módulos Fidelidade e Pacotes garantidos).');
 } else {
   const { barbearia, papeis } = await criarBarbearia(fastify, {
     nome: 'Barbearia do Zé',
@@ -42,10 +51,14 @@ if (existe.rowCount) {
         [barbearia.id, u.id, papeis[chave]],
       );
     }
-    await c.query(
-      "insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, 'comissoes', 'ativo')",
-      [barbearia.id],
-    );
+    // Comissões (incluso) e, como se a contratação já estivesse confirmada,
+    // os adicionais Fidelidade e Pacotes (planejamento 0015).
+    for (const modulo of ['comissoes', 'fidelidade', 'pacotes']) {
+      await c.query(
+        "insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, $2, 'ativo')",
+        [barbearia.id, modulo],
+      );
+    }
   });
   console.log(`Semente aplicada. Entre com dono@barbertime.dev / ${SENHA}.`);
 }

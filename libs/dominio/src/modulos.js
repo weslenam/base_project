@@ -22,6 +22,20 @@ export const MODULOS = Object.freeze([
     tipo: 'incluso',
   },
   {
+    chave: 'fidelidade',
+    nome: 'Fidelidade',
+    descricao:
+      'Selos (a cada N atendimentos, um serviço de prêmio) e/ou cashback em crédito para a próxima visita.',
+    tipo: 'adicional',
+  },
+  {
+    chave: 'pacotes',
+    nome: 'Pacotes',
+    descricao:
+      'Pacotes de serviços por quantidade ou livres, recorrentes ou com validade, com controle de uso.',
+    tipo: 'adicional',
+  },
+  {
     chave: 'pagamentos_online',
     nome: 'Pagamento online',
     descricao:

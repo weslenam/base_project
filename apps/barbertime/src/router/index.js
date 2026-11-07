@@ -65,6 +65,24 @@ export const rotas = [
     },
   },
   {
+    path: '/pacotes',
+    component: () => import('../telas/pacotes/PacotesView.vue'),
+    meta: {
+      permissoes: ['pacotes.gerenciar'],
+      modulo: 'pacotes',
+      menu: { titulo: 'Pacotes', icone: 'assinante' },
+    },
+  },
+  {
+    path: '/fidelidade',
+    component: () => import('../telas/fidelidade/FidelidadeView.vue'),
+    meta: {
+      permissoes: ['fidelidade.gerenciar'],
+      modulo: 'fidelidade',
+      menu: { titulo: 'Fidelidade', icone: 'check' },
+    },
+  },
+  {
     path: '/usuarios',
     component: () => import('../telas/administracao/UsuariosView.vue'),
     meta: {

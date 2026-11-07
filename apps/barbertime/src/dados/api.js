@@ -1,4 +1,12 @@
 import {
+  creditosDaComanda,
+  FIDELIDADE_PADRAO,
+  podeUsarPacote,
+  saldoDeFidelidade,
+  saldoDoPacote,
+  validarConfigFidelidade,
+  validarPacote,
+  vigenciaDoPacote,
   diferencaDeCaixa,
   fimDe,
   motivoParaNaoReceber,
@@ -23,6 +31,8 @@ import { criarDadosDeExemplo } from './exemplo.js';
 export function criarApi({ agora = () => new Date() } = {}) {
   let banco = criarDadosDeExemplo(hojeIso(agora()));
   const copia = (v) => structuredClone(v);
+  /** Módulos ativos da barbearia (vêm da sessão; ADR 0011). */
+  let modulosAtivos = [];
   const proximoId = (lista) => Math.max(0, ...lista.map((i) => i.id)) + 1;
   const hoje = () => hojeIso(agora());
   const horaAgora = () =>
@@ -128,13 +138,37 @@ export function criarApi({ agora = () => new Date() } = {}) {
 
   function normalizarItens(itens = [], barbeiroId) {
     return itens.map((i) => {
+      const quantidade = Math.max(1, Math.round(Number(i.quantidade) || 1));
+      const barbeiro = Number(i.barbeiroId ?? barbeiroId);
+      if (i.tipo === 'pacote') {
+        const pacote = buscar('pacotes', i.refId, 'Pacote');
+        return {
+          tipo: 'pacote',
+          refId: pacote.id,
+          nome: i.nome ?? `Pacote: ${pacote.nome}`,
+          preco: Number(i.preco ?? pacote.preco),
+          quantidade: 1,
+          barbeiroId: barbeiro,
+        };
+      }
       const lista = i.tipo === 'produto' ? 'produtos' : 'servicos';
       const ref = buscar(
         lista,
         i.refId,
         i.tipo === 'produto' ? 'Produto' : 'Serviço',
       );
-      const quantidade = Math.max(1, Math.round(Number(i.quantidade) || 1));
+      // Serviço usado por pacote: sai por R$ 0 e fica ligado à assinatura (planejamento 0015).
+      if (i.tipo !== 'produto' && i.assinaturaId) {
+        return {
+          tipo: 'servico',
+          refId: ref.id,
+          nome: i.nome ?? `${ref.nome} (pacote)`,
+          preco: 0,
+          quantidade: 1,
+          barbeiroId: barbeiro,
+          assinaturaId: Number(i.assinaturaId),
+        };
+      }
       // Guarda nome e preço do momento da venda (base da comissão futura).
       return {
         tipo: i.tipo === 'produto' ? 'produto' : 'servico',
@@ -142,15 +176,65 @@ export function criarApi({ agora = () => new Date() } = {}) {
         nome: i.nome ?? ref.nome,
         preco: Number(i.preco ?? ref.preco),
         quantidade,
-        barbeiroId: Number(i.barbeiroId ?? barbeiroId),
+        barbeiroId: barbeiro,
       };
     });
+  }
+
+  const pacoteDa = (assinatura) =>
+    buscar('pacotes', assinatura.pacoteId, 'Pacote');
+
+  /** Confere cada uso de pacote da comanda, somando os usos da própria comanda. */
+  function validarUsosDePacote(itens, clienteId) {
+    const pendentes = new Map();
+    for (const item of itens.filter((i) => i.assinaturaId)) {
+      const assinatura = buscar(
+        'assinaturas',
+        item.assinaturaId,
+        'Pacote do cliente',
+      );
+      if (assinatura.clienteId !== clienteId) {
+        throw new ErroDeNegocio('Esse pacote é de outro cliente.');
+      }
+      if (assinatura.estado !== 'ativa') {
+        throw new ErroDeNegocio(
+          'Esse pacote ainda não foi pago ou foi cancelado.',
+        );
+      }
+      const ja = pendentes.get(assinatura.id) ?? [];
+      const r = podeUsarPacote({
+        pacote: pacoteDa(assinatura),
+        assinatura: { ...assinatura, usos: [...assinatura.usos, ...ja] },
+        servicoId: item.refId,
+        data: hoje(),
+      });
+      if (!r.ok) throw new ErroDeNegocio(r.motivo);
+      pendentes.set(assinatura.id, [
+        ...ja,
+        { servicoId: item.refId, data: hoje() },
+      ]);
+    }
+  }
+
+  function completarAssinatura(a) {
+    const pacote = pacoteDa(a);
+    return {
+      ...a,
+      pacote,
+      saldo: a.inicio ? saldoDoPacote(pacote, a) : [],
+      vigente: a.estado === 'ativa' && a.inicio <= hoje() && hoje() <= a.fim,
+    };
   }
 
   const api = {
     /** Só para testes e para o botão "restaurar exemplo". */
     reiniciar() {
       banco = criarDadosDeExemplo(hoje());
+    },
+
+    /** A sessão informa os módulos ativos (fidelidade só credita com o módulo ativo). */
+    definirModulosAtivos(lista = []) {
+      modulosAtivos = [...lista];
     },
 
     barbearia: {
@@ -435,6 +519,10 @@ export function criarApi({ agora = () => new Date() } = {}) {
           throw new ErroDeNegocio('Escolha o barbeiro da comanda.');
         const barbeiro = buscar('barbeiros', dados.barbeiroId, 'Barbeiro');
         const itens = normalizarItens(dados.itens, barbeiro.id);
+        validarUsosDePacote(
+          itens,
+          dados.clienteId ? Number(dados.clienteId) : null,
+        );
         const desconto = Number(dados.desconto || 0);
         if (desconto < 0 || desconto > totalDaComanda({ itens }).subtotal) {
           throw new ErroDeNegocio(
@@ -479,12 +567,48 @@ export function criarApi({ agora = () => new Date() } = {}) {
           forma: forma ?? comanda.forma,
         });
         if (motivo) throw new ErroDeNegocio(motivo);
+        validarUsosDePacote(comanda.itens, comanda.clienteId);
         Object.assign(comanda, {
           forma: forma ?? comanda.forma,
           estado: 'paga',
           pagaAs: horaAgora(),
         });
-        return copia(completarComanda(comanda));
+        // Pacotes: registra os usos e ativa o pacote vendido nesta comanda.
+        for (const item of comanda.itens) {
+          if (item.assinaturaId) {
+            buscar(
+              'assinaturas',
+              item.assinaturaId,
+              'Pacote do cliente',
+            ).usos.push({
+              servicoId: item.refId,
+              data: hoje(),
+              comandaId: comanda.id,
+            });
+          }
+        }
+        for (const a of banco.assinaturas.filter(
+          (x) => x.comandaVendaId === comanda.id,
+        )) {
+          Object.assign(a, {
+            estado: 'ativa',
+            ...vigenciaDoPacote(pacoteDa(a), hoje()),
+          });
+        }
+        // Fidelidade: selo e cashback (só com o módulo ativo e cliente identificado).
+        let creditos = [];
+        if (modulosAtivos.includes('fidelidade')) {
+          creditos = creditosDaComanda(
+            comanda,
+            banco.fidelidade,
+            hoje(),
+          ).movimentos.map((m) => ({
+            ...m,
+            clienteId: comanda.clienteId,
+          }));
+          banco.extratoFidelidade.push(...creditos);
+        }
+        return copia({ ...completarComanda(comanda), creditos });
       },
       async cancelar(id) {
         const comanda = buscar('comandas', id, 'Comanda');
@@ -494,6 +618,11 @@ export function criarApi({ agora = () => new Date() } = {}) {
           );
         }
         comanda.estado = 'cancelada';
+        for (const a of banco.assinaturas.filter(
+          (x) => x.comandaVendaId === comanda.id,
+        )) {
+          a.estado = 'cancelada';
+        }
         return copia(completarComanda(comanda));
       },
       /** Abre (ou reabre a existente) a comanda de um agendamento, com cliente, barbeiro e serviço. */
@@ -513,6 +642,162 @@ export function criarApi({ agora = () => new Date() } = {}) {
           barbeiroId: ag.barbeiroId,
           agendamentoId: ag.id,
           itens: ag.servicoId ? [{ tipo: 'servico', refId: ag.servicoId }] : [],
+        });
+      },
+    },
+
+    fidelidade: {
+      async obterConfig() {
+        return copia(banco.fidelidade ?? FIDELIDADE_PADRAO);
+      },
+      async salvarConfig(config) {
+        const motivo = validarConfigFidelidade(config);
+        if (motivo) throw new ErroDeNegocio(motivo);
+        if (config.selos?.ativo)
+          buscar('servicos', config.selos.premioServicoId, 'Serviço de prêmio');
+        banco.fidelidade = copia(config);
+        return copia(banco.fidelidade);
+      },
+      async saldo(clienteId) {
+        const movimentos = banco.extratoFidelidade.filter(
+          (m) => m.clienteId === Number(clienteId),
+        );
+        return saldoDeFidelidade(
+          movimentos,
+          banco.fidelidade ?? FIDELIDADE_PADRAO,
+          hoje(),
+        );
+      },
+      async extrato(clienteId) {
+        return copia(
+          banco.extratoFidelidade
+            .filter((m) => m.clienteId === Number(clienteId))
+            .sort((a, b) => (a.data < b.data ? 1 : -1)),
+        );
+      },
+    },
+
+    pacotes: {
+      async listar() {
+        return copia(banco.pacotes);
+      },
+      async salvar(dados) {
+        const itens = (dados.itens ?? []).map((i) => ({
+          servicoId: Number(i.servicoId) || null,
+          servicoNome: banco.servicos.find((x) => x.id === Number(i.servicoId))
+            ?.nome,
+          quantidade:
+            i.quantidade == null || i.quantidade === ''
+              ? null
+              : Number(i.quantidade),
+        }));
+        const pacote = {
+          id: dados.id,
+          nome: String(dados.nome ?? '').trim(),
+          preco: Number(dados.preco),
+          tipo: dados.tipo,
+          validadeDias:
+            dados.tipo === 'unico' ? Number(dados.validadeDias) : null,
+          itens,
+          limites: {
+            intervaloMinimoDias: dados.limites?.intervaloMinimoDias
+              ? Number(dados.limites.intervaloMinimoDias)
+              : null,
+            maximoPorSemana: dados.limites?.maximoPorSemana
+              ? Number(dados.limites.maximoPorSemana)
+              : null,
+          },
+        };
+        const motivo = validarPacote(pacote);
+        if (motivo) throw new ErroDeNegocio(motivo);
+        const repetido = banco.pacotes.find(
+          (p) =>
+            p.nome.toLowerCase() === pacote.nome.toLowerCase() &&
+            p.id !== dados.id,
+        );
+        if (repetido)
+          throw new ErroDeNegocio(
+            `Já existe um pacote chamado "${repetido.nome}".`,
+          );
+        if (dados.id)
+          Object.assign(buscar('pacotes', dados.id, 'Pacote'), pacote);
+        else banco.pacotes.push({ ...pacote, id: proximoId(banco.pacotes) });
+        return copia(dados.id ? pacote : banco.pacotes.at(-1));
+      },
+      async excluir(id) {
+        const pacote = buscar('pacotes', id, 'Pacote');
+        const vendidos = banco.assinaturas.filter(
+          (a) =>
+            a.pacoteId === pacote.id &&
+            a.estado !== 'cancelada' &&
+            (!a.fim || a.fim >= hoje()),
+        ).length;
+        if (vendidos) {
+          throw new ErroDeNegocio(
+            `Não é possível excluir "${pacote.nome}": ${vendidos} cliente(s) com o pacote em vigor.`,
+          );
+        }
+        banco.pacotes = banco.pacotes.filter((p) => p.id !== pacote.id);
+      },
+    },
+
+    assinaturas: {
+      /** Pacotes do cliente com saldo por serviço e se estão em vigor hoje. */
+      async doCliente(clienteId) {
+        return banco.assinaturas
+          .filter(
+            (a) =>
+              a.clienteId === Number(clienteId) && a.estado !== 'cancelada',
+          )
+          .map((a) => copia(completarAssinatura(a)));
+      },
+      /**
+       * Vende um pacote: abre uma comanda com o item "Pacote: <nome>" para receber
+       * no caixa; o pacote passa a valer quando a comanda é paga.
+       */
+      async vender({ clienteId, pacoteId, barbeiroId }) {
+        const cliente = buscar('clientes', clienteId, 'Cliente');
+        const pacote = buscar('pacotes', pacoteId, 'Pacote');
+        const comanda = await api.comandas.salvar({
+          clienteId: cliente.id,
+          barbeiroId,
+          itens: [{ tipo: 'pacote', refId: pacote.id }],
+        });
+        const assinatura = {
+          id: proximoId(banco.assinaturas),
+          clienteId: cliente.id,
+          pacoteId: pacote.id,
+          estado: 'aguardando_pagamento',
+          comandaVendaId: comanda.id,
+          inicio: null,
+          fim: null,
+          usos: [],
+        };
+        banco.assinaturas.push(assinatura);
+        return {
+          assinatura: copia(completarAssinatura(assinatura)),
+          comandaId: comanda.id,
+        };
+      },
+      /** Pré-checagem para a tela: pode usar este pacote neste serviço hoje? */
+      async podeUsar({ assinaturaId, servicoId, jaNaComanda = [] }) {
+        const a = buscar('assinaturas', assinaturaId, 'Pacote do cliente');
+        if (a.estado !== 'ativa')
+          return {
+            ok: false,
+            motivo: 'Esse pacote ainda não foi pago ou foi cancelado.',
+          };
+        return podeUsarPacote({
+          pacote: pacoteDa(a),
+          assinatura: {
+            ...a,
+            usos: [
+              ...a.usos,
+              ...jaNaComanda.map((sid) => ({ servicoId: sid, data: hoje() })),
+            ],
+          },
+          servicoId: Number(servicoId),
+          data: hoje(),
         });
       },
     },

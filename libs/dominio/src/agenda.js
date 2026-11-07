@@ -97,3 +97,28 @@ export function somarDias(iso, dias) {
 
 /** 0 = domingo ... 6 = sábado */
 export const diaDaSemana = (iso) => paraData(iso).getDay();
+
+/** somarMeses('2026-01-31', 1) → '2026-02-28' (fica no último dia se o mês for menor). */
+export function somarMeses(iso, meses) {
+  const [a, m, d] = iso.split('-').map(Number);
+  const alvo = new Date(a, m - 1 + meses, 1);
+  const ultimo = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+  alvo.setDate(Math.min(d, ultimo));
+  return paraIso(alvo);
+}
+
+/** Dias corridos de a até b (b - a). */
+export const diasEntre = (a, b) =>
+  Math.round((paraData(b) - paraData(a)) / 86_400_000);
+
+/** Segunda-feira da semana da data. */
+export function inicioDaSemana(iso) {
+  const deslocamento = (diaDaSemana(iso) + 6) % 7;
+  return somarDias(iso, -deslocamento);
+}
+
+/** '2026-11-14' → '14/11' (mensagens do domínio, sem depender de lib de UI). */
+export const diaEMes = (iso) => {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${d}/${m}`;
+};

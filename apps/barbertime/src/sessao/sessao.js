@@ -1,5 +1,6 @@
 import { computed, reactive } from 'vue';
 import { http, ErroDeSessao } from '../dados/http.js';
+import { api } from '../dados/api.js';
 
 /**
  * Sessão do usuário (planejamento 0013): quem é, em qual barbearia, papel,
@@ -10,12 +11,11 @@ const estado = reactive({ dados: null, carregada: false });
 
 export async function carregarSessao() {
   try {
-    estado.dados = await http('GET', '/api/auth/eu');
+    definirSessao(await http('GET', '/api/auth/eu'));
   } catch (erro) {
     if (!(erro instanceof ErroDeSessao)) console.error(erro);
-    estado.dados = null;
+    definirSessao(null);
   }
-  estado.carregada = true;
   return estado.dados;
 }
 
@@ -23,6 +23,8 @@ export async function carregarSessao() {
 export function definirSessao(dados) {
   estado.dados = dados;
   estado.carregada = true;
+  // A camada de dados de exemplo precisa saber quais módulos estão ativos.
+  api.definirModulosAtivos(dados?.modulosAtivos ?? []);
 }
 
 export const sessaoCarregada = () => estado.carregada;

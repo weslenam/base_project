@@ -16,6 +16,7 @@ import { formatarDiaCurto } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
 import { seloDoEstado } from '../estados.js';
+import FidelidadeEPacotesCliente from './FidelidadeEPacotesCliente.vue';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ id: { type: Number, default: null } });
@@ -97,6 +98,12 @@ async function excluir() {
         :max-caracteres="500"
       />
     </DsFormulario>
+
+    <FidelidadeEPacotesCliente
+      v-if="editando && form.id"
+      :cliente-id="form.id"
+      @vendido="aberto = false"
+    />
 
     <section v-if="editando" class="historico" aria-label="Histórico">
       <h4 class="ds-rotulo">Histórico</h4>

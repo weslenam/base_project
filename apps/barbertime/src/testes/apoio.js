@@ -124,3 +124,23 @@ export function simularApi(rotas) {
   });
   return chamadas;
 }
+
+/** Abre um DsSelect pelo rótulo e escolhe a opção que contém o texto. */
+export async function escolherNoSelect(rotulo, textoDaOpcao) {
+  await esperar(() => {
+    if (!campo(rotulo)) throw new Error(`Select "${rotulo}" não apareceu`);
+  });
+  const caixa = campo(rotulo)
+    .closest('.v-input')
+    .querySelector('[role="combobox"]');
+  caixa.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  const opcao = () =>
+    [...document.querySelectorAll('[role="option"]')].find((o) =>
+      o.textContent.includes(textoDaOpcao),
+    );
+  await esperar(() => {
+    if (!opcao()) throw new Error(`Opção "${textoDaOpcao}" não apareceu`);
+  });
+  opcao().click();
+  await flushPromises();
+}

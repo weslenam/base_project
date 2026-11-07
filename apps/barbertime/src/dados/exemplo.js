@@ -1,9 +1,33 @@
-import { somarDias } from '@barbertime/dominio';
+import { somarDias, vigenciaDoPacote } from '@barbertime/dominio';
 
 /**
  * Dados de exemplo (planejamento 0006). Somem ao recarregar a página.
  * Substituídos pela API quando ela existir.
  */
+const PACOTES = [
+  {
+    id: 1,
+    nome: 'Clube do corte',
+    preco: 99.9,
+    tipo: 'recorrente',
+    validadeDias: null,
+    itens: [
+      { servicoId: 1, servicoNome: 'Corte', quantidade: null },
+      { servicoId: 2, servicoNome: 'Barba', quantidade: null },
+    ],
+    limites: { intervaloMinimoDias: 7, maximoPorSemana: null },
+  },
+  {
+    id: 2,
+    nome: '4 cortes',
+    preco: 160,
+    tipo: 'unico',
+    validadeDias: 60,
+    itens: [{ servicoId: 1, servicoNome: 'Corte', quantidade: 4 }],
+    limites: { intervaloMinimoDias: null, maximoPorSemana: 1 },
+  },
+];
+
 export function criarDadosDeExemplo(hoje) {
   const dia = (n) => somarDias(hoje, n);
   return {
@@ -86,6 +110,44 @@ export function criarDadosDeExemplo(hoje) {
         telefone: '11921098765',
         cpf: null,
         observacoes: '',
+      },
+    ],
+    // Fidelidade (planejamento 0015): selos e cashback ligados.
+    fidelidade: {
+      selos: {
+        ativo: true,
+        necessarios: 10,
+        premioServicoId: 1,
+        validadeMeses: 12,
+      },
+      cashback: { ativo: true, percentual: 5, validadeDias: 90 },
+    },
+    extratoFidelidade: [
+      ...Array.from({ length: 7 }, (_, i) => ({
+        clienteId: 1,
+        tipo: 'selo',
+        valor: 1,
+        data: dia(-7 * (i + 1)),
+        expiraEm: null,
+      })),
+      {
+        clienteId: 1,
+        tipo: 'cashback',
+        valor: 3.5,
+        data: dia(-7),
+        expiraEm: dia(83),
+      },
+    ],
+    pacotes: structuredClone(PACOTES),
+    assinaturas: [
+      {
+        id: 1,
+        clienteId: 3,
+        pacoteId: 1,
+        estado: 'ativa',
+        comandaVendaId: null,
+        ...vigenciaDoPacote(PACOTES[0], dia(-10)),
+        usos: [{ servicoId: 2, data: dia(-7), comandaId: null }],
       },
     ],
     caixas: [

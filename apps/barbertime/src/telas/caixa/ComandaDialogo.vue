@@ -4,6 +4,7 @@ import {
   DsAbas,
   DsAcao,
   DsBotao,
+  DsCaixaDeSelecao,
   DsDialogo,
   DsEscolha,
   DsInput,
@@ -20,13 +21,14 @@ import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
 import { rotuloDaForma, seloDaComanda } from './rotulos.js';
 import BuscaCliente from '../clientes/BuscaCliente.vue';
+import { moduloAtivo } from '../../sessao/sessao.js';
 
 // Comanda (planejamentos 0008 e 0010): itens em abas de serviço e produto à
 // esquerda; pagamento estilo PDV à direita.
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ id: { type: Number, default: null } });
 
-const { confirmar } = useDialogo();
+const { confirmar, negar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
@@ -36,6 +38,35 @@ const comanda = ref(null);
 const aba = ref('servico');
 const novoItem = ref({ id: null, quantidade: 1 });
 const ocupado = ref(false);
+// Pacotes do cliente (planejamento 0015): usar o pacote num serviço da comanda.
+const assinaturas = ref([]);
+const usarPacote = ref(false);
+watch(
+  () => comanda.value?.clienteId,
+  async (id) => {
+    assinaturas.value =
+      id && moduloAtivo('pacotes') ? await api.assinaturas.doCliente(id) : [];
+  },
+);
+const pacoteDisponivel = computed(() =>
+  aba.value === 'servico' && novoItem.value.id
+    ? (assinaturas.value.find(
+        (a) =>
+          a.vigente &&
+          a.pacote.itens.some((i) => i.servicoId === novoItem.value.id),
+      ) ?? null)
+    : null,
+);
+watch(pacoteDisponivel, (p) => (usarPacote.value = Boolean(p)));
+const saldoDoServico = computed(() => {
+  const s = pacoteDisponivel.value?.saldo.find(
+    (x) => x.servicoId === novoItem.value.id,
+  );
+  if (!s) return '';
+  return s.quantidade == null
+    ? 'Livre'
+    : `Restam ${s.restantes} de ${s.quantidade}`;
+});
 
 watch(aberto, async (abriu) => {
   if (!abriu) return;
@@ -131,9 +162,35 @@ const colunasItens = [
   { campo: 'acoes', titulo: '' },
 ];
 
-function incluir(tipo) {
+async function incluir(tipo) {
   const ref = catalogo.value[tipo].find((x) => x.id === novoItem.value.id);
   if (!ref) return;
+  if (tipo === 'servico' && usarPacote.value && pacoteDisponivel.value) {
+    const assinatura = pacoteDisponivel.value;
+    const jaNaComanda = comanda.value.itens
+      .filter((i) => i.assinaturaId === assinatura.id)
+      .map((i) => i.refId);
+    const r = await api.assinaturas.podeUsar({
+      assinaturaId: assinatura.id,
+      servicoId: ref.id,
+      jaNaComanda,
+    });
+    if (!r.ok) {
+      await negar(r.motivo);
+      return;
+    }
+    comanda.value.itens.push({
+      tipo: 'servico',
+      refId: ref.id,
+      nome: `${ref.nome} (pacote)`,
+      preco: 0,
+      quantidade: 1,
+      barbeiroId: comanda.value.barbeiroId,
+      assinaturaId: assinatura.id,
+    });
+    novoItem.value = { id: null, quantidade: 1 };
+    return;
+  }
   comanda.value.itens.push({
     tipo,
     refId: ref.id,
@@ -172,8 +229,13 @@ async function receber() {
     salva && (await executar(() => api.comandas.receber(salva.id, { forma })));
   ocupado.value = false;
   if (!paga) return;
+  const ganhos = (paga.creditos ?? []).map((c) =>
+    c.tipo === 'selo' ? '+1 selo' : `+${formatarMoeda(c.valor)} de cashback`,
+  );
   notificar.sucesso(
-    `Recebido ${formatarMoeda(paga.total)} em ${rotuloDaForma(paga.forma)}.`,
+    `Recebido ${formatarMoeda(paga.total)} em ${rotuloDaForma(paga.forma)}.${
+      ganhos.length ? ` Cliente ganhou ${ganhos.join(' e ')}.` : ''
+    }`,
   );
   aberto.value = false;
 }
@@ -241,6 +303,12 @@ async function cancelar() {
                   Incluir
                 </DsBotao>
               </div>
+              <DsCaixaDeSelecao
+                v-if="editavel && tipo === 'servico' && pacoteDisponivel"
+                v-model="usarPacote"
+                :rotulo="`Usar o pacote ${pacoteDisponivel.pacote.nome}`"
+                :descricao="`${saldoDoServico} · o serviço sai por R$ 0,00`"
+              />
 
               <!-- Rola por dentro só se a lista passar de 40% da tela. -->
               <div class="painel__lista">
