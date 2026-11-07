@@ -83,6 +83,7 @@ Definir o escopo do BarberTime a partir da pesquisa de concorrentes (AppBarber, 
   - [x] Kit ampliado e telas do MVP com dados de exemplo: agenda, clientes, serviços e equipe, página pública (planejamentos 0005 e 0006)
   - [ ] Usuários e papéis, onboarding, página pública e painel do super admin
 - [ ] Fase 1: MVP (itens 1 a 7) e cobrança do SaaS com limites por plano
+  - [x] Caixa e comanda (item 5) com dados de exemplo (planejamento 0008)
   - [ ] Controle de comissão (item 6): calcular pela comanda, usando os percentuais já cadastrados em Equipe (serviços) e Produtos; fechamento por período e relatório por barbeiro. Pedido em 2026-11-07, sem urgência.
 - [ ] Fase 2: WhatsApp e assinaturas
 - [ ] Fase 3: fila, lista de espera e promoção de horário vazio

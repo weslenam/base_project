@@ -1,0 +1,96 @@
+import {
+  diferencaDeCaixa,
+  FORMAS_DE_PAGAMENTO,
+  motivoParaNaoReceber,
+  resumoDoCaixa,
+  totalDaComanda,
+} from './caixa.js';
+
+const itens = [
+  { preco: 45, quantidade: 1 },
+  { preco: 39.9, quantidade: 2 },
+];
+
+describe('totalDaComanda', () => {
+  it('soma itens com quantidade e aplica desconto, sem erro de centavos', () => {
+    expect(totalDaComanda({ itens, desconto: 4.8 })).toEqual({
+      subtotal: 124.8,
+      desconto: 4.8,
+      total: 120,
+    });
+    expect(
+      totalDaComanda({ itens: [{ preco: 0.1 }, { preco: 0.2 }] }).total,
+    ).toBe(0.3);
+  });
+
+  it('total nunca fica negativo', () => {
+    expect(totalDaComanda({ itens: [{ preco: 10 }], desconto: 50 }).total).toBe(
+      0,
+    );
+  });
+});
+
+describe('motivoParaNaoReceber', () => {
+  it.each([
+    [{ itens: [], forma: 'pix' }, 'pelo menos um'],
+    [{ itens, desconto: 200, forma: 'pix' }, 'desconto não pode'],
+    [{ itens, forma: undefined }, 'forma de pagamento'],
+  ])('%o → recusa', (comanda, trecho) => {
+    expect(motivoParaNaoReceber(comanda)).toContain(trecho);
+  });
+
+  it('comanda completa pode ser recebida', () => {
+    expect(
+      motivoParaNaoReceber({ itens, desconto: 10, forma: 'dinheiro' }),
+    ).toBeNull();
+  });
+});
+
+describe('resumoDoCaixa', () => {
+  const comandas = [
+    { estado: 'paga', forma: 'dinheiro', itens: [{ preco: 45 }], desconto: 0 },
+    {
+      estado: 'paga',
+      forma: 'pix',
+      itens: [{ preco: 70 }, { preco: 39.9 }],
+      desconto: 9.9,
+    },
+    { estado: 'paga', forma: 'dinheiro', itens: [{ preco: 30 }], desconto: 0 },
+    { estado: 'aberta', forma: null, itens: [{ preco: 45 }], desconto: 0 },
+    {
+      estado: 'cancelada',
+      forma: 'credito',
+      itens: [{ preco: 60 }],
+      desconto: 0,
+    },
+  ];
+
+  it('soma só as pagas, por forma, e o total bate com a soma das formas', () => {
+    const r = resumoDoCaixa({ valorInicial: 100, comandas });
+    expect(r.porForma).toEqual({
+      dinheiro: 75,
+      pix: 100,
+      debito: 0,
+      credito: 0,
+    });
+    expect(r.totalRecebido).toBe(175);
+    expect(Object.values(r.porForma).reduce((a, b) => a + b, 0)).toBe(
+      r.totalRecebido,
+    );
+    expect(r).toMatchObject({ dinheiroEsperado: 175, pagas: 3, abertas: 1 });
+  });
+
+  it('tem uma entrada para cada forma de pagamento', () => {
+    expect(Object.keys(resumoDoCaixa({}).porForma)).toEqual(
+      FORMAS_DE_PAGAMENTO.map((f) => f.valor),
+    );
+  });
+});
+
+describe('diferencaDeCaixa', () => {
+  it('positivo é sobra, negativo é falta', () => {
+    expect(diferencaDeCaixa(180.5, 175)).toBe(5.5);
+    expect(diferencaDeCaixa(170, 175)).toBe(-5);
+    expect(diferencaDeCaixa(175, 175)).toBe(0);
+  });
+});

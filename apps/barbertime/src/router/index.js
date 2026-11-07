@@ -10,6 +10,11 @@ const router = createRouter({
       component: () => import('../telas/agenda/AgendaView.vue'),
     },
     {
+      path: '/caixa',
+      name: 'caixa',
+      component: () => import('../telas/caixa/CaixaView.vue'),
+    },
+    {
       path: '/clientes',
       name: 'clientes',
       component: () => import('../telas/clientes/ClientesView.vue'),

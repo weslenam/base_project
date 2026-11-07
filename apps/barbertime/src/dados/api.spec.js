@@ -273,3 +273,117 @@ describe('produtos', () => {
     );
   });
 });
+
+describe('caixa e comandas', () => {
+  it('resumo do caixa de exemplo: só pagas, por forma, total bate', async () => {
+    const caixa = await api.caixa.obterDoDia();
+    expect(caixa.resumo.porForma).toEqual({
+      dinheiro: 70,
+      pix: 60,
+      debito: 0,
+      credito: 0,
+    });
+    expect(caixa.resumo).toMatchObject({
+      totalRecebido: 130,
+      dinheiroEsperado: 170,
+      abertas: 1,
+    });
+  });
+
+  it('não abre o caixa duas vezes', async () => {
+    await recusa(api.caixa.abrir({ valorInicial: 50 }), 'já está aberto');
+  });
+
+  it('lista comandas com nomes e totais, mais recente primeiro', async () => {
+    const lista = await api.comandas.listarDoDia();
+    expect(lista.map((c) => c.id)).toEqual([3, 2, 1]);
+    expect(lista[0]).toMatchObject({
+      clienteNome: 'Cliente avulso',
+      barbeiroNome: 'Léo',
+      total: 39.9,
+    });
+  });
+
+  it('cria comanda guardando nome e preço do momento da venda', async () => {
+    const c = await api.comandas.salvar({
+      barbeiroId: 1,
+      clienteId: 2,
+      itens: [
+        { tipo: 'servico', refId: 1 },
+        { tipo: 'produto', refId: 4, quantidade: 2 },
+      ],
+    });
+    expect(c.itens).toEqual([
+      {
+        tipo: 'servico',
+        refId: 1,
+        nome: 'Corte',
+        preco: 45,
+        quantidade: 1,
+        barbeiroId: 1,
+      },
+      {
+        tipo: 'produto',
+        refId: 4,
+        nome: 'Cera em pó',
+        preco: 44.9,
+        quantidade: 2,
+        barbeiroId: 1,
+      },
+    ]);
+    expect(c.total).toBe(134.8);
+    await api.servicos.salvar({ id: 1, nome: 'Corte', duracao: 30, preco: 50 });
+    expect((await api.comandas.obter(c.id)).itens[0].preco).toBe(45);
+  });
+
+  it('recusas ao receber: sem itens, desconto alto, sem forma', async () => {
+    const vazia = await api.comandas.salvar({ barbeiroId: 1, itens: [] });
+    await recusa(
+      api.comandas.receber(vazia.id, { forma: 'pix' }),
+      'pelo menos um',
+    );
+    await recusa(
+      api.comandas.salvar({
+        barbeiroId: 1,
+        itens: [{ tipo: 'produto', refId: 1 }],
+        desconto: 100,
+      }),
+      'desconto',
+    );
+    await recusa(api.comandas.receber(3), 'forma de pagamento');
+  });
+
+  it('receber entra no resumo; paga não pode ser cancelada', async () => {
+    await api.comandas.receber(3, { forma: 'debito' });
+    const caixa = await api.caixa.obterDoDia();
+    expect(caixa.resumo.porForma.debito).toBe(39.9);
+    expect(caixa.resumo.abertas).toBe(0);
+    await recusa(api.comandas.cancelar(3), 'não pode ser cancelada');
+  });
+
+  it('fechar: recusa com comanda aberta; depois calcula a diferença e bloqueia novas comandas', async () => {
+    await recusa(
+      api.caixa.fechar({ dinheiroContado: 170 }),
+      '1 comanda em aberto',
+    );
+    await api.comandas.cancelar(3);
+    const fechado = await api.caixa.fechar({ dinheiroContado: 165 });
+    expect(fechado).toMatchObject({ aberto: false, diferenca: -5 });
+    await recusa(
+      api.comandas.salvar({ barbeiroId: 1, itens: [] }),
+      'Abra o caixa',
+    );
+    await recusa(api.caixa.abrir({ valorInicial: 0 }), 'já foi fechado');
+  });
+
+  it('comanda a partir do agendamento traz cliente, barbeiro e serviço, sem duplicar', async () => {
+    const c = await api.comandas.abrirDoAgendamento(1);
+    expect(c).toMatchObject({
+      clienteNome: 'Rafael Souza',
+      barbeiroNome: 'Zé Carlos',
+      total: 70,
+    });
+    expect((await api.comandas.abrirDoAgendamento(1)).id).toBe(c.id);
+    await recusa(api.comandas.abrirDoAgendamento(2), 'confirmado ou atendido');
+  });
+});

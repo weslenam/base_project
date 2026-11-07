@@ -9,6 +9,7 @@ const publica = computed(() => Boolean(route.meta.publica));
 
 const itensMenu = [
   { titulo: 'Agenda', rota: '/agenda', icone: 'agenda' },
+  { titulo: 'Caixa', rota: '/caixa', icone: 'caixa' },
   { titulo: 'Clientes', rota: '/clientes', icone: 'clientes' },
   { titulo: 'Equipe', rota: '/equipe', icone: 'equipe' },
   { titulo: 'Serviços', rota: '/servicos', icone: 'servico' },

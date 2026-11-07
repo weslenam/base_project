@@ -11,3 +11,10 @@ export {
   somarDias,
   diaDaSemana,
 } from './agenda.js';
+export {
+  FORMAS_DE_PAGAMENTO,
+  totalDaComanda,
+  motivoParaNaoReceber,
+  resumoDoCaixa,
+  diferencaDeCaixa,
+} from './caixa.js';

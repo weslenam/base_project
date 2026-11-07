@@ -88,6 +88,82 @@ export function criarDadosDeExemplo(hoje) {
         observacoes: '',
       },
     ],
+    caixas: [
+      { id: 1, data: hoje, valorInicial: 100, aberto: true, abertoAs: '08:50' },
+    ],
+    comandas: [
+      {
+        id: 1,
+        caixaId: 1,
+        hora: '09:55',
+        clienteId: 1,
+        barbeiroId: 1,
+        agendamentoId: null,
+        itens: [
+          {
+            tipo: 'servico',
+            refId: 3,
+            nome: 'Corte + barba',
+            preco: 70,
+            quantidade: 1,
+            barbeiroId: 1,
+          },
+        ],
+        desconto: 0,
+        forma: 'dinheiro',
+        estado: 'paga',
+      },
+      {
+        id: 2,
+        caixaId: 1,
+        hora: '10:25',
+        clienteId: 3,
+        barbeiroId: 2,
+        agendamentoId: null,
+        itens: [
+          {
+            tipo: 'servico',
+            refId: 2,
+            nome: 'Barba',
+            preco: 30,
+            quantidade: 1,
+            barbeiroId: 2,
+          },
+          {
+            tipo: 'produto',
+            refId: 2,
+            nome: 'Óleo para barba',
+            preco: 34.9,
+            quantidade: 1,
+            barbeiroId: 2,
+          },
+        ],
+        desconto: 4.9,
+        forma: 'pix',
+        estado: 'paga',
+      },
+      {
+        id: 3,
+        caixaId: 1,
+        hora: '10:40',
+        clienteId: null,
+        barbeiroId: 3,
+        agendamentoId: null,
+        itens: [
+          {
+            tipo: 'produto',
+            refId: 1,
+            nome: 'Pomada modeladora',
+            preco: 39.9,
+            quantidade: 1,
+            barbeiroId: 3,
+          },
+        ],
+        desconto: 0,
+        forma: null,
+        estado: 'aberta',
+      },
+    ],
     agendamentos: [
       // hoje
       {

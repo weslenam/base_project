@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   DsBotao,
   DsDialogo,
@@ -19,6 +20,7 @@ const emit = defineEmits(['alterado']);
 const { confirmar, advertir } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
+const router = useRouter();
 const agendamento = ref(null);
 
 watch(aberto, async (abriu) => {
@@ -71,6 +73,15 @@ async function marcarFalta() {
     },
   );
   if (ok) await mudar('faltou', 'Falta registrada.');
+}
+
+async function abrirComanda() {
+  const comanda = await executar(() =>
+    api.comandas.abrirDoAgendamento(props.id),
+  );
+  if (!comanda) return;
+  aberto.value = false;
+  router.push({ path: '/caixa', query: { comanda: comanda.id } });
 }
 
 async function removerBloqueio() {
@@ -131,9 +142,16 @@ async function removerBloqueio() {
       <template v-else-if="agendamento?.estado === 'confirmado'">
         <DsBotao variante="fantasma" @click="cancelar">Cancelar</DsBotao>
         <DsBotao variante="perigo" @click="marcarFalta">Marcar falta</DsBotao>
+        <DsBotao variante="secundario" @click="abrirComanda"
+          >Abrir comanda</DsBotao
+        >
         <DsBotao @click="mudar('atendido', 'Atendimento concluído.')"
           >Marcar atendido</DsBotao
         >
+      </template>
+      <template v-else-if="agendamento?.estado === 'atendido'">
+        <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>
+        <DsBotao @click="abrirComanda">Abrir comanda</DsBotao>
       </template>
       <template v-else-if="bloqueio">
         <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>

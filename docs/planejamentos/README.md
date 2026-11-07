@@ -9,3 +9,4 @@
 | [0005](0005-componentes-do-mvp.md)              | Componentes Ds\* para o MVP                                                | Em andamento | 2026-11-07 |
 | [0006](0006-telas-do-mvp-e-dialogos.md)         | Telas do MVP e diálogos de confirmação, advertência e negação              | Em andamento | 2026-11-07 |
 | [0007](0007-equipe-servicos-e-produtos.md)      | Equipe, serviços e produtos em telas separadas                             | Em andamento | 2026-11-07 |
+| [0008](0008-caixa-e-comanda.md)                 | Caixa e comanda                                                            | Em andamento | 2026-11-07 |

@@ -1,5 +1,9 @@
 import {
+  diferencaDeCaixa,
   fimDe,
+  motivoParaNaoReceber,
+  resumoDoCaixa,
+  totalDaComanda,
   hojeIso,
   horariosLivres,
   ocupaHorario,
@@ -98,6 +102,49 @@ export function criarApi({ agora = () => new Date() } = {}) {
       faltas: passados.filter((a) => a.estado === 'faltou').length,
       ultimaVisita: passados.find((a) => a.estado === 'atendido')?.data ?? null,
     };
+  }
+
+  const caixaDoDia = (data = hoje()) =>
+    banco.caixas.find((c) => c.data === data) ?? null;
+  const comandasDoCaixa = (caixaId) =>
+    banco.comandas.filter((c) => c.caixaId === caixaId);
+
+  function exigirCaixaAberto() {
+    const caixa = caixaDoDia();
+    if (!caixa?.aberto)
+      throw new ErroDeNegocio('Abra o caixa de hoje antes de lançar comandas.');
+    return caixa;
+  }
+
+  const completarComanda = (c) => ({
+    ...c,
+    clienteNome:
+      banco.clientes.find((x) => x.id === c.clienteId)?.nome ??
+      'Cliente avulso',
+    barbeiroNome:
+      banco.barbeiros.find((b) => b.id === c.barbeiroId)?.nome ?? '',
+    ...totalDaComanda(c),
+  });
+
+  function normalizarItens(itens = [], barbeiroId) {
+    return itens.map((i) => {
+      const lista = i.tipo === 'produto' ? 'produtos' : 'servicos';
+      const ref = buscar(
+        lista,
+        i.refId,
+        i.tipo === 'produto' ? 'Produto' : 'Serviço',
+      );
+      const quantidade = Math.max(1, Math.round(Number(i.quantidade) || 1));
+      // Guarda nome e preço do momento da venda (base da comissão futura).
+      return {
+        tipo: i.tipo === 'produto' ? 'produto' : 'servico',
+        refId: ref.id,
+        nome: i.nome ?? ref.nome,
+        preco: Number(i.preco ?? ref.preco),
+        quantidade,
+        barbeiroId: Number(i.barbeiroId ?? barbeiroId),
+      };
+    });
   }
 
   const api = {
@@ -303,6 +350,161 @@ export function criarApi({ agora = () => new Date() } = {}) {
         const cliente = buscar('clientes', id, 'Cliente');
         negarSeEmUso('clienteId', cliente.id, cliente.nome);
         banco.clientes = banco.clientes.filter((c) => c.id !== cliente.id);
+      },
+    },
+
+    caixa: {
+      /** Caixa do dia com o resumo por forma de pagamento, ou null se não foi aberto. */
+      async obterDoDia() {
+        const caixa = caixaDoDia();
+        if (!caixa) return null;
+        const resumo = resumoDoCaixa({
+          valorInicial: caixa.valorInicial,
+          comandas: comandasDoCaixa(caixa.id),
+        });
+        return copia({ ...caixa, resumo });
+      },
+      async abrir({ valorInicial }) {
+        const atual = caixaDoDia();
+        if (atual?.aberto)
+          throw new ErroDeNegocio('O caixa de hoje já está aberto.');
+        if (atual)
+          throw new ErroDeNegocio(
+            'O caixa de hoje já foi fechado. Ele reabre amanhã.',
+          );
+        if (!(Number(valorInicial) >= 0))
+          throw new ErroDeNegocio('Informe o troco inicial (pode ser zero).');
+        const caixa = {
+          id: proximoId(banco.caixas),
+          data: hoje(),
+          valorInicial: Number(valorInicial),
+          aberto: true,
+          abertoAs: horaAgora(),
+        };
+        banco.caixas.push(caixa);
+        return api.caixa.obterDoDia();
+      },
+      async fechar({ dinheiroContado }) {
+        const caixa = exigirCaixaAberto();
+        const resumo = resumoDoCaixa({
+          valorInicial: caixa.valorInicial,
+          comandas: comandasDoCaixa(caixa.id),
+        });
+        if (resumo.abertas) {
+          throw new ErroDeNegocio(
+            `Há ${resumo.abertas} comanda${resumo.abertas > 1 ? 's' : ''} em aberto. Receba ou cancele antes de fechar o caixa.`,
+          );
+        }
+        if (!(Number(dinheiroContado) >= 0))
+          throw new ErroDeNegocio('Informe quanto dinheiro há na gaveta.');
+        Object.assign(caixa, {
+          aberto: false,
+          fechadoAs: horaAgora(),
+          dinheiroContado: Number(dinheiroContado),
+          diferenca: diferencaDeCaixa(dinheiroContado, resumo.dinheiroEsperado),
+        });
+        return copia({ ...caixa, resumo });
+      },
+    },
+
+    comandas: {
+      async listarDoDia() {
+        const caixa = caixaDoDia();
+        if (!caixa) return [];
+        return comandasDoCaixa(caixa.id)
+          .slice()
+          .sort((a, b) => (a.hora < b.hora ? 1 : -1))
+          .map((c) => copia(completarComanda(c)));
+      },
+      async obter(id) {
+        return copia(completarComanda(buscar('comandas', id, 'Comanda')));
+      },
+      /** Cria ou atualiza uma comanda aberta. */
+      async salvar(dados) {
+        const caixa = exigirCaixaAberto();
+        if (!dados.barbeiroId)
+          throw new ErroDeNegocio('Escolha o barbeiro da comanda.');
+        const barbeiro = buscar('barbeiros', dados.barbeiroId, 'Barbeiro');
+        const itens = normalizarItens(dados.itens, barbeiro.id);
+        const desconto = Number(dados.desconto || 0);
+        if (desconto < 0 || desconto > totalDaComanda({ itens }).subtotal) {
+          throw new ErroDeNegocio(
+            'O desconto não pode ser maior que o valor da comanda.',
+          );
+        }
+        const registro = {
+          clienteId: dados.clienteId
+            ? buscar('clientes', dados.clienteId, 'Cliente').id
+            : null,
+          barbeiroId: barbeiro.id,
+          itens,
+          desconto,
+          forma: dados.forma ?? null,
+        };
+        let salva;
+        if (dados.id) {
+          salva = buscar('comandas', dados.id, 'Comanda');
+          if (salva.estado !== 'aberta')
+            throw new ErroDeNegocio('Só dá para alterar comanda em aberto.');
+          Object.assign(salva, registro);
+        } else {
+          salva = {
+            ...registro,
+            id: proximoId(banco.comandas),
+            caixaId: caixa.id,
+            hora: horaAgora(),
+            agendamentoId: dados.agendamentoId ?? null,
+            estado: 'aberta',
+          };
+          banco.comandas.push(salva);
+        }
+        return copia(completarComanda(salva));
+      },
+      async receber(id, { forma } = {}) {
+        exigirCaixaAberto();
+        const comanda = buscar('comandas', id, 'Comanda');
+        if (comanda.estado !== 'aberta')
+          throw new ErroDeNegocio('Essa comanda já foi encerrada.');
+        const motivo = motivoParaNaoReceber({
+          ...comanda,
+          forma: forma ?? comanda.forma,
+        });
+        if (motivo) throw new ErroDeNegocio(motivo);
+        Object.assign(comanda, {
+          forma: forma ?? comanda.forma,
+          estado: 'paga',
+          pagaAs: horaAgora(),
+        });
+        return copia(completarComanda(comanda));
+      },
+      async cancelar(id) {
+        const comanda = buscar('comandas', id, 'Comanda');
+        if (comanda.estado === 'paga') {
+          throw new ErroDeNegocio(
+            'Comanda já recebida não pode ser cancelada.',
+          );
+        }
+        comanda.estado = 'cancelada';
+        return copia(completarComanda(comanda));
+      },
+      /** Abre (ou reabre a existente) a comanda de um agendamento, com cliente, barbeiro e serviço. */
+      async abrirDoAgendamento(agendamentoId) {
+        const ag = buscar('agendamentos', agendamentoId, 'Agendamento');
+        const existente = banco.comandas.find(
+          (c) => c.agendamentoId === ag.id && c.estado !== 'cancelada',
+        );
+        if (existente) return copia(completarComanda(existente));
+        if (!['confirmado', 'atendido'].includes(ag.estado)) {
+          throw new ErroDeNegocio(
+            'Só dá para abrir comanda de agendamento confirmado ou atendido.',
+          );
+        }
+        return api.comandas.salvar({
+          clienteId: ag.clienteId,
+          barbeiroId: ag.barbeiroId,
+          agendamentoId: ag.id,
+          itens: ag.servicoId ? [{ tipo: 'servico', refId: ag.servicoId }] : [],
+        });
       },
     },
 
