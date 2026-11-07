@@ -21,3 +21,14 @@ export function formatarMoeda(valor) {
   const numero = Number(valor);
   return Number.isNaN(numero) ? '' : formatoMoeda.format(numero);
 }
+
+const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+/** Data ISO curta, como no guia da identidade: '2026-11-08' → 'Dom, 8/11'. */
+export function formatarDiaCurto(iso) {
+  if (!iso) return '';
+  const [a, m, d] = String(iso).split('-').map(Number);
+  const data = new Date(a, m - 1, d);
+  if (Number.isNaN(data.getTime())) return '';
+  return `${DIAS_CURTOS[data.getDay()]}, ${d}/${m}`;
+}

@@ -20,6 +20,8 @@ export function testarDsBlocoAgenda(DsBlocoAgenda, montar) {
     ['assinante', 'Assinante'],
     ['encaixe', 'Encaixe'],
     ['bloqueado', 'Bloqueado'],
+    ['atendido', 'Atendido'],
+    ['faltou', 'Faltou'],
   ])('estado %s tem texto acessível "%s"', (estado, rotulo) => {
     expect(
       montar(DsBlocoAgenda, { props: { ...base, estado } }).text(),

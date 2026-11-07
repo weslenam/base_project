@@ -1,17 +1,29 @@
 <script setup>
-import { RouterView } from 'vue-router';
+import { computed } from 'vue';
+import { RouterView, useRoute } from 'vue-router';
 import { DsApp, DsLayout } from '@barbertime/ui';
 import Marca from './Marca.vue';
 
+const route = useRoute();
+const publica = computed(() => Boolean(route.meta.publica));
+
 const itensMenu = [
-  { titulo: 'Início', rota: '/', icone: 'inicio' },
+  { titulo: 'Agenda', rota: '/agenda', icone: 'agenda' },
+  { titulo: 'Clientes', rota: '/clientes', icone: 'clientes' },
+  { titulo: 'Serviços e equipe', rota: '/servicos', icone: 'servico' },
+  {
+    titulo: 'Página pública',
+    rota: '/agendar/barbearia-modelo',
+    icone: 'barbearia',
+  },
   { titulo: 'Componentes', rota: '/componentes', icone: 'componentes' },
 ];
 </script>
 
 <template>
   <DsApp>
-    <DsLayout titulo="BarberTime" :itens-menu="itensMenu">
+    <RouterView v-if="publica" />
+    <DsLayout v-else titulo="BarberTime" :itens-menu="itensMenu">
       <template #marca>
         <Marca />
       </template>

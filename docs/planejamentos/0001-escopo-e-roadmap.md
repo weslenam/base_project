@@ -78,6 +78,7 @@ Definir o escopo do BarberTime a partir da pesquisa de concorrentes (AppBarber, 
   - [x] Kit base `Ds*` com Vuetify e contratos (planejamento 0003)
   - [x] `libs/ui-tokens` gerado do `tokens.json`, fontes self-hosted, logos e docker-compose com api e web (planejamento 0004)
   - [ ] ADR de ORM, migrações, autenticação e hospedagem
+  - [x] Kit ampliado e telas do MVP com dados de exemplo: agenda, clientes, serviços e equipe, página pública (planejamentos 0005 e 0006)
   - [ ] Usuários e papéis, onboarding, página pública e painel do super admin
 - [ ] Fase 1: MVP (itens 1 a 7) e cobrança do SaaS com limites por plano
 - [ ] Fase 2: WhatsApp e assinaturas

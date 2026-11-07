@@ -46,4 +46,13 @@ export function testarDsInput(DsInput, montar) {
     const w = montar(DsInput, { props: { desabilitado: true } });
     expect(w.find('input').attributes('disabled')).toBeDefined();
   });
+
+  it.each([
+    ['data', 'date'],
+    ['hora', 'time'],
+  ])('tipo %s usa o seletor nativo (%s)', (tipo, nativo) => {
+    expect(
+      montar(DsInput, { props: { tipo } }).find('input').attributes('type'),
+    ).toBe(nativo);
+  });
 }

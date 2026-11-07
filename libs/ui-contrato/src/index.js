@@ -22,3 +22,7 @@ export {
   testarDsInputCpf,
   testarDsInputMoeda,
 } from './camposBrasileiros.contrato.js';
+export { testarUseDialogo } from './useDialogo.contrato.js';
+export { testarDsPagina } from './DsPagina.contrato.js';
+export { testarDsTextarea } from './DsTextarea.contrato.js';
+export { testarDsFormulario } from './DsFormulario.contrato.js';

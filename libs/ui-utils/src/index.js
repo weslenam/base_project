@@ -1,4 +1,4 @@
-export { formatarData, formatarMoeda } from './formatacao.js';
+export { formatarData, formatarDiaCurto, formatarMoeda } from './formatacao.js';
 export {
   somenteDigitos,
   formatarTelefone,

@@ -15,14 +15,14 @@ import {
   DsSelo,
   DsTabela,
   NOMES_DE_ICONES,
-  useConfirmacao,
+  useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
 
 // Vitrine do kit base (substitui o catálogo enquanto ele não existe).
 const notificar = useNotificacao();
-const confirmar = useConfirmacao();
+const { confirmar, advertir, negar } = useDialogo();
 
 const nome = ref('');
 const servico = ref(null);
@@ -99,6 +99,23 @@ const linhas = [
   { id: 2, servico: 'Barba', duracao: 20, preco: 30 },
   { id: 3, servico: 'Corte + barba', duracao: 50, preco: 70 },
 ];
+
+async function demoConfirmar() {
+  const ok = await confirmar('Confirmar a presença de Rafael às 10:20?');
+  notificar.info(ok ? 'Confirmado' : 'Cancelado');
+}
+async function demoAdvertir() {
+  const ok = await advertir(
+    'Bruno faltou 2 vezes este mês. Agendar mesmo assim?',
+    {
+      textoOk: 'Agendar mesmo assim',
+    },
+  );
+  notificar.info(ok ? 'Seguiu mesmo com a advertência' : 'Voltou');
+}
+async function demoNegar() {
+  await negar('Esse horário acabou de ser ocupado. Escolha outro.');
+}
 
 async function excluir() {
   if (
@@ -212,6 +229,15 @@ async function excluir() {
       :linhas="linhas"
       @selecionar="(l) => notificar.info(`Selecionado: ${l.servico}`)"
     />
+
+    <h2 class="ds-subtitulo">Confirmação, advertência e negação</h2>
+    <div class="linha">
+      <DsBotao variante="secundario" @click="demoConfirmar"
+        >Confirmação</DsBotao
+      >
+      <DsBotao variante="secundario" @click="demoAdvertir">Advertência</DsBotao>
+      <DsBotao variante="secundario" @click="demoNegar">Negação</DsBotao>
+    </div>
 
     <h2 class="ds-subtitulo">Diálogo</h2>
     <DsBotao variante="secundario" @click="dialogoAberto = true"

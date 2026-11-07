@@ -25,6 +25,8 @@ const props = defineProps({
   desabilitado: Boolean,
   carregando: Boolean,
   bloco: Boolean,
+  /** id de um DsFormulario: o botão o envia mesmo estando fora dele. */
+  formulario: { type: String, default: undefined },
 });
 const emit = defineEmits(['click']);
 
@@ -43,7 +45,8 @@ const aparencia = computed(() => VARIANTES[props.variante]);
     :class="['ds-botao', `ds-botao--${variante}`, `ds-botao--${tamanho}`]"
     :color="aparencia.color"
     :variant="aparencia.variant"
-    :type="tipo"
+    :type="formulario ? 'submit' : tipo"
+    :form="formulario"
     :block="bloco"
     :disabled="desabilitado || carregando"
     :loading="carregando"

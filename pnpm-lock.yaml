@@ -293,6 +293,9 @@ importers:
 
   apps/barbertime:
     dependencies:
+      '@barbertime/dominio':
+        specifier: workspace:*
+        version: link:../../libs/dominio
       '@barbertime/ui-tokens':
         specifier: workspace:*
         version: link:../../libs/ui-tokens
@@ -302,6 +305,8 @@ importers:
       '@barbertime/ui-vuetify':
         specifier: workspace:*
         version: link:../../libs/ui-vuetify
+
+  libs/dominio: {}
 
   libs/ui-contrato: {}
 

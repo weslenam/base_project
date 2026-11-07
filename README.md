@@ -85,8 +85,11 @@ O Vite repassa `/api/*` para a API. O Mailpit mostra os e-mails do ambiente em h
 ```
 apps/
   barbertime/   → app Vue 3 + Vite + Vue Router (porta 4200)
+    src/telas/  → telas do MVP (agenda, clientes, serviços e equipe, agendamento público)
+    src/dados/  → camada de dados: hoje em memória com exemplos; amanhã, chamadas à API
   api/          → Fastify, rotas sob /api (porta 3333), roda direto no Node
 libs/
+  dominio/      → regras de negócio puras compartilhadas por app e API (horários, sobreposição)
   ui-tokens/    → tokens gerados do tokens.json, fontes self-hosted e base tipográfica
   ui-utils/     → formatação e máscaras brasileiras: datas, moeda, telefone, CPF (sem framework)
   ui-vuetify/   → implementação ativa (Vuetify 4) dos Ds* e composables (alias @barbertime/ui)
@@ -106,6 +109,18 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 - **Mudar cor, espaço ou fonte:** edite `docs/identidade-visual/tokens.json` e rode `pnpm nx run ui-tokens:gerar`. Um teste falha se os arquivos gerados ficarem desatualizados.
 - Variáveis com o nome do token: `var(--cobre)`, `var(--esp-4)`, `var(--raio-sm)`, `var(--tipo-titulo)`. O tema escuro troca por `[data-theme='dark']`.
 - Classes de apoio para telas: `ds-display`, `ds-titulo`, `ds-subtitulo`, `ds-rotulo`, `ds-corpo-lg`, `ds-corpo-sm`, `ds-suave`, `ds-hora`, `ds-valor`.
+
+## Telas
+
+| Rota             | Tela                                                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/agenda`        | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar) |
+| `/clientes`      | Busca por nome ou telefone, cadastro com telefone, CPF e observações, histórico e exclusão                                                                        |
+| `/servicos`      | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                         |
+| `/agendar/:slug` | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`): serviço → barbeiro → dia → horário → dados                                                    |
+| `/componentes`   | Vitrine do kit de UI                                                                                                                                              |
+
+**Dados de exemplo:** até a API de negócio existir, as telas usam `src/dados/api.js`, em memória (Barbearia do Zé, 3 barbeiros, 4 serviços, 8 clientes). Recarregar a página volta ao exemplo. As recusas de negócio (horário ocupado, telefone repetido, exclusão em uso) chegam como `ErroDeNegocio` e aparecem no diálogo de negação.
 
 ## Kit de UI (`@barbertime/ui`)
 

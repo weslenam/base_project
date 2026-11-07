@@ -2,7 +2,7 @@
 import { afterEach } from 'vitest';
 import { enableAutoUnmount } from '@vue/test-utils';
 import { filaNotificacoes } from '../estado/notificacoes.js';
-import { filaConfirmacoes } from '../estado/confirmacoes.js';
+import { filaDialogos } from '../estado/dialogos.js';
 
 const nada = () => undefined;
 
@@ -39,7 +39,7 @@ enableAutoUnmount(afterEach);
 
 afterEach(() => {
   filaNotificacoes.value = [];
-  filaConfirmacoes.value = [];
+  filaDialogos.value = [];
   document.body.innerHTML = '';
   delete document.documentElement.dataset.theme;
 });

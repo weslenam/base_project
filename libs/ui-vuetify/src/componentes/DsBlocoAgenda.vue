@@ -9,14 +9,20 @@ const props = defineProps({
   /** '10:20' */
   inicio: { type: String, default: '' },
   fim: { type: String, default: '' },
-  /** confirmado | pendente | assinante | encaixe | bloqueado */
+  /** confirmado | pendente | assinante | encaixe | bloqueado | atendido | faltou */
   estado: {
     type: String,
     default: 'pendente',
     validator: (v) =>
-      ['confirmado', 'pendente', 'assinante', 'encaixe', 'bloqueado'].includes(
-        v,
-      ),
+      [
+        'confirmado',
+        'pendente',
+        'assinante',
+        'encaixe',
+        'bloqueado',
+        'atendido',
+        'faltou',
+      ].includes(v),
   },
   /** Vira botão e emite `selecionar` ao clicar. */
   clicavel: Boolean,
@@ -104,6 +110,16 @@ const rotuloEstado = computed(() => ROTULOS_DE_ESTADO[props.estado]);
 }
 .ds-bloco--encaixe {
   border-top-color: var(--ambar);
+}
+.ds-bloco--atendido {
+  border-top-color: var(--linha-forte);
+  color: var(--grafite-suave);
+}
+.ds-bloco--faltou {
+  border-top-color: var(--perigo);
+}
+.ds-bloco--faltou .ds-bloco__cliente {
+  text-decoration: line-through;
 }
 .ds-bloco--bloqueado {
   background: repeating-linear-gradient(

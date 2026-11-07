@@ -6,12 +6,20 @@ const modelo = defineModel({ type: [String, Number], default: '' });
 
 const props = defineProps({
   rotulo: { type: String, default: '' },
-  /** texto | email | senha | numero | telefone */
+  /** texto | email | senha | numero | telefone | data | hora */
   tipo: {
     type: String,
     default: 'texto',
     validator: (v) =>
-      ['texto', 'email', 'senha', 'numero', 'telefone'].includes(v),
+      [
+        'texto',
+        'email',
+        'senha',
+        'numero',
+        'telefone',
+        'data',
+        'hora',
+      ].includes(v),
   },
   dica: { type: String, default: '' },
   ajuda: { type: String, default: '' },
@@ -30,6 +38,8 @@ const TIPOS = {
   senha: 'password',
   numero: 'number',
   telefone: 'tel',
+  data: 'date',
+  hora: 'time',
 };
 
 const regrasFinais = computed(() => [

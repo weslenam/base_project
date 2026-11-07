@@ -7,5 +7,7 @@ export const ROTULOS_DE_ESTADO = Object.freeze({
   faltou: 'Faltou',
   encaixe: 'Encaixe',
   bloqueado: 'Bloqueado',
+  atendido: 'Atendido',
+  cancelado: 'Cancelado',
   neutro: '',
 });

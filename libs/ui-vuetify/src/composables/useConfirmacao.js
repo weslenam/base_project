@@ -1,10 +1,6 @@
-import { pedirConfirmacao } from '../estado/confirmacoes.js';
+import { useDialogo } from './useDialogo.js';
 
-/**
- * Diálogo de confirmação que devolve Promise<boolean>.
- * Uso: const confirmar = useConfirmacao(); if (await confirmar('Excluir?')) ...
- * Opções: { titulo, textoOk, textoCancelar, perigo }. Exige um <DsApp> na raiz.
- */
+/** Atalho para useDialogo().confirmar: devolve Promise<boolean>. */
 export function useConfirmacao() {
-  return pedirConfirmacao;
+  return useDialogo().confirmar;
 }
