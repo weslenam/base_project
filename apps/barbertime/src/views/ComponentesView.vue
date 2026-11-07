@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import {
+  DsAcao,
   DsBlocoAgenda,
   DsBotao,
   DsCartao,
@@ -230,6 +231,36 @@ async function excluir() {
       @selecionar="(l) => notificar.info(`Selecionado: ${l.servico}`)"
     />
 
+    <h2 class="ds-subtitulo">Ações (estilo PDV)</h2>
+    <div class="acoes-pdv">
+      <DsAcao
+        icone="check"
+        titulo="Marcar atendido"
+        descricao="Conclui o atendimento"
+        variante="primario"
+        @click="notificar.sucesso('Atendido')"
+      />
+      <DsAcao
+        icone="caixa"
+        titulo="Abrir comanda"
+        descricao="Lança serviço e produtos no caixa"
+        @click="notificar.info('Comanda')"
+      />
+      <DsAcao
+        icone="alerta"
+        titulo="Marcar falta"
+        descricao="Fica no histórico do cliente"
+        variante="perigo"
+        @click="notificar.aviso('Falta')"
+      />
+      <DsAcao
+        icone="bloqueio"
+        titulo="Indisponível"
+        descricao="Exemplo desabilitado"
+        desabilitado
+      />
+    </div>
+
     <h2 class="ds-subtitulo">Confirmação, advertência e negação</h2>
     <div class="linha">
       <DsBotao variante="secundario" @click="demoConfirmar"
@@ -273,6 +304,11 @@ async function excluir() {
 }
 h2 {
   margin-top: var(--esp-4);
+}
+.acoes-pdv {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--esp-2);
 }
 .blocos {
   display: grid;

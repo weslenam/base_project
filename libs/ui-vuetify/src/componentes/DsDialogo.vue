@@ -59,6 +59,7 @@ const LARGURAS = { sm: 400, md: 600, lg: 900 };
   text-transform: uppercase;
 }
 .ds-dialogo__acoes {
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--esp-2);
   padding: var(--esp-2) var(--esp-6) var(--esp-4);

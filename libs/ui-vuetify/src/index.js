@@ -19,6 +19,7 @@ export { default as DsInputTelefone } from './componentes/DsInputTelefone.vue';
 export { default as DsInputCpf } from './componentes/DsInputCpf.vue';
 export { default as DsInputMoeda } from './componentes/DsInputMoeda.vue';
 export { default as DsPagina } from './componentes/DsPagina.vue';
+export { default as DsAcao } from './componentes/DsAcao.vue';
 export { default as DsFormulario } from './componentes/DsFormulario.vue';
 export { default as DsTextarea } from './componentes/DsTextarea.vue';
 export { NOMES_DE_ICONES } from './icones.js';

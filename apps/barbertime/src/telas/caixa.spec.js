@@ -70,7 +70,7 @@ describe('agenda → comanda', () => {
   it('agendamento confirmado abre a comanda com o serviço', async () => {
     app = await montarApp('/agenda');
     await clicarContendo('Rafael Souza');
-    await clicar('Abrir comanda');
+    await clicarContendo('Abrir comanda');
     await esperar(() => expect(texto()).toContain('Comanda #4'));
     expect(texto()).toContain('Corte + barba');
     expect(normalizar(texto())).toContain('Receber R$ 70,00');

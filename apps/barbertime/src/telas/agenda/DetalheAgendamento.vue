@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
+  DsAcao,
   DsBotao,
   DsDialogo,
   DsSelo,
@@ -93,89 +94,195 @@ async function removerBloqueio() {
 </script>
 
 <template>
-  <DsDialogo v-model="aberto" :titulo="titulo" largura="sm">
-    <dl v-if="agendamento" class="detalhes">
-      <div>
-        <dt class="ds-rotulo">{{ bloqueio ? 'Motivo' : 'Cliente' }}</dt>
-        <dd>{{ agendamento.clienteNome }}</dd>
-      </div>
-      <div v-if="agendamento.clienteTelefone">
-        <dt class="ds-rotulo">Telefone</dt>
-        <dd class="ds-valor">
-          {{ formatarTelefone(agendamento.clienteTelefone) }}
-        </dd>
-      </div>
-      <div v-if="agendamento.servicoNome">
-        <dt class="ds-rotulo">Serviço</dt>
-        <dd>{{ agendamento.servicoNome }}</dd>
-      </div>
-      <div>
-        <dt class="ds-rotulo">Barbeiro</dt>
-        <dd>{{ agendamento.barbeiroNome }}</dd>
-      </div>
-      <div>
-        <dt class="ds-rotulo">Quando</dt>
-        <dd>
-          {{ formatarDiaCurto(agendamento.data) }} ·
-          <span class="ds-hora"
-            >{{ agendamento.inicio }}–{{ agendamento.fim }}</span
-          >
-        </dd>
-      </div>
-      <div v-if="!bloqueio">
-        <dt class="ds-rotulo">Situação</dt>
-        <dd>
-          <DsSelo :estado="selo.estado">{{ selo.texto }}</DsSelo>
-        </dd>
-      </div>
-    </dl>
+  <DsDialogo v-model="aberto" :titulo="titulo" largura="lg">
+    <div v-if="agendamento" class="detalhe">
+      <!-- Informações -->
+      <section class="info" aria-label="Informações do agendamento">
+        <div class="info__principal">
+          <p class="ds-rotulo">{{ bloqueio ? 'Motivo' : 'Cliente' }}</p>
+          <p class="info__cliente">{{ agendamento.clienteNome }}</p>
+          <DsSelo v-if="!bloqueio" :estado="selo.estado">{{
+            selo.texto
+          }}</DsSelo>
+        </div>
+
+        <div class="info__horario">
+          <p class="ds-rotulo">{{ formatarDiaCurto(agendamento.data) }}</p>
+          <p class="info__hora">
+            {{ agendamento.inicio }}–{{ agendamento.fim }}
+          </p>
+        </div>
+
+        <dl class="info__dados">
+          <div v-if="agendamento.servicoNome">
+            <dt class="ds-rotulo">Serviço</dt>
+            <dd>{{ agendamento.servicoNome }}</dd>
+          </div>
+          <div>
+            <dt class="ds-rotulo">Barbeiro</dt>
+            <dd>{{ agendamento.barbeiroNome }}</dd>
+          </div>
+          <div v-if="agendamento.clienteTelefone">
+            <dt class="ds-rotulo">Telefone</dt>
+            <dd class="ds-valor">
+              {{ formatarTelefone(agendamento.clienteTelefone) }}
+            </dd>
+          </div>
+        </dl>
+
+        <div v-if="agendamento.clienteObservacoes" class="info__observacoes">
+          <p class="ds-rotulo">Observações do cliente</p>
+          <p>{{ agendamento.clienteObservacoes }}</p>
+        </div>
+      </section>
+
+      <!-- Ações (estilo PDV) -->
+      <section class="acoes" aria-label="Ações">
+        <p class="ds-rotulo">O que fazer</p>
+        <template v-if="agendamento.estado === 'pendente'">
+          <DsAcao
+            icone="check"
+            titulo="Confirmar presença"
+            descricao="O cliente confirmou que vem"
+            variante="primario"
+            @click="mudar('confirmado', 'Presença confirmada.')"
+          />
+          <DsAcao
+            icone="fechar"
+            titulo="Cancelar agendamento"
+            descricao="Libera o horário na agenda"
+            variante="perigo"
+            @click="cancelar"
+          />
+        </template>
+        <template v-else-if="agendamento.estado === 'confirmado'">
+          <DsAcao
+            icone="check"
+            titulo="Marcar atendido"
+            descricao="Conclui o atendimento"
+            variante="primario"
+            @click="mudar('atendido', 'Atendimento concluído.')"
+          />
+          <DsAcao
+            icone="caixa"
+            titulo="Abrir comanda"
+            descricao="Lança serviço e produtos no caixa"
+            @click="abrirComanda"
+          />
+          <DsAcao
+            icone="alerta"
+            titulo="Marcar falta"
+            descricao="Fica no histórico do cliente"
+            variante="perigo"
+            @click="marcarFalta"
+          />
+          <DsAcao
+            icone="fechar"
+            titulo="Cancelar agendamento"
+            descricao="Libera o horário na agenda"
+            variante="perigo"
+            @click="cancelar"
+          />
+        </template>
+        <DsAcao
+          v-else-if="agendamento.estado === 'atendido'"
+          icone="caixa"
+          titulo="Abrir comanda"
+          descricao="Lança serviço e produtos no caixa"
+          variante="primario"
+          @click="abrirComanda"
+        />
+        <DsAcao
+          v-else-if="bloqueio"
+          icone="bloqueio"
+          titulo="Remover bloqueio"
+          descricao="Libera o horário na agenda"
+          variante="perigo"
+          @click="removerBloqueio"
+        />
+        <p v-else class="acoes__vazio">
+          Nenhuma ação disponível para este agendamento.
+        </p>
+      </section>
+    </div>
 
     <template #acoes>
-      <template v-if="agendamento?.estado === 'pendente'">
-        <DsBotao variante="perigo" @click="cancelar"
-          >Cancelar agendamento</DsBotao
-        >
-        <DsBotao @click="mudar('confirmado', 'Presença confirmada.')"
-          >Confirmar presença</DsBotao
-        >
-      </template>
-      <template v-else-if="agendamento?.estado === 'confirmado'">
-        <DsBotao variante="fantasma" @click="cancelar">Cancelar</DsBotao>
-        <DsBotao variante="perigo" @click="marcarFalta">Marcar falta</DsBotao>
-        <DsBotao variante="secundario" @click="abrirComanda"
-          >Abrir comanda</DsBotao
-        >
-        <DsBotao @click="mudar('atendido', 'Atendimento concluído.')"
-          >Marcar atendido</DsBotao
-        >
-      </template>
-      <template v-else-if="agendamento?.estado === 'atendido'">
-        <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>
-        <DsBotao @click="abrirComanda">Abrir comanda</DsBotao>
-      </template>
-      <template v-else-if="bloqueio">
-        <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>
-        <DsBotao variante="perigo" @click="removerBloqueio"
-          >Remover bloqueio</DsBotao
-        >
-      </template>
-      <DsBotao v-else variante="secundario" @click="aberto = false"
-        >Fechar</DsBotao
-      >
+      <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>
     </template>
   </DsDialogo>
 </template>
 
 <style scoped>
-.detalhes {
+.detalhe {
   display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--esp-6);
+}
+.detalhe p {
+  margin: 0;
+}
+.info {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-4);
+}
+.info__principal {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-1);
+}
+.info__cliente {
+  font: var(--tipo-subtitulo);
+  letter-spacing: var(--tipo-subtitulo-espacamento);
+  text-transform: uppercase;
+}
+.info__horario {
+  padding: var(--esp-3) var(--esp-4);
+  background: var(--placa-funda);
+  border-radius: var(--raio-sm);
+}
+.info__hora {
+  font: 500 28px/36px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.info__dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: var(--esp-3);
   margin: 0;
 }
-.detalhes dt {
+.info__dados dt,
+.info__dados dd {
   margin: 0;
 }
-.detalhes dd {
-  margin: 0;
+.info__observacoes {
+  display: grid;
+  gap: var(--esp-1);
+  padding: var(--esp-3);
+  border-left: 4px solid var(--aco);
+  border-radius: var(--raio-sm);
+  background: var(--aco-suave);
+}
+.acoes {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-2);
+  padding-left: var(--esp-6);
+  border-left: 1px solid var(--linha);
+}
+.acoes__vazio {
+  color: var(--grafite-suave);
+}
+/* Celular: as colunas empilham e as ações vão para baixo. */
+@media (max-width: 40rem) {
+  .detalhe {
+    grid-template-columns: 1fr;
+  }
+  .acoes {
+    padding-top: var(--esp-4);
+    padding-left: 0;
+    border-top: 1px solid var(--linha);
+    border-left: 0;
+  }
 }
 </style>

@@ -56,7 +56,7 @@ describe('agenda do dia', () => {
     app = await montarApp('/agenda');
     await esperar(() => expect(texto()).toContain('Rafael Souza'));
     await clicarContendo('Rafael Souza');
-    await clicar('Cancelar');
+    await clicarContendo('Cancelar agendamento');
     await esperar(() => {
       expect(texto()).toContain('Atenção');
       expect(texto()).toContain('já confirmou presença');
@@ -70,6 +70,39 @@ describe('agenda do dia', () => {
         ),
       ).toBe(false),
     );
+  });
+});
+
+describe('detalhe do agendamento (estilo PDV)', () => {
+  const acoes = () =>
+    [...document.querySelectorAll('section[aria-label="Ações"] button')].map(
+      (b) => b.textContent.trim(),
+    );
+
+  it('informações de um lado, ações do outro, conforme o estado', async () => {
+    app = await montarApp('/agenda');
+    await clicarContendo('Rafael Souza');
+    await esperar(() => expect(acoes()).toHaveLength(4));
+    for (const t of [
+      'Marcar atendido',
+      'Abrir comanda',
+      'Marcar falta',
+      'Cancelar agendamento',
+    ]) {
+      expect(acoes().some((a) => a.startsWith(t))).toBe(true);
+    }
+    const info = document.querySelector(
+      'section[aria-label="Informações do agendamento"]',
+    );
+    expect(info.textContent).toContain('Prefere máquina 2');
+    expect(info.textContent).toContain('09:00–09:50');
+  });
+
+  it('pendente mostra só confirmar e cancelar', async () => {
+    app = await montarApp('/agenda');
+    await clicarContendo('Bruno Lima');
+    await esperar(() => expect(acoes()).toHaveLength(2));
+    expect(acoes()[0].startsWith('Confirmar presença')).toBe(true);
   });
 });
 

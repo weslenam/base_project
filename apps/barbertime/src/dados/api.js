@@ -521,6 +521,7 @@ export function criarApi({ agora = () => new Date() } = {}) {
         return copia({
           ...completar(a),
           clienteTelefone: cliente?.telefone ?? null,
+          clienteObservacoes: cliente?.observacoes ?? '',
         });
       },
       async horariosLivres({ data, barbeiroId, servicoId }) {

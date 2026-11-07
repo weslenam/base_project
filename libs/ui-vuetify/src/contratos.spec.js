@@ -22,6 +22,7 @@ import {
   testarDsPagina,
   testarDsTextarea,
   testarDsFormulario,
+  testarDsAcao,
 } from '@barbertime/ui-contrato';
 import {
   instalarUi,
@@ -48,6 +49,7 @@ import {
   DsPagina,
   DsTextarea,
   DsFormulario,
+  DsAcao,
 } from './index.js';
 import { montar } from './testes/montar.js';
 
@@ -82,3 +84,4 @@ describe('Vuetify: DsPagina', () => testarDsPagina(DsPagina, montar));
 describe('Vuetify: DsTextarea', () => testarDsTextarea(DsTextarea, montar));
 describe('Vuetify: DsFormulario', () =>
   testarDsFormulario({ DsFormulario, DsInput, DsBotao }, montar));
+describe('Vuetify: DsAcao', () => testarDsAcao(DsAcao, montar));
