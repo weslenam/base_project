@@ -1,0 +1,36 @@
+/* Telas de acesso (entrar e cadastro): cartão centralizado, como o guia da identidade. */
+.acesso {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: var(--esp-6) var(--esp-4);
+  background: var(--concreto);
+  box-sizing: border-box;
+}
+.acesso__cartao {
+  display: grid;
+  gap: var(--esp-4);
+  width: 100%;
+  max-width: 26rem;
+  padding: var(--esp-6);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-md);
+  background: var(--placa);
+  box-shadow: var(--sombra-placa);
+  box-sizing: border-box;
+}
+.acesso__cartao p {
+  margin: 0;
+}
+.acesso__erro {
+  color: var(--perigo);
+  font: var(--tipo-corpo-sm);
+}
+.acesso__rodape {
+  text-align: center;
+  font: var(--tipo-corpo-sm);
+}
+.acesso__rodape a {
+  color: var(--cobre);
+  font-weight: 600;
+}

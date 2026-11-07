@@ -18,3 +18,18 @@ export {
   resumoDoCaixa,
   diferencaDeCaixa,
 } from './caixa.js';
+export {
+  PERMISSOES,
+  CHAVES_DE_PERMISSAO,
+  PAPEIS_PADRAO,
+  permissoesInvalidas,
+  permissoesEfetivas,
+  permissoesPorGrupo,
+} from './permissoes.js';
+export {
+  MODULOS,
+  CHAVES_DE_MODULO,
+  ESTADOS_DE_MODULO,
+  moduloDoCatalogo,
+  transicaoDeModulo,
+} from './modulos.js';

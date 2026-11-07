@@ -62,23 +62,27 @@ nvm use
 corepack enable
 pnpm install
 cp .env.example .env        # ajuste as senhas
-docker compose up -d        # postgres, redis e mailpit
+pnpm banco                  # sobe postgres, redis e mailpit, migra e cria a barbearia modelo
 pnpm dev                    # web http://localhost:4200 · api http://localhost:3333
 ```
+
+**Acesso de desenvolvimento** (criado por `pnpm banco`, senha `barbertime123`): `dono@`, `gerente@`, `recepcao@` e `barbeiro@barbertime.dev`, um por papel. Para cadastrar outra barbearia, use `/cadastro`.
 
 O Vite repassa `/api/*` para a API. O Mailpit mostra os e-mails do ambiente em http://localhost:8025. Para rodar também a api e a web em containers: `docker compose --profile apps up`.
 
 ## Comandos
 
-| Comando                                  | O que faz                                                         |
-| ---------------------------------------- | ----------------------------------------------------------------- |
-| `pnpm dev`                               | `nx serve` do `barbertime` e da `api` juntos                      |
-| `pnpm verificar`                         | lint + testes + build de todos os projetos                        |
-| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                |
-| `pnpm format`                            | Prettier no workspace                                             |
-| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json` |
-| `docker compose up -d` / `down`          | sobe ou para a infraestrutura (`down -v` zera os dados)           |
-| `pnpm nx graph`                          | grafo de dependências                                             |
+| Comando                                  | O que faz                                                               |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| `pnpm dev`                               | `nx serve` do `barbertime` e da `api` juntos                            |
+| `pnpm verificar`                         | lint + testes + build de todos os projetos                              |
+| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                      |
+| `pnpm format`                            | Prettier no workspace                                                   |
+| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json`       |
+| `pnpm verificar:tudo`                    | verificar + testes de integração da API (precisa do Postgres no Docker) |
+| `pnpm nx run api:migrar` / `api:semear`  | aplica migrações / cria os dados de desenvolvimento                     |
+| `docker compose up -d` / `down`          | sobe ou para a infraestrutura (`down -v` zera os dados)                 |
+| `pnpm nx graph`                          | grafo de dependências                                                   |
 
 ## Estrutura
 
@@ -110,15 +114,26 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 - Variáveis com o nome do token: `var(--cobre)`, `var(--esp-4)`, `var(--raio-sm)`, `var(--tipo-titulo)`. O tema escuro troca por `[data-theme='dark']`.
 - Classes de apoio para telas: `ds-display`, `ds-titulo`, `ds-subtitulo`, `ds-rotulo`, `ds-corpo-lg`, `ds-corpo-sm`, `ds-suave`, `ds-hora`, `ds-valor`.
 
+## Acesso, papéis e módulos
+
+- **Login** por sessão em cookie (ADR 0009). Cada usuário tem um **papel** em cada barbearia: Dono, Gerente, Recepção, Barbeiro ou papéis criados pelo dono com permissões do catálogo (ADR 0010). O menu mostra só o que o papel permite, e a API recusa o resto (403).
+- **Isolamento por barbearia** com RLS no PostgreSQL (ADR 0001), coberto por teste de integração.
+- **Módulos** (ADR 0011): inclusos no plano (agendamento online, comissões, lembretes) a barbearia ativa; **serviços adicionais** (pagamento online/gateway, WhatsApp, NFS-e) são solicitados e ativados depois da contratação.
+- **Já na API real:** login, cadastro da barbearia, usuários, papéis e módulos. As demais telas ainda usam os dados de exemplo (próxima fase do planejamento 0013).
+
 ## Telas
 
-| Rota             | Tela                                                                                                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/agenda`        | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar) |
-| `/clientes`      | Busca por nome ou telefone, cadastro com telefone, CPF e observações, histórico e exclusão                                                                        |
-| `/servicos`      | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                         |
-| `/agendar/:slug` | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`): serviço → barbeiro → dia → horário → dados                                                    |
-| `/componentes`   | Vitrine do kit de UI                                                                                                                                              |
+| Rota                    | Tela                                                                                                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/agenda`               | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar) |
+| `/clientes`             | Busca por nome ou telefone, cadastro com telefone, CPF e observações, histórico e exclusão                                                                        |
+| `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                         |
+| `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`): serviço → barbeiro → dia → horário → dados                                                    |
+| `/componentes`          | Vitrine do kit de UI                                                                                                                                              |
+| `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar                                                                                   |
+| `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                         |
+| `/modulos`              | Módulos inclusos e serviços adicionais                                                                                                                            |
+| `/entrar` · `/cadastro` | Login e cadastro self-service da barbearia                                                                                                                        |
 
 **Cliente no balcão (comanda e novo agendamento):** um campo aceita nome ou telefone. Com letras, busca pelo nome; com números, pelo telefone (os últimos 4 dígitos já bastam). Quem começa com o nome ou termina com os dígitos aparece primeiro. Se nada for encontrado, dá para cadastrar ali mesmo, com o que foi digitado já preenchido. O botão "Procurar na lista" abre todos os clientes com atendimentos, última visita e faltas. Na comanda, deixar sem cliente grava como **cliente avulso**: entra no caixa e na comissão do barbeiro, mas não vai para o histórico de ninguém. O agendamento sempre exige cliente.
 

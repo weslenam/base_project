@@ -1,36 +1,88 @@
 <script setup>
 import { computed } from 'vue';
-import { RouterView, useRoute } from 'vue-router';
-import { DsApp, DsLayout } from '@barbertime/ui';
+import { RouterView, useRoute, useRouter } from 'vue-router';
+import { DsApp, DsBotao, DsLayout } from '@barbertime/ui';
 import Marca from './Marca.vue';
+import { rotas, rotaPermitida } from '../router';
+import { useSessao } from '../sessao/sessao.js';
 
 const route = useRoute();
-const publica = computed(() => Boolean(route.meta.publica));
+const router = useRouter();
+const { sessao, sair } = useSessao();
 
-const itensMenu = [
-  { titulo: 'Agenda', rota: '/agenda', icone: 'agenda' },
-  { titulo: 'Caixa', rota: '/caixa', icone: 'caixa' },
-  { titulo: 'Clientes', rota: '/clientes', icone: 'clientes' },
-  { titulo: 'Equipe', rota: '/equipe', icone: 'equipe' },
-  { titulo: 'Serviços', rota: '/servicos', icone: 'servico' },
-  { titulo: 'Produtos', rota: '/produtos', icone: 'produto' },
-  {
-    titulo: 'Página pública',
-    rota: '/agendar/barbearia-modelo',
-    icone: 'barbearia',
-  },
-  { titulo: 'Componentes', rota: '/componentes', icone: 'componentes' },
-];
+const semMenu = computed(() =>
+  Boolean(route.meta.publica || route.meta.semLayout),
+);
+
+// Menu montado das rotas: só o que o papel permite e o módulo libera.
+const itensMenu = computed(() => {
+  if (!sessao.value) return [];
+  const itens = rotas
+    .filter((r) => r.meta?.menu && rotaPermitida(r.meta))
+    .map((r) => ({
+      titulo: r.meta.menu.titulo,
+      rota: r.path,
+      icone: r.meta.menu.icone,
+    }));
+  if (
+    sessao.value.modulosAtivos?.includes('agendamento_online') &&
+    sessao.value.barbearia
+  ) {
+    itens.splice(1, 0, {
+      titulo: 'Página pública',
+      rota: `/agendar/${sessao.value.barbearia.slug}`,
+      icone: 'barbearia',
+    });
+  }
+  return itens;
+});
+
+async function aoSair() {
+  await sair();
+  router.push('/entrar');
+}
 </script>
 
 <template>
   <DsApp>
-    <RouterView v-if="publica" />
-    <DsLayout v-else titulo="BarberTime" :itens-menu="itensMenu">
+    <RouterView v-if="semMenu" />
+    <DsLayout
+      v-else
+      :titulo="sessao?.barbearia?.nome ?? 'BarberTime'"
+      :itens-menu="itensMenu"
+    >
       <template #marca>
         <Marca />
+      </template>
+      <template v-if="sessao?.usuario" #cabecalho-acoes>
+        <div class="usuario">
+          <span class="usuario__nome">{{ sessao.usuario.nome }}</span>
+          <span class="usuario__papel">{{ sessao.papel.nome }}</span>
+        </div>
+        <DsBotao variante="fantasma" tamanho="sm" @click="aoSair">Sair</DsBotao>
       </template>
       <RouterView />
     </DsLayout>
   </DsApp>
 </template>
+
+<style scoped>
+.usuario {
+  display: grid;
+  margin-inline-end: var(--esp-2);
+  text-align: right;
+  line-height: 1.2;
+}
+.usuario__nome {
+  font-weight: 600;
+}
+.usuario__papel {
+  font: var(--tipo-corpo-sm);
+  color: var(--grafite-suave);
+}
+@media (max-width: 40rem) {
+  .usuario {
+    display: none;
+  }
+}
+</style>

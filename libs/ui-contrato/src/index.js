@@ -29,3 +29,4 @@ export { testarDsFormulario } from './DsFormulario.contrato.js';
 export { testarDsAcao } from './DsAcao.contrato.js';
 export { testarDsAbas } from './DsAbas.contrato.js';
 export { testarDsEscolha } from './DsEscolha.contrato.js';
+export { testarDsCaixaDeSelecao } from './DsCaixaDeSelecao.contrato.js';

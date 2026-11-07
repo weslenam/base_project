@@ -14,7 +14,9 @@
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",
     "format": "nx format:write",
-    "verificar": "nx run-many -t lint,test,build"
+    "verificar": "nx run-many -t lint,test,build",
+    "verificar:tudo": "nx run-many -t lint,test,build && nx run api:integracao",
+    "banco": "docker compose up -d --wait postgres redis mailpit && nx run api:semear"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

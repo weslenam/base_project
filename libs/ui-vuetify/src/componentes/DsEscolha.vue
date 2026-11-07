@@ -1,6 +1,9 @@
 <script setup>
 /** Escolha única em botões grandes (estilo PDV). */
-const modelo = defineModel({ type: [String, Number, null], default: null });
+const modelo = defineModel({
+  type: [String, Number, Boolean, null],
+  default: null,
+});
 
 defineProps({
   /** [{ valor, rotulo }] */

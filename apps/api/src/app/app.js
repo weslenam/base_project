@@ -1,11 +1,45 @@
 import sensible from './plugins/sensible.js';
+import banco from '../infra/banco.js';
+import { config } from '../infra/config.js';
+import autenticacao from '../seguranca/autenticacao.js';
 import rotasSaude from './rotas/saude.js';
+import rotasAutenticacao from './rotas/autenticacao.js';
+import rotasUsuarios from './rotas/usuarios.js';
+import rotasPapeis from './rotas/papeis.js';
+import rotasModulos from './rotas/modulos.js';
+import rotasPagamentos from './rotas/pagamentos.js';
 
 /**
- * Aplicação Fastify. Plugins e rotas são registrados explicitamente;
- * toda rota fica sob o prefixo /api.
+ * Aplicação Fastify. Toda rota fica sob /api. Erros esperados saem como
+ * { mensagem } com o status certo; os inesperados viram 500 genérico.
  */
-export async function app(fastify) {
+export async function app(fastify, opts = {}) {
   fastify.register(sensible);
-  fastify.register(rotasSaude, { prefix: '/api' });
+  fastify.register(banco, {
+    databaseUrl: opts.databaseUrl ?? config.databaseUrl,
+  });
+  fastify.register(autenticacao);
+
+  fastify.setErrorHandler((erro, req, reply) => {
+    const status = erro.statusCode ?? 500;
+    if (status >= 500) {
+      req.log.error(erro);
+      return reply
+        .code(500)
+        .send({ mensagem: 'Erro interno. Tente de novo em instantes.' });
+    }
+    return reply.code(status).send({ mensagem: erro.message });
+  });
+
+  fastify.register(
+    async (api) => {
+      api.register(rotasSaude);
+      api.register(rotasAutenticacao);
+      api.register(rotasUsuarios);
+      api.register(rotasPapeis);
+      api.register(rotasModulos);
+      api.register(rotasPagamentos, opts.pagamentos ?? {});
+    },
+    { prefix: '/api' },
+  );
 }
