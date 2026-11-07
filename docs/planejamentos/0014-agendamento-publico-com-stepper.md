@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamento 0006 (página pública), ADR 0003
-- **Commits:** ainda não commitado (branch `feat/backend-acl-modulos`)
+- **Commits:** a335f18 (branch `feat/backend-acl-modulos`)
 
 ## Solicitação de origem
 
