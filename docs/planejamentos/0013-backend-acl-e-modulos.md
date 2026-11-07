@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** ADRs 0001, 0002, 0008, 0009, 0010 e 0011; planejamento 0001 (fase 0)
-- **Commits:** ainda não commitado (branch `feat/backend-acl-modulos`, a partir de `feat/caixa-comanda`)
+- **Commits:** 06078a8 (fases 1 e 2; branch `feat/backend-acl-modulos`)
 
 ## Solicitação de origem
 
