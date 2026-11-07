@@ -15,3 +15,4 @@
 | [0011](0011-comanda-sem-rolagem.md)               | Comanda sem barra de rolagem                                               | Concluído    | 2026-11-07 |
 | [0012](0012-busca-de-cliente-por-telefone.md)     | Busca de cliente por nome ou telefone, com cadastro rápido e lista         | Concluído    | 2026-11-07 |
 | [0013](0013-backend-acl-e-modulos.md)             | Backend real, administração com ACL e módulos adicionais                   | Em andamento | 2026-11-07 |
+| [0014](0014-agendamento-publico-com-stepper.md)   | Agendamento público em etapas (stepper), sem rolagem                       | Concluído    | 2026-11-07 |

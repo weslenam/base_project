@@ -128,7 +128,7 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 | `/agenda`               | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar) |
 | `/clientes`             | Busca por nome ou telefone, cadastro com telefone, CPF e observações, histórico e exclusão                                                                        |
 | `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                         |
-| `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`): serviço → barbeiro → dia → horário → dados                                                    |
+| `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`), em etapas: serviço → barbeiro → dia → horário → dados                                         |
 | `/componentes`          | Vitrine do kit de UI                                                                                                                                              |
 | `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar                                                                                   |
 | `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                         |
@@ -158,17 +158,19 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 **Ações e exibição**
 
-| Item            | Para quê                                                                                                                                 |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `DsBotao`       | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                                                                       |
-| `DsAcao`        | botão de ação estilo PDV (ícone, título, descrição; primario/secundario/perigo; `compacta` com 52px)                                     |
-| `DsAbas`        | abas acessíveis: `v-model`, `abas: [{ valor, rotulo }]`, conteúdo no slot `#<valor>`                                                     |
-| `DsEscolha`     | escolha única em botões grandes (ex.: forma de pagamento): `v-model`, `opcoes`, `rotulo`                                                 |
-| `DsIcone`       | ícone por nome do catálogo (`agenda`, `caixa`, `clientes`, `whatsapp`...; ver `NOMES_DE_ICONES`)                                         |
-| `DsSelo`        | status com palavra: confirmado, pendente, assinante, fila, faltou, neutro                                                                |
-| `DsTabela`      | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`; `semRodape` sem paginação; `compacta` com linhas baixas |
-| `DsHorarios`    | escolha de horário: `opcoes: [{ hora, disponivel }]`, `v-model` com a hora                                                               |
-| `DsBlocoAgenda` | bloco da agenda: `cliente`, `servico`, `inicio`, `fim`, `estado`, `clicavel`                                                             |
+| Item               | Para quê                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `DsBotao`          | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                                                                       |
+| `DsAcao`           | botão de ação estilo PDV (ícone, título, descrição; primario/secundario/perigo; `compacta` com 52px)                                     |
+| `DsAbas`           | abas acessíveis: `v-model`, `abas: [{ valor, rotulo }]`, conteúdo no slot `#<valor>`                                                     |
+| `DsEscolha`        | escolha única em botões grandes (ex.: forma de pagamento): `v-model`, `opcoes`, `rotulo`                                                 |
+| `DsPassos`         | indicador de etapas (stepper): `v-model` com a etapa atual, `passos: [{ rotulo }]`; etapas concluídas voltam com um toque                |
+| `DsCaixaDeSelecao` | caixa de seleção com `rotulo` e `descricao`                                                                                              |
+| `DsIcone`          | ícone por nome do catálogo (`agenda`, `caixa`, `clientes`, `whatsapp`...; ver `NOMES_DE_ICONES`)                                         |
+| `DsSelo`           | status com palavra: confirmado, pendente, assinante, fila, faltou, neutro                                                                |
+| `DsTabela`         | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`; `semRodape` sem paginação; `compacta` com linhas baixas |
+| `DsHorarios`       | escolha de horário: `opcoes: [{ hora, disponivel }]`, `v-model` com a hora                                                               |
+| `DsBlocoAgenda`    | bloco da agenda: `cliente`, `servico`, `inicio`, `fim`, `estado`, `clicavel`                                                             |
 
 **Composables**
 

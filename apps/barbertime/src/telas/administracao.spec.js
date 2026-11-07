@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SESSAO_DONO,
   clicar,
-  clicarContendo,
   esperar,
   montarApp,
   simularApi,

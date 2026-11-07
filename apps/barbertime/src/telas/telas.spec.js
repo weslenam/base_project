@@ -195,6 +195,37 @@ describe('serviços', () => {
 });
 
 describe('agendamento público', () => {
+  const etapaAtual = () =>
+    document
+      .querySelector(
+        '[aria-label="Etapas do agendamento"] [aria-current="step"]',
+      )
+      ?.textContent.trim();
+  const resumo = () =>
+    document.querySelector('[aria-label="Suas escolhas"]')?.textContent.trim();
+
+  it('uma etapa por vez: escolher avança, o resumo acompanha e Voltar retorna', async () => {
+    app = await montarApp('/agendar/barbearia-modelo');
+    await esperar(() => expect(etapaAtual()).toBe('1Serviço'));
+    expect(texto()).not.toContain('Com quem?');
+
+    await clicarContendo('30 min');
+    await esperar(() => expect(etapaAtual()).toBe('2Barbeiro'));
+    expect(resumo()).toBe('Corte');
+    expect(texto()).not.toContain('Qual serviço?');
+
+    await clicarContendo('Marcos');
+    await esperar(() => expect(etapaAtual()).toBe('3Dia'));
+    expect(resumo()).toBe('Corte · Marcos');
+
+    await clicarContendo('Voltar');
+    await esperar(() => expect(etapaAtual()).toBe('2Barbeiro'));
+    // Etapa concluída vira botão para voltar direto a ela.
+    document.querySelector('button[aria-label="Voltar para Serviço"]').click();
+    await esperar(() => expect(etapaAtual()).toBe('1Serviço'));
+    expect(texto()).toContain('Qual serviço?');
+  });
+
   it('serviço → barbeiro → dia → horário → dados → reservado', async () => {
     app = await montarApp('/agendar/barbearia-modelo');
     await esperar(() => expect(texto()).toContain('Corte + barba'));

@@ -14,6 +14,7 @@ import {
   DsInputCpf,
   DsInputMoeda,
   DsInputTelefone,
+  DsPassos,
   DsSelect,
   DsSelo,
   DsTabela,
@@ -35,6 +36,7 @@ const cpf = ref(null);
 const preco = ref(45.9);
 const horario = ref('10:00');
 const abaVitrine = ref('servico');
+const passoVitrine = ref(1);
 const forma = ref('pix');
 const formas = [
   { valor: 'dinheiro', rotulo: 'Dinheiro' },
@@ -253,6 +255,17 @@ async function excluir() {
       <template #servico><p>Corte, Barba</p></template>
       <template #produto><p>Pomada modeladora</p></template>
     </DsAbas>
+
+    <h2 class="ds-subtitulo">Etapas (stepper)</h2>
+    <DsPassos
+      v-model="passoVitrine"
+      :passos="[
+        { rotulo: 'Serviço' },
+        { rotulo: 'Barbeiro' },
+        { rotulo: 'Dia' },
+        { rotulo: 'Horário' },
+      ]"
+    />
 
     <h2 class="ds-subtitulo">Escolha (estilo PDV)</h2>
     <DsEscolha v-model="forma" :opcoes="formas" rotulo="Forma de pagamento" />
