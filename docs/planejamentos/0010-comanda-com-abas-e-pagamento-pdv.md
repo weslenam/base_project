@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0008 (caixa e comanda) e 0009 (padrão PDV)
-- **Commits:** ainda não commitado (branch `feat/caixa-comanda`)
+- **Commits:** 86155fb (branch `feat/caixa-comanda`)
 
 ## Solicitação de origem
 
