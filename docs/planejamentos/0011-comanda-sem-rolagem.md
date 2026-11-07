@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0009 e 0010
-- **Commits:** ainda não commitado (branch `feat/caixa-comanda`)
+- **Commits:** 7380696 (branch `feat/caixa-comanda`)
 
 ## Solicitação de origem
 
