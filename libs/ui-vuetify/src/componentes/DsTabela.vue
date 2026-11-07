@@ -10,6 +10,8 @@ const props = defineProps({
   chave: { type: String, default: 'id' },
   carregando: Boolean,
   itensPorPagina: { type: Number, default: 10 },
+  /** Mostra todas as linhas, sem rodapé de paginação (listas curtas, ex.: itens da comanda). */
+  semRodape: Boolean,
   textoVazio: { type: String, default: 'Nenhum registro encontrado' },
 });
 const emit = defineEmits(['selecionar']);
@@ -38,7 +40,8 @@ function aoClicarLinha(_evento, { item }) {
     :items="linhas"
     :item-value="chave"
     :loading="carregando"
-    :items-per-page="itensPorPagina"
+    :items-per-page="semRodape ? -1 : itensPorPagina"
+    :hide-default-footer="semRodape"
     :no-data-text="textoVazio"
     loading-text="Carregando..."
     items-per-page-text="Registros por página"

@@ -66,6 +66,59 @@ describe('caixa', () => {
   });
 });
 
+describe('comanda com abas e pagamento estilo PDV', () => {
+  const painelVisivel = () =>
+    [...document.querySelectorAll('[role="tabpanel"]')].find(
+      (p) => p.style.display !== 'none',
+    );
+  const resumo = () =>
+    normalizar(
+      document.querySelector('section[aria-label="Pagamento"]').textContent,
+    );
+
+  it('separa serviços e produtos em abas, cada uma com seu total', async () => {
+    app = await montarApp('/caixa');
+    await esperar(() => expect(texto()).toContain('Diego Alves'));
+    abrirLinha('Diego Alves');
+    await esperar(() => expect(texto()).toContain('Comanda #2'));
+    const abas = [...document.querySelectorAll('[role="tab"]')].map((t) =>
+      t.textContent.trim(),
+    );
+    expect(abas).toEqual(['Serviços (1)', 'Produtos (1)']);
+
+    expect(painelVisivel().textContent).toContain('Barba');
+    expect(normalizar(painelVisivel().textContent)).toContain(
+      'Total em serviços',
+    );
+    expect(painelVisivel().textContent).not.toContain('Óleo para barba');
+
+    document.querySelectorAll('[role="tab"]')[1].click();
+    await esperar(() =>
+      expect(painelVisivel().textContent).toContain('Óleo para barba'),
+    );
+    expect(normalizar(painelVisivel().textContent)).toContain(
+      'Total em produtos',
+    );
+
+    expect(resumo()).toMatch(/Serviços\s*R\$ 30,00/);
+    expect(resumo()).toMatch(/Produtos\s*R\$ 34,90/);
+    expect(resumo()).toMatch(/Total\s*R\$ 60,00/);
+  });
+
+  it('receber escolhendo a forma de pagamento com um toque', async () => {
+    app = await montarApp('/caixa');
+    await esperar(() => expect(texto()).toContain('Cliente avulso'));
+    abrirLinha('Cliente avulso');
+    await esperar(() => expect(texto()).toContain('Comanda #3'));
+    await clicar('Pix');
+    await esperar(() => expect(texto()).toContain('Em Pix · fecha a comanda'));
+    await clicarContendo('Receber R');
+    await esperar(() =>
+      expect(normalizar(texto())).toContain('Recebido R$ 39,90 em Pix'),
+    );
+  });
+});
+
 describe('agenda → comanda', () => {
   it('agendamento confirmado abre a comanda com o serviço', async () => {
     app = await montarApp('/agenda');

@@ -1,8 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import {
+  DsAbas,
+  DsAcao,
   DsBotao,
   DsDialogo,
+  DsEscolha,
   DsInput,
   DsInputMoeda,
   DsSelect,
@@ -17,6 +20,8 @@ import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
 import { rotuloDaForma, seloDaComanda } from './rotulos.js';
 
+// Comanda (planejamentos 0008 e 0010): itens em abas de serviço e produto à
+// esquerda; pagamento estilo PDV à direita.
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ id: { type: Number, default: null } });
 
@@ -26,22 +31,25 @@ const executar = useAcao();
 
 const clientes = ref([]);
 const barbeiros = ref([]);
-const servicos = ref([]);
-const produtos = ref([]);
+const catalogo = ref({ servico: [], produto: [] });
 const comanda = ref(null);
-const novoItem = ref({ chave: null, quantidade: 1 });
+const aba = ref('servico');
+const novoItem = ref({ id: null, quantidade: 1 });
 const ocupado = ref(false);
 
 watch(aberto, async (abriu) => {
   if (!abriu) return;
-  novoItem.value = { chave: null, quantidade: 1 };
-  [clientes.value, barbeiros.value, servicos.value, produtos.value] =
-    await Promise.all([
-      api.clientes.listar(),
-      api.barbeiros.listar(),
-      api.servicos.listar(),
-      api.produtos.listar(),
-    ]);
+  aba.value = 'servico';
+  novoItem.value = { id: null, quantidade: 1 };
+  const [c, b, servicos, produtos] = await Promise.all([
+    api.clientes.listar(),
+    api.barbeiros.listar(),
+    api.servicos.listar(),
+    api.produtos.listar(),
+  ]);
+  clientes.value = c;
+  barbeiros.value = b;
+  catalogo.value = { servico: servicos, produto: produtos };
   comanda.value = props.id
     ? await api.comandas.obter(props.id)
     : {
@@ -54,6 +62,9 @@ watch(aberto, async (abriu) => {
       };
 });
 
+// Trocar de aba limpa o item que estava sendo escolhido.
+watch(aba, () => (novoItem.value = { id: null, quantidade: 1 }));
+
 const editavel = computed(() => comanda.value?.estado === 'aberta');
 const titulo = computed(() =>
   props.id
@@ -64,23 +75,48 @@ const totais = computed(() =>
   comanda.value ? totalDaComanda(comanda.value) : null,
 );
 
+const TIPOS = {
+  servico: {
+    singular: 'serviço',
+    plural: 'Serviços',
+    vazio: 'Nenhum serviço na comanda',
+  },
+  produto: {
+    singular: 'produto',
+    plural: 'Produtos',
+    vazio: 'Nenhum produto na comanda',
+  },
+};
+
+const itensDo = (tipo) =>
+  (comanda.value?.itens ?? [])
+    .map((item, indice) => ({
+      ...item,
+      id: indice,
+      subtotal: item.preco * item.quantidade,
+    }))
+    .filter(
+      (item) => (item.tipo === 'produto' ? 'produto' : 'servico') === tipo,
+    );
+
+const abas = computed(() =>
+  Object.entries(TIPOS).map(([valor, t]) => ({
+    valor,
+    rotulo: `${t.plural} (${itensDo(valor).reduce((n, i) => n + i.quantidade, 0)})`,
+  })),
+);
+
 const opcoesClientes = computed(() =>
   clientes.value.map((c) => ({ valor: c.id, rotulo: c.nome })),
 );
 const opcoesBarbeiros = computed(() =>
   barbeiros.value.map((b) => ({ valor: b.id, rotulo: b.nome })),
 );
-const opcoesItens = computed(() => [
-  ...servicos.value.map((s) => ({
-    valor: `servico:${s.id}`,
-    rotulo: `Serviço · ${s.nome} · ${formatarMoeda(s.preco)}`,
-  })),
-  ...produtos.value.map((p) => ({
-    valor: `produto:${p.id}`,
-    rotulo: `Produto · ${p.nome} · ${formatarMoeda(p.preco)}`,
-  })),
-]);
-const formas = FORMAS_DE_PAGAMENTO;
+const opcoesDoCatalogo = (tipo) =>
+  catalogo.value[tipo].map((x) => ({
+    valor: x.id,
+    rotulo: `${x.nome} · ${formatarMoeda(x.preco)}`,
+  }));
 
 const colunasItens = [
   { campo: 'nome', titulo: 'Item' },
@@ -99,19 +135,9 @@ const colunasItens = [
   },
   { campo: 'acoes', titulo: '' },
 ];
-const linhasItens = computed(() =>
-  (comanda.value?.itens ?? []).map((i, indice) => ({
-    ...i,
-    id: indice,
-    subtotal: i.preco * i.quantidade,
-  })),
-);
 
-function incluir() {
-  const [tipo, id] = String(novoItem.value.chave ?? '').split(':');
-  const ref = (tipo === 'produto' ? produtos : servicos).value.find(
-    (x) => x.id === Number(id),
-  );
+function incluir(tipo) {
+  const ref = catalogo.value[tipo].find((x) => x.id === novoItem.value.id);
   if (!ref) return;
   comanda.value.itens.push({
     tipo,
@@ -121,7 +147,7 @@ function incluir() {
     quantidade: Math.max(1, Number(novoItem.value.quantidade) || 1),
     barbeiroId: comanda.value.barbeiroId,
   });
-  novoItem.value = { chave: null, quantidade: 1 };
+  novoItem.value = { id: null, quantidade: 1 };
 }
 
 function remover(indice) {
@@ -145,12 +171,10 @@ async function salvar() {
 
 async function receber() {
   ocupado.value = true;
+  const forma = comanda.value.forma;
   const salva = await salvarRascunho();
   const paga =
-    salva &&
-    (await executar(() =>
-      api.comandas.receber(salva.id, { forma: comanda.value.forma }),
-    ));
+    salva && (await executar(() => api.comandas.receber(salva.id, { forma })));
   ocupado.value = false;
   if (!paga) return;
   notificar.sucesso(
@@ -180,113 +204,160 @@ async function cancelar() {
 <template>
   <DsDialogo v-model="aberto" :titulo="titulo" largura="lg">
     <div v-if="comanda" class="comanda">
-      <div v-if="!editavel" class="comanda__situacao">
-        <DsSelo :estado="seloDaComanda(comanda.estado).estado">
-          {{ seloDaComanda(comanda.estado).texto }}
-        </DsSelo>
-        <span v-if="comanda.forma" class="ds-suave">{{
-          rotuloDaForma(comanda.forma)
-        }}</span>
-      </div>
-
-      <div class="dupla">
-        <DsSelect
-          v-model="comanda.clienteId"
-          rotulo="Cliente"
-          :opcoes="opcoesClientes"
-          ajuda="Vazio = cliente avulso"
-          limpavel
-          :desabilitado="!editavel"
-        />
-        <DsSelect
-          v-model="comanda.barbeiroId"
-          rotulo="Barbeiro"
-          :opcoes="opcoesBarbeiros"
-          :desabilitado="!editavel"
-        />
-      </div>
-
-      <div v-if="editavel" class="incluir">
-        <DsSelect
-          v-model="novoItem.chave"
-          rotulo="Serviço ou produto"
-          :opcoes="opcoesItens"
-        />
-        <DsInput v-model="novoItem.quantidade" tipo="numero" rotulo="Qtd." />
-        <DsBotao
-          variante="secundario"
-          :desabilitado="!novoItem.chave"
-          @click="incluir"
-        >
-          Incluir
-        </DsBotao>
-      </div>
-
-      <DsTabela
-        :colunas="colunasItens"
-        :linhas="linhasItens"
-        :itens-por-pagina="-1"
-        texto-vazio="Nenhum item na comanda"
-      >
-        <template #celula-acoes="{ linha }">
-          <DsBotao
-            v-if="editavel"
-            variante="fantasma"
-            tamanho="sm"
-            :aria-label="`Remover ${linha.nome}`"
-            @click.stop="remover(linha.id)"
-          >
-            Remover
-          </DsBotao>
-        </template>
-      </DsTabela>
-
-      <div class="fechamento">
-        <div class="fechamento__campos">
-          <DsInputMoeda
-            v-model="comanda.desconto"
-            rotulo="Desconto"
+      <!-- Itens -->
+      <section class="itens" aria-label="Itens da comanda">
+        <div class="dupla">
+          <DsSelect
+            v-model="comanda.clienteId"
+            rotulo="Cliente"
+            :opcoes="opcoesClientes"
+            ajuda="Vazio = cliente avulso"
+            limpavel
             :desabilitado="!editavel"
           />
           <DsSelect
-            v-model="comanda.forma"
-            rotulo="Forma de pagamento"
-            :opcoes="formas"
+            v-model="comanda.barbeiroId"
+            rotulo="Barbeiro"
+            :opcoes="opcoesBarbeiros"
             :desabilitado="!editavel"
           />
         </div>
-        <dl class="totais">
+
+        <DsAbas v-model="aba" :abas="abas" rotulo="Tipo de item">
+          <template v-for="(t, tipo) in TIPOS" :key="tipo" #[tipo]>
+            <div class="painel">
+              <div v-if="editavel" class="incluir">
+                <DsSelect
+                  v-model="novoItem.id"
+                  :rotulo="`Escolher ${t.singular}`"
+                  :opcoes="opcoesDoCatalogo(tipo)"
+                />
+                <DsInput
+                  v-model="novoItem.quantidade"
+                  tipo="numero"
+                  rotulo="Qtd."
+                />
+                <DsBotao
+                  variante="secundario"
+                  :desabilitado="!novoItem.id"
+                  @click="incluir(tipo)"
+                >
+                  Incluir
+                </DsBotao>
+              </div>
+
+              <DsTabela
+                :colunas="colunasItens"
+                :linhas="itensDo(tipo)"
+                :texto-vazio="t.vazio"
+                sem-rodape
+              >
+                <template #celula-acoes="{ linha }">
+                  <DsBotao
+                    v-if="editavel"
+                    variante="fantasma"
+                    tamanho="sm"
+                    :aria-label="`Remover ${linha.nome}`"
+                    @click.stop="remover(linha.id)"
+                  >
+                    Remover
+                  </DsBotao>
+                </template>
+              </DsTabela>
+
+              <p class="painel__total">
+                <span class="ds-rotulo"
+                  >Total em {{ t.plural.toLowerCase() }}</span
+                >
+                <span class="ds-valor">{{
+                  formatarMoeda(
+                    totais[tipo === 'produto' ? 'produtos' : 'servicos'],
+                  )
+                }}</span>
+              </p>
+            </div>
+          </template>
+        </DsAbas>
+      </section>
+
+      <!-- Pagamento (estilo PDV) -->
+      <section class="pagamento" aria-label="Pagamento">
+        <div v-if="!editavel" class="pagamento__situacao">
+          <DsSelo :estado="seloDaComanda(comanda.estado).estado">
+            {{ seloDaComanda(comanda.estado).texto }}
+          </DsSelo>
+          <span v-if="comanda.forma" class="ds-suave">{{
+            rotuloDaForma(comanda.forma)
+          }}</span>
+        </div>
+
+        <dl class="resumo">
           <div>
-            <dt class="ds-rotulo">Subtotal</dt>
+            <dt>Serviços</dt>
+            <dd class="ds-valor">{{ formatarMoeda(totais.servicos) }}</dd>
+          </div>
+          <div>
+            <dt>Produtos</dt>
+            <dd class="ds-valor">{{ formatarMoeda(totais.produtos) }}</dd>
+          </div>
+          <div class="resumo__subtotal">
+            <dt>Subtotal</dt>
             <dd class="ds-valor">{{ formatarMoeda(totais.subtotal) }}</dd>
           </div>
           <div>
-            <dt class="ds-rotulo">Desconto</dt>
+            <dt>Desconto</dt>
             <dd class="ds-valor">− {{ formatarMoeda(totais.desconto) }}</dd>
           </div>
-          <div class="totais__total">
+          <div class="resumo__total">
             <dt class="ds-rotulo">Total</dt>
-            <dd class="ds-subtitulo">{{ formatarMoeda(totais.total) }}</dd>
+            <dd>{{ formatarMoeda(totais.total) }}</dd>
           </div>
         </dl>
-      </div>
+
+        <template v-if="editavel">
+          <DsInputMoeda v-model="comanda.desconto" rotulo="Desconto" />
+          <p class="ds-rotulo">Forma de pagamento</p>
+          <DsEscolha
+            v-model="comanda.forma"
+            :opcoes="FORMAS_DE_PAGAMENTO"
+            rotulo="Forma de pagamento"
+          />
+
+          <div class="acoes">
+            <DsAcao
+              icone="dinheiro"
+              :titulo="`Receber ${formatarMoeda(totais.total)}`"
+              :descricao="
+                comanda.forma
+                  ? `Em ${rotuloDaForma(comanda.forma)} · fecha a comanda`
+                  : 'Escolha a forma de pagamento'
+              "
+              variante="primario"
+              :desabilitado="ocupado"
+              @click="receber"
+            />
+            <DsAcao
+              icone="hora"
+              titulo="Salvar aberta"
+              descricao="Continua depois"
+              :desabilitado="ocupado"
+              @click="salvar"
+            />
+            <DsAcao
+              icone="fechar"
+              :titulo="id ? 'Cancelar comanda' : 'Descartar'"
+              :descricao="id ? 'Não entra no caixa' : 'Sai sem salvar'"
+              variante="perigo"
+              :desabilitado="ocupado"
+              @click="cancelar"
+            />
+          </div>
+        </template>
+      </section>
     </div>
 
     <template #acoes>
-      <template v-if="editavel">
-        <DsBotao variante="fantasma" class="acao-cancelar" @click="cancelar">
-          {{ id ? 'Cancelar comanda' : 'Descartar' }}
-        </DsBotao>
-        <DsBotao variante="secundario" :carregando="ocupado" @click="salvar"
-          >Salvar aberta</DsBotao
-        >
-        <DsBotao :carregando="ocupado" @click="receber">
-          Receber {{ totais ? formatarMoeda(totais.total) : '' }}
-        </DsBotao>
-      </template>
-      <DsBotao v-else variante="secundario" @click="aberto = false"
-        >Fechar</DsBotao
-      >
+      <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>
     </template>
   </DsDialogo>
 </template>
@@ -294,49 +365,94 @@ async function cancelar() {
 <style scoped>
 .comanda {
   display: grid;
-  gap: var(--esp-3);
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--esp-6);
 }
-.comanda__situacao {
-  display: flex;
-  align-items: center;
-  gap: var(--esp-2);
+.comanda p {
+  margin: 0;
+}
+.itens {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-3);
 }
 .dupla {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--esp-3);
+}
+.painel {
+  display: grid;
   gap: var(--esp-3);
 }
 .incluir {
   display: grid;
-  grid-template-columns: 1fr 6rem auto;
+  grid-template-columns: 1fr 5.5rem auto;
   align-items: start;
   gap: var(--esp-2);
 }
-.fechamento {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--esp-4);
-  align-items: start;
+.painel__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--esp-3);
 }
-.totais {
+.pagamento {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-3);
+  padding-left: var(--esp-6);
+  border-left: 1px solid var(--linha);
+}
+.pagamento__situacao {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+.resumo {
   display: grid;
   gap: var(--esp-1);
   margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-sm);
+  background: var(--placa-funda);
 }
-.totais div {
+.resumo div {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
 }
-.totais dt,
-.totais dd {
+.resumo dt,
+.resumo dd {
   margin: 0;
 }
-.totais__total {
-  padding-top: var(--esp-2);
+.resumo__subtotal {
+  padding-top: var(--esp-1);
   border-top: 1px solid var(--linha);
 }
-.acao-cancelar {
-  margin-inline-end: auto;
+.resumo__total {
+  padding-top: var(--esp-2);
+  border-top: 1px solid var(--linha-forte);
+}
+.resumo__total dd {
+  font: var(--tipo-titulo);
+  letter-spacing: var(--tipo-titulo-espacamento);
+}
+.acoes {
+  display: grid;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+/* Celular e telas estreitas: pagamento vai para baixo dos itens. */
+@media (max-width: 48rem) {
+  .comanda {
+    grid-template-columns: 1fr;
+  }
+  .pagamento {
+    padding-top: var(--esp-4);
+    padding-left: 0;
+    border-top: 1px solid var(--linha);
+    border-left: 0;
+  }
 }
 </style>

@@ -11,3 +11,4 @@
 | [0007](0007-equipe-servicos-e-produtos.md)        | Equipe, serviços e produtos em telas separadas                             | Concluído | 2026-11-07 |
 | [0008](0008-caixa-e-comanda.md)                   | Caixa e comanda                                                            | Concluído | 2026-11-07 |
 | [0009](0009-detalhe-do-agendamento-estilo-pdv.md) | Detalhe do agendamento no estilo PDV                                       | Concluído | 2026-11-07 |
+| [0010](0010-comanda-com-abas-e-pagamento-pdv.md)  | Comanda com abas de serviço e produto e pagamento estilo PDV               | Concluído | 2026-11-07 |

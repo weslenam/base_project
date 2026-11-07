@@ -141,15 +141,17 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 **Ações e exibição**
 
-| Item            | Para quê                                                                                               |
-| --------------- | ------------------------------------------------------------------------------------------------------ |
-| `DsBotao`       | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                                     |
-| `DsAcao`        | botão de ação estilo PDV (ícone, título, descrição; primario/secundario/perigo), para painéis de ações |
-| `DsIcone`       | ícone por nome do catálogo (`agenda`, `caixa`, `clientes`, `whatsapp`...; ver `NOMES_DE_ICONES`)       |
-| `DsSelo`        | status com palavra: confirmado, pendente, assinante, fila, faltou, neutro                              |
-| `DsTabela`      | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`                        |
-| `DsHorarios`    | escolha de horário: `opcoes: [{ hora, disponivel }]`, `v-model` com a hora                             |
-| `DsBlocoAgenda` | bloco da agenda: `cliente`, `servico`, `inicio`, `fim`, `estado`, `clicavel`                           |
+| Item            | Para quê                                                                                                               |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `DsBotao`       | `variante` primario/secundario/perigo/fantasma, `tamanho` sm/md/lg                                                     |
+| `DsAcao`        | botão de ação estilo PDV (ícone, título, descrição; primario/secundario/perigo), para painéis de ações                 |
+| `DsAbas`        | abas acessíveis: `v-model`, `abas: [{ valor, rotulo }]`, conteúdo no slot `#<valor>`                                   |
+| `DsEscolha`     | escolha única em botões grandes (ex.: forma de pagamento): `v-model`, `opcoes`, `rotulo`                               |
+| `DsIcone`       | ícone por nome do catálogo (`agenda`, `caixa`, `clientes`, `whatsapp`...; ver `NOMES_DE_ICONES`)                       |
+| `DsSelo`        | status com palavra: confirmado, pendente, assinante, fila, faltou, neutro                                              |
+| `DsTabela`      | `colunas: [{ campo, titulo, formatar? }]`, `@selecionar`, slot `celula-<campo>`; `semRodape` mostra tudo sem paginação |
+| `DsHorarios`    | escolha de horário: `opcoes: [{ hora, disponivel }]`, `v-model` com a hora                                             |
+| `DsBlocoAgenda` | bloco da agenda: `cliente`, `servico`, `inicio`, `fim`, `estado`, `clicavel`                                           |
 
 **Composables**
 

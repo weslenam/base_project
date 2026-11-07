@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue';
 import {
+  DsAbas,
   DsAcao,
+  DsEscolha,
   DsBlocoAgenda,
   DsBotao,
   DsCartao,
@@ -32,6 +34,14 @@ const telefone = ref('11987654321');
 const cpf = ref(null);
 const preco = ref(45.9);
 const horario = ref('10:00');
+const abaVitrine = ref('servico');
+const forma = ref('pix');
+const formas = [
+  { valor: 'dinheiro', rotulo: 'Dinheiro' },
+  { valor: 'pix', rotulo: 'Pix' },
+  { valor: 'debito', rotulo: 'Débito' },
+  { valor: 'credito', rotulo: 'Crédito' },
+];
 
 const horarios = [
   '09:00',
@@ -230,6 +240,22 @@ async function excluir() {
       :linhas="linhas"
       @selecionar="(l) => notificar.info(`Selecionado: ${l.servico}`)"
     />
+
+    <h2 class="ds-subtitulo">Abas</h2>
+    <DsAbas
+      v-model="abaVitrine"
+      :abas="[
+        { valor: 'servico', rotulo: 'Serviços (2)' },
+        { valor: 'produto', rotulo: 'Produtos (1)' },
+      ]"
+      rotulo="Exemplo de abas"
+    >
+      <template #servico><p>Corte, Barba</p></template>
+      <template #produto><p>Pomada modeladora</p></template>
+    </DsAbas>
+
+    <h2 class="ds-subtitulo">Escolha (estilo PDV)</h2>
+    <DsEscolha v-model="forma" :opcoes="formas" rotulo="Forma de pagamento" />
 
     <h2 class="ds-subtitulo">Ações (estilo PDV)</h2>
     <div class="acoes-pdv">

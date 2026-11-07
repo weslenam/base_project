@@ -11,14 +11,23 @@ export const FORMAS_DE_PAGAMENTO = Object.freeze([
 const emCentavos = (reais) => Math.round(Number(reais || 0) * 100);
 const emReais = (centavos) => centavos / 100;
 
-/** Subtotal, desconto e total de uma comanda { itens: [{ preco, quantidade }], desconto }. */
+/**
+ * Totais de uma comanda { itens: [{ tipo, preco, quantidade }], desconto }:
+ * servicos, produtos, subtotal (= servicos + produtos), desconto e total.
+ */
 export function totalDaComanda({ itens = [], desconto = 0 }) {
-  const subtotal = itens.reduce(
-    (soma, i) => soma + emCentavos(i.preco) * (i.quantidade ?? 1),
-    0,
-  );
+  let servicos = 0;
+  let produtos = 0;
+  for (const i of itens) {
+    const valor = emCentavos(i.preco) * (i.quantidade ?? 1);
+    if (i.tipo === 'produto') produtos += valor;
+    else servicos += valor;
+  }
+  const subtotal = servicos + produtos;
   const descontoC = emCentavos(desconto);
   return {
+    servicos: emReais(servicos),
+    produtos: emReais(produtos),
     subtotal: emReais(subtotal),
     desconto: emReais(descontoC),
     total: emReais(Math.max(0, subtotal - descontoC)),

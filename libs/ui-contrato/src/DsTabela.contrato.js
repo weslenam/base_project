@@ -44,4 +44,17 @@ export function testarDsTabela(DsTabela, montar) {
     });
     expect(w.text()).toContain('Cliente:Ana:1');
   });
+
+  it('semRodape mostra todas as linhas sem paginação', () => {
+    const muitas = Array.from({ length: 15 }, (_, i) => ({
+      id: i,
+      nome: `C${i}`,
+      saldo: i,
+    }));
+    const w = montar(DsTabela, {
+      props: { colunas, linhas: muitas, semRodape: true },
+    });
+    expect(w.text()).toContain('C14');
+    expect(w.text()).not.toContain('Registros por página');
+  });
 }

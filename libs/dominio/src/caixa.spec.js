@@ -14,6 +14,8 @@ const itens = [
 describe('totalDaComanda', () => {
   it('soma itens com quantidade e aplica desconto, sem erro de centavos', () => {
     expect(totalDaComanda({ itens, desconto: 4.8 })).toEqual({
+      servicos: 124.8,
+      produtos: 0,
       subtotal: 124.8,
       desconto: 4.8,
       total: 120,
@@ -21,6 +23,24 @@ describe('totalDaComanda', () => {
     expect(
       totalDaComanda({ itens: [{ preco: 0.1 }, { preco: 0.2 }] }).total,
     ).toBe(0.3);
+  });
+
+  it('separa total em serviços e em produtos; somados dão o subtotal', () => {
+    const t = totalDaComanda({
+      itens: [
+        { tipo: 'servico', preco: 30 },
+        { tipo: 'produto', preco: 34.9 },
+        { tipo: 'produto', preco: 44.9, quantidade: 2 },
+      ],
+      desconto: 4.7,
+    });
+    expect(t).toEqual({
+      servicos: 30,
+      produtos: 124.7,
+      subtotal: 154.7,
+      desconto: 4.7,
+      total: 150,
+    });
   });
 
   it('total nunca fica negativo', () => {
