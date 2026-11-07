@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
+  DsIcone,
   DsInput,
   DsInputTelefone,
   DsSelo,
@@ -14,14 +15,15 @@ import {
 } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
+import ListaClientesDialogo from './ListaClientesDialogo.vue';
 
 /**
- * Escolha de cliente no balcão pelo telefone (planejamento 0012):
- * digite parte do número (os últimos 4 já bastam) e toque no resultado;
- * número completo sem cadastro → cadastro rápido com o nome.
+ * Escolha de cliente no balcão (planejamento 0012): um campo para nome OU
+ * telefone, resultados em botões, cadastro rápido quando não acha e a lista
+ * completa para procurar com mais detalhes.
  */
 const clienteId = defineModel({ type: [Number, null], default: null });
-const props = defineProps({
+defineProps({
   /** Mostra que dá para seguir sem cliente (comanda avulsa). */
   permitirAvulso: Boolean,
 });
@@ -31,10 +33,12 @@ const notificar = useNotificacao();
 const executar = useAcao();
 
 const cliente = ref(null);
-const telefone = ref(null);
+const termo = ref('');
 const resultados = ref([]);
-const nomeNovo = ref('');
+const buscou = ref(false);
+const novo = ref({ nome: '', telefone: null });
 const cadastrando = ref(false);
+const listaAberta = ref(false);
 
 // Cliente já escolhido (ex.: comanda aberta a partir de agendamento).
 watch(
@@ -50,37 +54,58 @@ watch(
   { immediate: true },
 );
 
+/** Só números (e símbolos de telefone) = busca por telefone; com letras = por nome. */
+const porTelefone = computed(
+  () => !/[a-zà-ú]/i.test(termo.value) && somenteDigitos(termo.value) !== '',
+);
+const digitos = computed(() => somenteDigitos(termo.value));
+const buscaValida = computed(() =>
+  porTelefone.value
+    ? digitos.value.length >= 4
+    : termo.value.trim().length >= 2,
+);
+
 let ultimaBusca = 0;
-watch(telefone, async (valor) => {
-  const digitos = somenteDigitos(valor);
+watch(termo, async () => {
   const esta = ++ultimaBusca;
-  if (digitos.length < 4) {
+  if (!buscaValida.value) {
     resultados.value = [];
+    buscou.value = false;
     return;
   }
-  const achados = await api.clientes.listar({ busca: digitos });
-  // Quem termina com os dígitos digitados vem primeiro ("os últimos 4 já bastam").
-  const ordenados = [...achados].sort(
-    (a, b) =>
-      Number(b.telefone.endsWith(digitos)) -
-      Number(a.telefone.endsWith(digitos)),
-  );
-  if (esta === ultimaBusca) resultados.value = ordenados.slice(0, 5);
+  const achados = await api.clientes.listar({ busca: termo.value });
+  const texto = termo.value.trim().toLowerCase();
+  // Quem termina com os dígitos (telefone) ou começa com o texto (nome) vem primeiro.
+  const prioridade = (c) =>
+    porTelefone.value
+      ? Number(c.telefone.endsWith(digitos.value))
+      : Number(c.nome.toLowerCase().startsWith(texto));
+  if (esta !== ultimaBusca) return;
+  resultados.value = [...achados]
+    .sort((a, b) => prioridade(b) - prioridade(a))
+    .slice(0, 5);
+  buscou.value = true;
 });
 
-const digitos = computed(() => somenteDigitos(telefone.value));
-const numeroCompletoSemCadastro = computed(
+// Nada encontrado: o que foi digitado já preenche o campo certo do cadastro.
+const podeCadastrar = computed(
   () =>
-    validarTelefone(digitos.value) &&
-    !resultados.value.some((c) => c.telefone === digitos.value),
+    buscou.value &&
+    !resultados.value.length &&
+    (porTelefone.value ? validarTelefone(digitos.value) : true),
 );
+watch(podeCadastrar, (pode) => {
+  if (!pode) return;
+  novo.value = porTelefone.value
+    ? { nome: '', telefone: digitos.value }
+    : { nome: termo.value.trim(), telefone: null };
+});
 
 function escolher(c) {
   cliente.value = c;
   clienteId.value = c.id;
-  telefone.value = null;
+  termo.value = '';
   resultados.value = [];
-  nomeNovo.value = '';
 }
 
 function trocar() {
@@ -90,14 +115,16 @@ function trocar() {
 
 async function cadastrar() {
   cadastrando.value = true;
-  const novo = await executar(() =>
-    api.clientes.salvar({ nome: nomeNovo.value, telefone: digitos.value }),
-  );
+  const salvo = await executar(() => api.clientes.salvar(novo.value));
   cadastrando.value = false;
-  if (!novo) return;
-  notificar.sucesso(`${novo.nome} cadastrado.`);
-  escolher(await api.clientes.obter(novo.id));
+  if (!salvo) return;
+  notificar.sucesso(`${salvo.nome} cadastrado.`);
+  escolher(await api.clientes.obter(salvo.id));
 }
+
+const cadastroCompleto = computed(
+  () => novo.value.nome.trim() && validarTelefone(novo.value.telefone),
+);
 </script>
 
 <template>
@@ -117,18 +144,23 @@ async function cadastrar() {
       <DsBotao variante="fantasma" tamanho="sm" @click="trocar">Trocar</DsBotao>
     </div>
 
-    <!-- Busca pelo telefone -->
+    <!-- Busca -->
     <template v-else>
-      <DsInputTelefone
-        v-model="telefone"
-        rotulo="Telefone do cliente"
-        :validar-numero="false"
-        :ajuda="
-          permitirAvulso
-            ? 'Sem cliente, a comanda fica como avulso'
-            : 'Os últimos 4 dígitos já bastam'
-        "
-      />
+      <div class="campo">
+        <DsInput
+          v-model="termo"
+          rotulo="Nome ou telefone do cliente"
+          :ajuda="
+            permitirAvulso
+              ? 'Sem cliente, a comanda fica como avulso'
+              : 'Do telefone, os últimos 4 dígitos já bastam'
+          "
+        />
+        <DsBotao variante="secundario" @click="listaAberta = true">
+          <DsIcone nome="clientes" />
+          Procurar na lista
+        </DsBotao>
+      </div>
 
       <ul
         v-if="resultados.length"
@@ -146,20 +178,17 @@ async function cadastrar() {
       </ul>
 
       <div
-        v-if="numeroCompletoSemCadastro"
+        v-if="podeCadastrar"
         class="novo"
         role="group"
         aria-label="Cadastro rápido"
       >
-        <p class="ds-corpo-sm">
-          Nenhum cliente com o telefone
-          <span class="ds-valor">{{ formatarTelefone(digitos) }}</span
-          >. Cadastre agora:
-        </p>
+        <p class="ds-corpo-sm">Nenhum cliente encontrado. Cadastre agora:</p>
         <div class="novo__campos">
-          <DsInput v-model="nomeNovo" rotulo="Nome do cliente" />
+          <DsInput v-model="novo.nome" rotulo="Nome do cliente" />
+          <DsInputTelefone v-model="novo.telefone" rotulo="Telefone" />
           <DsBotao
-            :desabilitado="!nomeNovo.trim()"
+            :desabilitado="!cadastroCompleto"
             :carregando="cadastrando"
             @click="cadastrar"
           >
@@ -167,13 +196,12 @@ async function cadastrar() {
           </DsBotao>
         </div>
       </div>
-      <p
-        v-else-if="digitos.length >= 4 && !resultados.length"
-        class="ds-corpo-sm ds-suave"
-      >
-        Nenhum cliente encontrado. Digite o número completo para cadastrar.
+      <p v-else-if="buscou && !resultados.length" class="ds-corpo-sm ds-suave">
+        Nenhum cliente encontrado. Digite o telefone completo para cadastrar.
       </p>
     </template>
+
+    <ListaClientesDialogo v-model="listaAberta" @escolher="escolher" />
   </div>
 </template>
 
@@ -184,6 +212,12 @@ async function cadastrar() {
 }
 .busca-cliente p {
   margin: 0;
+}
+.campo {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: var(--esp-2);
 }
 .escolhido {
   display: flex;
@@ -242,7 +276,7 @@ async function cadastrar() {
 }
 .novo__campos {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   align-items: center;
   gap: var(--esp-2);
 }
