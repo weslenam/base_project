@@ -94,7 +94,7 @@ async function removerBloqueio() {
 </script>
 
 <template>
-  <DsDialogo v-model="aberto" :titulo="titulo" largura="lg">
+  <DsDialogo v-model="aberto" :titulo="titulo" largura="lg" fechavel>
     <div v-if="agendamento" class="detalhe">
       <!-- Informações -->
       <section class="info" aria-label="Informações do agendamento">
@@ -205,10 +205,6 @@ async function removerBloqueio() {
         </p>
       </section>
     </div>
-
-    <template #acoes>
-      <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>
-    </template>
   </DsDialogo>
 </template>
 

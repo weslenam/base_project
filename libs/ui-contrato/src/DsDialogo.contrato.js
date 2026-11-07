@@ -24,4 +24,20 @@ export function testarDsDialogo(DsDialogo, montar) {
       expect(textoDoDocumento()).not.toContain('Conteúdo oculto'),
     );
   });
+
+  it('fechavel mostra o botão "Fechar" no título, que fecha o diálogo', async () => {
+    const w = montar(DsDialogo, {
+      props: { modelValue: true, titulo: 'Comanda', fechavel: true },
+      slots: { default: 'Itens' },
+    });
+    await esperar(() =>
+      expect(
+        document.querySelector('button[aria-label="Fechar"]'),
+      ).toBeTruthy(),
+    );
+    document.querySelector('button[aria-label="Fechar"]').click();
+    await esperar(() =>
+      expect(w.emitted('update:modelValue')?.at(-1)).toEqual([false]),
+    );
+  });
 }

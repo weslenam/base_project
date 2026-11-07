@@ -36,6 +36,7 @@ const regras = computed(() =>
   <VSelect
     v-model="modelo"
     class="ds-select"
+    hide-details="auto"
     variant="outlined"
     density="comfortable"
     item-title="rotulo"

@@ -34,6 +34,7 @@ const regras = computed(() => [
   <VTextarea
     v-model="modelo"
     class="ds-textarea"
+    hide-details="auto"
     variant="outlined"
     density="comfortable"
     auto-grow

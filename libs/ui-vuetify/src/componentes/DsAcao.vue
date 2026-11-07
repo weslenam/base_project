@@ -14,6 +14,8 @@ defineProps({
     validator: (v) => ['primario', 'secundario', 'perigo'].includes(v),
   },
   desabilitado: Boolean,
+  /** 52px de altura, para painéis com pouco espaço. */
+  compacta: Boolean,
 });
 const emit = defineEmits(['click']);
 </script>
@@ -21,7 +23,11 @@ const emit = defineEmits(['click']);
 <template>
   <button
     type="button"
-    :class="['ds-acao', `ds-acao--${variante}`]"
+    :class="[
+      'ds-acao',
+      `ds-acao--${variante}`,
+      { 'ds-acao--compacta': compacta },
+    ]"
     :disabled="desabilitado"
     @click="emit('click', $event)"
   >
@@ -48,6 +54,11 @@ const emit = defineEmits(['click']);
   color: var(--grafite);
   text-align: left;
   cursor: pointer;
+}
+.ds-acao--compacta {
+  min-height: 52px;
+  padding: var(--esp-2) var(--esp-3);
+  gap: var(--esp-2);
 }
 .ds-acao:hover:not(:disabled) {
   background: var(--placa-funda);

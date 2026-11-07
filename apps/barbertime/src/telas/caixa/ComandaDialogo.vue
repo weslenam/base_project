@@ -202,16 +202,15 @@ async function cancelar() {
 </script>
 
 <template>
-  <DsDialogo v-model="aberto" :titulo="titulo" largura="lg">
+  <DsDialogo v-model="aberto" :titulo="titulo" largura="xl" fechavel>
     <div v-if="comanda" class="comanda">
       <!-- Itens -->
       <section class="itens" aria-label="Itens da comanda">
         <div class="dupla">
           <DsSelect
             v-model="comanda.clienteId"
-            rotulo="Cliente"
+            rotulo="Cliente (vazio = avulso)"
             :opcoes="opcoesClientes"
-            ajuda="Vazio = cliente avulso"
             limpavel
             :desabilitado="!editavel"
           />
@@ -246,34 +245,40 @@ async function cancelar() {
                 </DsBotao>
               </div>
 
-              <DsTabela
-                :colunas="colunasItens"
-                :linhas="itensDo(tipo)"
-                :texto-vazio="t.vazio"
-                sem-rodape
-              >
-                <template #celula-acoes="{ linha }">
-                  <DsBotao
-                    v-if="editavel"
-                    variante="fantasma"
-                    tamanho="sm"
-                    :aria-label="`Remover ${linha.nome}`"
-                    @click.stop="remover(linha.id)"
-                  >
-                    Remover
-                  </DsBotao>
-                </template>
-              </DsTabela>
+              <!-- Rola por dentro só se a lista passar de 40% da tela. -->
+              <div class="painel__lista">
+                <DsTabela
+                  :colunas="colunasItens"
+                  :linhas="itensDo(tipo)"
+                  :texto-vazio="t.vazio"
+                  sem-rodape
+                  compacta
+                >
+                  <template #celula-acoes="{ linha }">
+                    <DsBotao
+                      v-if="editavel"
+                      variante="fantasma"
+                      tamanho="sm"
+                      :aria-label="`Remover ${linha.nome}`"
+                      @click.stop="remover(linha.id)"
+                    >
+                      Remover
+                    </DsBotao>
+                  </template>
+                </DsTabela>
+              </div>
 
               <p class="painel__total">
                 <span class="ds-rotulo"
                   >Total em {{ t.plural.toLowerCase() }}</span
                 >
-                <span class="ds-valor">{{
-                  formatarMoeda(
-                    totais[tipo === 'produto' ? 'produtos' : 'servicos'],
-                  )
-                }}</span>
+                <span class="ds-valor">
+                  {{
+                    formatarMoeda(
+                      totais[tipo === 'produto' ? 'produtos' : 'servicos'],
+                    )
+                  }}
+                </span>
               </p>
             </div>
           </template>
@@ -300,7 +305,7 @@ async function cancelar() {
             <dt>Produtos</dt>
             <dd class="ds-valor">{{ formatarMoeda(totais.produtos) }}</dd>
           </div>
-          <div class="resumo__subtotal">
+          <div>
             <dt>Subtotal</dt>
             <dd class="ds-valor">{{ formatarMoeda(totais.subtotal) }}</dd>
           </div>
@@ -316,38 +321,37 @@ async function cancelar() {
 
         <template v-if="editavel">
           <DsInputMoeda v-model="comanda.desconto" rotulo="Desconto" />
-          <p class="ds-rotulo">Forma de pagamento</p>
           <DsEscolha
             v-model="comanda.forma"
             :opcoes="FORMAS_DE_PAGAMENTO"
             rotulo="Forma de pagamento"
           />
 
-          <div class="acoes">
-            <DsAcao
-              icone="dinheiro"
-              :titulo="`Receber ${formatarMoeda(totais.total)}`"
-              :descricao="
-                comanda.forma
-                  ? `Em ${rotuloDaForma(comanda.forma)} · fecha a comanda`
-                  : 'Escolha a forma de pagamento'
-              "
-              variante="primario"
-              :desabilitado="ocupado"
-              @click="receber"
-            />
+          <DsAcao
+            icone="dinheiro"
+            :titulo="`Receber ${formatarMoeda(totais.total)}`"
+            :descricao="
+              comanda.forma
+                ? `Em ${rotuloDaForma(comanda.forma)} · fecha a comanda`
+                : 'Escolha a forma de pagamento'
+            "
+            variante="primario"
+            :desabilitado="ocupado"
+            @click="receber"
+          />
+          <div class="acoes-secundarias">
             <DsAcao
               icone="hora"
               titulo="Salvar aberta"
-              descricao="Continua depois"
+              compacta
               :desabilitado="ocupado"
               @click="salvar"
             />
             <DsAcao
               icone="fechar"
               :titulo="id ? 'Cancelar comanda' : 'Descartar'"
-              :descricao="id ? 'Não entra no caixa' : 'Sai sem salvar'"
               variante="perigo"
+              compacta
               :desabilitado="ocupado"
               @click="cancelar"
             />
@@ -355,17 +359,13 @@ async function cancelar() {
         </template>
       </section>
     </div>
-
-    <template #acoes>
-      <DsBotao variante="secundario" @click="aberto = false">Fechar</DsBotao>
-    </template>
   </DsDialogo>
 </template>
 
 <style scoped>
 .comanda {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   gap: var(--esp-6);
 }
 .comanda p {
@@ -388,8 +388,12 @@ async function cancelar() {
 .incluir {
   display: grid;
   grid-template-columns: 1fr 5.5rem auto;
-  align-items: start;
+  align-items: center;
   gap: var(--esp-2);
+}
+.painel__lista {
+  max-height: 40vh;
+  overflow-y: auto;
 }
 .painel__total {
   display: flex;
@@ -409,9 +413,11 @@ async function cancelar() {
   align-items: center;
   gap: var(--esp-2);
 }
+/* Resumo em duas colunas: serviços | produtos, subtotal | desconto, total. */
 .resumo {
   display: grid;
-  gap: var(--esp-1);
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-1) var(--esp-4);
   margin: 0;
   padding: var(--esp-3) var(--esp-4);
   border-radius: var(--raio-sm);
@@ -421,16 +427,14 @@ async function cancelar() {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: var(--esp-2);
 }
 .resumo dt,
 .resumo dd {
   margin: 0;
 }
-.resumo__subtotal {
-  padding-top: var(--esp-1);
-  border-top: 1px solid var(--linha);
-}
 .resumo__total {
+  grid-column: 1 / -1;
   padding-top: var(--esp-2);
   border-top: 1px solid var(--linha-forte);
 }
@@ -438,13 +442,16 @@ async function cancelar() {
   font: var(--tipo-titulo);
   letter-spacing: var(--tipo-titulo-espacamento);
 }
-.acoes {
-  display: grid;
-  gap: var(--esp-2);
-  margin-top: var(--esp-2);
+.pagamento :deep(.ds-escolha) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
-/* Celular e telas estreitas: pagamento vai para baixo dos itens. */
-@media (max-width: 48rem) {
+.acoes-secundarias {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-2);
+}
+/* Telas estreitas: pagamento vai para baixo dos itens. */
+@media (max-width: 56rem) {
   .comanda {
     grid-template-columns: 1fr;
   }

@@ -12,6 +12,8 @@ const props = defineProps({
   itensPorPagina: { type: Number, default: 10 },
   /** Mostra todas as linhas, sem rodapé de paginação (listas curtas, ex.: itens da comanda). */
   semRodape: Boolean,
+  /** Linhas mais baixas, para listas curtas dentro de diálogos. */
+  compacta: Boolean,
   textoVazio: { type: String, default: 'Nenhum registro encontrado' },
 });
 const emit = defineEmits(['selecionar']);
@@ -42,6 +44,7 @@ function aoClicarLinha(_evento, { item }) {
     :loading="carregando"
     :items-per-page="semRodape ? -1 : itensPorPagina"
     :hide-default-footer="semRodape"
+    :density="compacta ? 'compact' : 'default'"
     :no-data-text="textoVazio"
     loading-text="Carregando..."
     items-per-page-text="Registros por página"

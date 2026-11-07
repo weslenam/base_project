@@ -55,4 +55,9 @@ export function testarDsInput(DsInput, montar) {
       montar(DsInput, { props: { tipo } }).find('input').attributes('type'),
     ).toBe(nativo);
   });
+
+  it('ajuda continua visível mesmo sem erro', () => {
+    const w = montar(DsInput, { props: { ajuda: 'Como aparece na agenda' } });
+    expect(w.text()).toContain('Como aparece na agenda');
+  });
 }

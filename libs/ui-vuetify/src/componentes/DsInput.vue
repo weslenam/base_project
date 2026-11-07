@@ -58,6 +58,7 @@ const regrasFinais = computed(() => [
   <VTextField
     v-model="modelo"
     class="ds-input"
+    hide-details="auto"
     variant="outlined"
     density="comfortable"
     :label="rotulo"

@@ -35,6 +35,6 @@ defineExpose({
 <style scoped>
 .ds-formulario {
   display: grid;
-  gap: var(--esp-2);
+  gap: var(--esp-3);
 }
 </style>

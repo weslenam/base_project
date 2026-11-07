@@ -41,6 +41,7 @@ const regras = computed(() => [
 <template>
   <VTextField
     class="ds-campo-mascarado"
+    hide-details="auto"
     variant="outlined"
     density="comfortable"
     :model-value="texto"
