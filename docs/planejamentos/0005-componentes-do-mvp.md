@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0001 (MVP), 0003 e 0004, ADR 0003, skill `design-system`
-- **Commits:** ainda não commitado (branch `feat/componentes-mvp`, a partir de `feat/kit-base-ds`)
+- **Commits:** 0d67448 (branch `feat/componentes-mvp`, a partir de `feat/kit-base-ds`)
 
 ## Solicitação de origem
 
