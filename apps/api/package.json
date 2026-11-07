@@ -1,0 +1,31 @@
+{
+  "name": "@barbertime/api",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "api",
+    "targets": {
+      "serve": {
+        "continuous": true,
+        "command": "node --watch src/main.js",
+        "options": {
+          "cwd": "apps/api"
+        }
+      }
+    },
+    "tags": [
+      "type:app",
+      "scope:back"
+    ]
+  },
+  "dependencies": {
+    "fastify": "~5.12.5",
+    "fastify-plugin": "~6.0.0",
+    "@fastify/autoload": "~6.5.0",
+    "@fastify/sensible": "~6.0.6"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.js"
+  }
+}

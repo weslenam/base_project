@@ -1,0 +1,16 @@
+node_modules
+dist
+tmp
+out-tsc
+coverage
+.nx/cache
+.nx/workspace-data
+.vite
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.vitest

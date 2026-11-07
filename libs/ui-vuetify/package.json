@@ -1,0 +1,21 @@
+{
+  "name": "@barbertime/ui-vuetify",
+  "version": "0.0.1",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "nx": {
+    "name": "ui-vuetify",
+    "tags": [
+      "type:ui",
+      "scope:front"
+    ]
+  },
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "devDependencies": {
+    "@barbertime/ui-contrato": "workspace:*"
+  }
+}

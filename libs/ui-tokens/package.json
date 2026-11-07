@@ -1,0 +1,19 @@
+{
+  "name": "@barbertime/ui-tokens",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "nx": {
+    "name": "ui-tokens",
+    "tags": [
+      "type:ui",
+      "scope:front"
+    ]
+  },
+  "dependencies": {}
+}

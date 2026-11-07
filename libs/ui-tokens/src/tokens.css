@@ -1,0 +1,17 @@
+/*
+ * Tokens provisórios do esqueleto. A identidade visual definitiva
+ * (paleta, tema escuro) entra aqui, nunca nos componentes.
+ */
+:root {
+  --ds-fonte-base: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --ds-cor-fundo: #ffffff;
+  --ds-cor-texto: #1f2328;
+  --ds-cor-primaria: #1f6feb;
+
+  --ds-espaco-sm: 0.5rem;
+  --ds-espaco-md: 1rem;
+  --ds-espaco-lg: 1.5rem;
+
+  --ds-raio-md: 0.5rem;
+}

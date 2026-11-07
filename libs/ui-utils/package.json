@@ -1,0 +1,19 @@
+{
+  "name": "@barbertime/ui-utils",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "nx": {
+    "name": "ui-utils",
+    "tags": [
+      "type:ui",
+      "scope:front"
+    ]
+  },
+  "dependencies": {}
+}
