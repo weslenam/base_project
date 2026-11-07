@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0001 (MVP, item 5), 0006 e 0007; comissão (item 6) depende deste
-- **Commits:** ainda não commitado (branch `feat/caixa-comanda`, a partir de `feat/componentes-mvp`)
+- **Commits:** 26685a3 (branch `feat/caixa-comanda`, a partir de `feat/componentes-mvp`)
 
 ## Solicitação de origem
 
