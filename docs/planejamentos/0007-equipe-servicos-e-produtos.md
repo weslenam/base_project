@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0001 (MVP, itens 5 e 6) e 0006
-- **Commits:** ainda não commitado (branch `feat/componentes-mvp`)
+- **Commits:** 2e88baa (branch `feat/componentes-mvp`)
 
 ## Solicitação de origem
 
