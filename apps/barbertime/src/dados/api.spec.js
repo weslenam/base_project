@@ -168,6 +168,13 @@ describe('clientes', () => {
     expect(bruno).toMatchObject({ faltas: 1, atendimentos: 0 });
   });
 
+  it('reconhecer (público) devolve só o primeiro nome, ou null', async () => {
+    expect(await api.clientes.reconhecer('(11) 98765-4321')).toEqual({
+      primeiroNome: 'Rafael',
+    });
+    expect(await api.clientes.reconhecer('11900000000')).toBeNull();
+  });
+
   it('recusa telefone repetido citando o dono', async () => {
     await recusa(
       api.clientes.salvar({ nome: 'X', telefone: '11987654321' }),

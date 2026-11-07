@@ -303,6 +303,15 @@ export function criarApi({ agora = () => new Date() } = {}) {
           .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
           .map((c) => copia({ ...c, ...resumoDoCliente(c.id) }));
       },
+      /**
+       * Consulta pública (página de agendamento): só diz se o telefone já é
+       * cliente e devolve o PRIMEIRO nome, para a saudação. Nada além (LGPD).
+       */
+      async reconhecer(telefone) {
+        const digitos = somenteDigitos(telefone);
+        const c = banco.clientes.find((x) => x.telefone === digitos);
+        return c ? { primeiroNome: c.nome.split(' ')[0] } : null;
+      },
       async obter(id) {
         const cliente = buscar('clientes', id, 'Cliente');
         return copia({ ...cliente, ...resumoDoCliente(cliente.id) });

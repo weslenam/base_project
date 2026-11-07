@@ -226,7 +226,8 @@ describe('agendamento público', () => {
     expect(texto()).toContain('Qual serviço?');
   });
 
-  it('serviço → barbeiro → dia → horário → dados → reservado', async () => {
+  /** Percorre as etapas até "Seus dados" (Corte · Marcos · Amanhã · primeiro horário). */
+  async function ateSeusDados() {
     app = await montarApp('/agendar/barbearia-modelo');
     await esperar(() => expect(texto()).toContain('Corte + barba'));
     await clicarContendo('30 min');
@@ -240,11 +241,46 @@ describe('agendamento público', () => {
     document
       .querySelector('[role="group"][aria-label="Horários livres"] button')
       .click();
+    await esperar(() => expect(etapaAtual()).toBe('5Seus dados'));
+  }
+
+  it('cliente novo: telefone primeiro, boas-vindas, nome e reservado', async () => {
+    await ateSeusDados();
+    await preencher('Seu WhatsApp ou celular', '11955554444');
+    await esperar(() => expect(texto()).toContain('Primeira vez por aqui?'));
     await preencher('Seu nome', 'Carlos Novo');
-    await preencher('WhatsApp ou celular', '11955554444');
     await clicar('Confirmar horário');
     await esperar(() => expect(texto()).toContain('Horário reservado'));
-    expect(texto()).toContain('Carlos Novo, seu horário é');
+    expect(texto()).toContain('Carlos, seu horário é');
     expect(await api.clientes.listar({ busca: 'Carlos Novo' })).toHaveLength(1);
+  });
+
+  it('cliente que volta: saudação pelo primeiro nome e confirma sem digitar o nome', async () => {
+    await ateSeusDados();
+    await preencher('Seu WhatsApp ou celular', '11987654321');
+    await esperar(() => expect(texto()).toContain('Olá, Rafael!'));
+    expect(texto()).not.toContain('Souza'); // só o primeiro nome (LGPD)
+    expect(texto()).not.toContain('Primeira vez por aqui?');
+    await clicar('Confirmar horário');
+    await esperar(() => expect(texto()).toContain('Rafael, seu horário é'));
+    expect(await api.clientes.listar({ busca: 'Rafael' })).toHaveLength(1);
+  });
+
+  it('"Não é você?" limpa o número para usar outro', async () => {
+    await ateSeusDados();
+    await preencher('Seu WhatsApp ou celular', '11987654321');
+    await esperar(() => expect(texto()).toContain('Olá, Rafael!'));
+    await clicarContendo('Não é você?');
+    await esperar(() => expect(texto()).not.toContain('Olá, Rafael!'));
+  });
+
+  it('cartão "Seu agendamento" mostra as escolhas e o valor', async () => {
+    await ateSeusDados();
+    const cartao = document.querySelector(
+      'aside[aria-label="Seu agendamento"]',
+    ).textContent;
+    expect(cartao.replace(/\s/g, ' ')).toMatch(
+      /Corte.*30 min.*Marcos.*Amanhã.*R\$ 45,00/,
+    );
   });
 });

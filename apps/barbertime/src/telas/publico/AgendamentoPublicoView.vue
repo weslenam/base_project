@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router';
 import {
   DsBotao,
   DsCartao,
-  DsFormulario,
   DsHorarios,
   DsIcone,
   DsInput,
@@ -12,12 +11,18 @@ import {
   DsPassos,
   useDialogo,
 } from '@barbertime/ui';
-import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
+import {
+  formatarDiaCurto,
+  formatarMoeda,
+  somenteDigitos,
+  validarTelefone,
+} from '@barbertime/ui-utils';
 import { hojeIso, somarDias } from '@barbertime/dominio';
 import { api } from '../../dados/api.js';
 import { ErroDeNegocio } from '../../dados/erros.js';
 
-// Página do cliente final (planejamentos 0006 e 0014): uma etapa por vez, sem rolagem.
+// Página do cliente final (planejamentos 0006 e 0014): uma etapa por vez, sem rolagem,
+// cartão "Seu agendamento" ao lado em telas largas e saudação a quem já é cliente.
 // Marca da barbearia em primeiro lugar; BarberTime só no rodapé (ADR 0003).
 const route = useRoute();
 const { negar } = useDialogo();
@@ -32,9 +37,16 @@ const confirmado = ref(null);
 
 const passo = ref(0);
 const escolha = ref({ servico: null, barbeiro: null, dia: null, hora: null });
-const contato = ref({ nome: '', telefone: null });
+
+// Etapa "Seus dados": telefone primeiro; quem já é cliente é reconhecido.
+const telefone = ref(null);
+const nome = ref('');
+/** undefined: ainda não consultou · null: cliente novo · { primeiroNome }: já é cliente */
+const reconhecido = ref(undefined);
+const erroDados = ref('');
 
 const PASSOS = ['Serviço', 'Barbeiro', 'Dia', 'Horário', 'Seus dados'];
+const passos = PASSOS.map((rotulo) => ({ rotulo }));
 const dias = Array.from({ length: 7 }, (_, i) => somarDias(hojeIso(), i));
 const rotuloDia = (iso) => {
   const i = dias.indexOf(iso);
@@ -90,9 +102,38 @@ const resumo = computed(() =>
     escolha.value.hora,
   ].filter(Boolean),
 );
-const passos = PASSOS.map((rotulo) => ({ rotulo }));
+
+// Reconhece o cliente assim que o telefone fica completo.
+let consulta = 0;
+watch(telefone, async (valor) => {
+  erroDados.value = '';
+  const esta = ++consulta;
+  if (!validarTelefone(valor)) {
+    reconhecido.value = undefined;
+    return;
+  }
+  const r = await api.clientes.reconhecer(valor);
+  if (esta === consulta) reconhecido.value = r;
+});
+
+const clienteQueVolta = computed(() => Boolean(reconhecido.value));
+const clienteNovo = computed(() => reconhecido.value === null);
+
+function trocarTelefone() {
+  telefone.value = null;
+  reconhecido.value = undefined;
+}
 
 async function confirmar() {
+  erroDados.value = '';
+  if (!validarTelefone(telefone.value)) {
+    erroDados.value = 'Informe seu WhatsApp ou celular com DDD.';
+    return;
+  }
+  if (clienteNovo.value && !nome.value.trim()) {
+    erroDados.value = 'Informe seu nome.';
+    return;
+  }
   enviando.value = true;
   try {
     const { servico, barbeiro, dia, hora } = escolha.value;
@@ -101,7 +142,11 @@ async function confirmar() {
       inicio: hora,
       servicoId: servico.id,
       barbeiroId: barbeiro.id,
-      cliente: contato.value,
+      // Para quem já é cliente, o cadastro é achado pelo telefone.
+      cliente: {
+        nome: nome.value.trim(),
+        telefone: somenteDigitos(telefone.value),
+      },
     });
   } catch (erro) {
     if (!(erro instanceof ErroDeNegocio)) throw erro;
@@ -134,9 +179,13 @@ function recomecar() {
           <h1 class="marca__nome">{{ barbearia.nome }}</h1>
         </header>
 
-        <DsCartao v-if="confirmado" titulo="Horário reservado">
+        <DsCartao
+          v-if="confirmado"
+          titulo="Horário reservado"
+          class="reservado"
+        >
           <p class="ds-corpo-lg">
-            {{ confirmado.clienteNome }}, seu horário é
+            {{ confirmado.clienteNome.split(' ')[0] }}, seu horário é
             <strong>{{ formatarDiaCurto(confirmado.data) }}</strong> às
             <strong class="ds-hora">{{ confirmado.inicio }}</strong
             >, com {{ confirmado.barbeiroNome }} ({{ confirmado.servicoNome }}).
@@ -151,132 +200,200 @@ function recomecar() {
           </template>
         </DsCartao>
 
-        <template v-else>
-          <DsPassos
-            v-model="passo"
-            :passos="passos"
-            rotulo="Etapas do agendamento"
-          />
-
-          <p v-if="resumo.length" class="resumo" aria-label="Suas escolhas">
-            {{ resumo.join(' · ') }}
-          </p>
-
-          <!-- 1. Serviço -->
-          <section
-            v-if="passo === 0"
-            class="etapa"
-            aria-label="Escolha o serviço"
-          >
-            <h2 class="etapa__titulo">Qual serviço?</h2>
-            <div class="opcoes">
-              <button
-                v-for="s in servicos"
-                :key="s.id"
-                type="button"
-                class="opcao"
-                :aria-pressed="escolha.servico?.id === s.id ? 'true' : 'false'"
-                @click="escolher('servico', s)"
-              >
-                <span class="opcao__nome">{{ s.nome }}</span>
-                <span class="opcao__detalhe">
-                  {{ s.duracao }} min ·
-                  <span class="ds-valor">{{ formatarMoeda(s.preco) }}</span>
-                </span>
-              </button>
-            </div>
-          </section>
-
-          <!-- 2. Barbeiro -->
-          <section
-            v-else-if="passo === 1"
-            class="etapa"
-            aria-label="Escolha o barbeiro"
-          >
-            <h2 class="etapa__titulo">Com quem?</h2>
-            <div class="opcoes">
-              <button
-                v-for="b in barbeiros"
-                :key="b.id"
-                type="button"
-                class="opcao"
-                :aria-pressed="escolha.barbeiro?.id === b.id ? 'true' : 'false'"
-                @click="escolher('barbeiro', b)"
-              >
-                <span class="opcao__nome">{{ b.nome }}</span>
-                <span class="opcao__detalhe ds-hora"
-                  >{{ b.inicio }}–{{ b.fim }}</span
-                >
-              </button>
-            </div>
-          </section>
-
-          <!-- 3. Dia -->
-          <section
-            v-else-if="passo === 2"
-            class="etapa"
-            aria-label="Escolha o dia"
-          >
-            <h2 class="etapa__titulo">Que dia?</h2>
-            <div class="dias">
-              <button
-                v-for="d in dias"
-                :key="d"
-                type="button"
-                class="opcao opcao--dia"
-                :aria-pressed="escolha.dia === d ? 'true' : 'false'"
-                @click="escolher('dia', d)"
-              >
-                {{ rotuloDia(d) }}
-              </button>
-            </div>
-          </section>
-
-          <!-- 4. Horário -->
-          <section
-            v-else-if="passo === 3"
-            class="etapa"
-            aria-label="Escolha o horário"
-          >
-            <h2 class="etapa__titulo">Que horas?</h2>
-            <DsHorarios
-              :model-value="escolha.hora"
-              :opcoes="horarios"
-              rotulo="Horários livres"
-              texto-vazio="Nenhum horário livre neste dia. Volte e escolha outro dia."
-              @update:model-value="(h) => escolher('hora', h)"
+        <div v-else class="corpo">
+          <div class="etapas">
+            <DsPassos
+              v-model="passo"
+              :passos="passos"
+              rotulo="Etapas do agendamento"
             />
-          </section>
 
-          <!-- 5. Seus dados -->
-          <section v-else class="etapa" aria-label="Seus dados">
-            <h2 class="etapa__titulo">Seus dados</h2>
-            <DsFormulario id="form-publico" @enviar="confirmar">
-              <DsInput v-model="contato.nome" rotulo="Seu nome" obrigatorio />
-              <DsInputTelefone
-                v-model="contato.telefone"
-                rotulo="WhatsApp ou celular"
-                ajuda="Para confirmar o horário"
-                obrigatorio
+            <!-- Celular: resumo numa linha (em telas largas vira o cartão ao lado). -->
+            <p v-if="resumo.length" class="resumo" aria-label="Suas escolhas">
+              {{ resumo.join(' · ') }}
+            </p>
+
+            <!-- 1. Serviço -->
+            <section
+              v-if="passo === 0"
+              class="etapa"
+              aria-label="Escolha o serviço"
+            >
+              <h2 class="etapa__titulo">Qual serviço?</h2>
+              <div class="opcoes">
+                <button
+                  v-for="s in servicos"
+                  :key="s.id"
+                  type="button"
+                  class="opcao"
+                  :aria-pressed="
+                    escolha.servico?.id === s.id ? 'true' : 'false'
+                  "
+                  @click="escolher('servico', s)"
+                >
+                  <span class="opcao__nome">{{ s.nome }}</span>
+                  <span class="opcao__detalhe">
+                    {{ s.duracao }} min ·
+                    <span class="ds-valor">{{ formatarMoeda(s.preco) }}</span>
+                  </span>
+                </button>
+              </div>
+            </section>
+
+            <!-- 2. Barbeiro -->
+            <section
+              v-else-if="passo === 1"
+              class="etapa"
+              aria-label="Escolha o barbeiro"
+            >
+              <h2 class="etapa__titulo">Com quem?</h2>
+              <div class="opcoes">
+                <button
+                  v-for="b in barbeiros"
+                  :key="b.id"
+                  type="button"
+                  class="opcao"
+                  :aria-pressed="
+                    escolha.barbeiro?.id === b.id ? 'true' : 'false'
+                  "
+                  @click="escolher('barbeiro', b)"
+                >
+                  <span class="opcao__nome">{{ b.nome }}</span>
+                  <span class="opcao__detalhe ds-hora"
+                    >{{ b.inicio }}–{{ b.fim }}</span
+                  >
+                </button>
+              </div>
+            </section>
+
+            <!-- 3. Dia -->
+            <section
+              v-else-if="passo === 2"
+              class="etapa"
+              aria-label="Escolha o dia"
+            >
+              <h2 class="etapa__titulo">Que dia?</h2>
+              <div class="dias">
+                <button
+                  v-for="d in dias"
+                  :key="d"
+                  type="button"
+                  class="opcao opcao--dia"
+                  :aria-pressed="escolha.dia === d ? 'true' : 'false'"
+                  @click="escolher('dia', d)"
+                >
+                  {{ rotuloDia(d) }}
+                </button>
+              </div>
+            </section>
+
+            <!-- 4. Horário -->
+            <section
+              v-else-if="passo === 3"
+              class="etapa"
+              aria-label="Escolha o horário"
+            >
+              <h2 class="etapa__titulo">Que horas?</h2>
+              <DsHorarios
+                :model-value="escolha.hora"
+                :opcoes="horarios"
+                rotulo="Horários livres"
+                texto-vazio="Nenhum horário livre neste dia. Volte e escolha outro dia."
+                @update:model-value="(h) => escolher('hora', h)"
               />
+            </section>
+
+            <!-- 5. Seus dados: telefone primeiro, saudação a quem já é cliente -->
+            <section v-else class="etapa" aria-label="Seus dados">
+              <h2 class="etapa__titulo">Seus dados</h2>
+              <DsInputTelefone
+                v-model="telefone"
+                rotulo="Seu WhatsApp ou celular"
+                ajuda="Para confirmar o horário"
+                :validar-numero="false"
+              />
+
+              <div v-if="clienteQueVolta" class="saudacao" role="status">
+                <p class="saudacao__titulo">
+                  Olá, {{ reconhecido.primeiroNome }}!
+                </p>
+                <p>Que bom te ver de novo. É só confirmar.</p>
+                <DsBotao
+                  variante="fantasma"
+                  tamanho="sm"
+                  @click="trocarTelefone"
+                >
+                  Não é você? Usar outro número
+                </DsBotao>
+              </div>
+
+              <template v-else-if="clienteNovo">
+                <div class="saudacao saudacao--nova" role="status">
+                  <p class="saudacao__titulo">Primeira vez por aqui?</p>
+                  <p>Seja bem-vindo! Como podemos te chamar?</p>
+                </div>
+                <DsInput v-model="nome" rotulo="Seu nome" />
+              </template>
+
+              <p v-if="erroDados" class="erro" role="alert">{{ erroDados }}</p>
+
               <DsBotao
-                formulario="form-publico"
                 bloco
                 tamanho="lg"
+                :desabilitado="reconhecido === undefined"
                 :carregando="enviando"
+                @click="confirmar"
               >
                 Confirmar horário
               </DsBotao>
-            </DsFormulario>
-          </section>
+            </section>
 
-          <div v-if="passo > 0" class="navegacao">
-            <DsBotao variante="fantasma" @click="passo -= 1">
-              <DsIcone nome="voltar" />
-              Voltar
-            </DsBotao>
+            <div v-if="passo > 0" class="navegacao">
+              <DsBotao variante="fantasma" @click="passo -= 1">
+                <DsIcone nome="voltar" />
+                Voltar
+              </DsBotao>
+            </div>
           </div>
-        </template>
+
+          <!-- Telas largas: o agendamento sendo montado, sempre à vista. -->
+          <aside class="lateral" aria-label="Seu agendamento">
+            <DsCartao titulo="Seu agendamento">
+              <dl class="detalhes">
+                <div>
+                  <dt class="ds-rotulo">Serviço</dt>
+                  <dd>
+                    <template v-if="escolha.servico">
+                      {{ escolha.servico.nome }}
+                      <span class="ds-suave"
+                        >· {{ escolha.servico.duracao }} min</span
+                      >
+                    </template>
+                    <span v-else class="ds-suave">—</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="ds-rotulo">Barbeiro</dt>
+                  <dd>{{ escolha.barbeiro?.nome ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="ds-rotulo">Dia</dt>
+                  <dd>{{ escolha.dia ? rotuloDia(escolha.dia) : '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="ds-rotulo">Horário</dt>
+                  <dd class="ds-hora">{{ escolha.hora ?? '—' }}</dd>
+                </div>
+                <div v-if="escolha.servico" class="detalhes__total">
+                  <dt class="ds-rotulo">Valor</dt>
+                  <dd class="ds-valor">
+                    {{ formatarMoeda(escolha.servico.preco) }}
+                  </dd>
+                </div>
+              </dl>
+            </DsCartao>
+          </aside>
+        </div>
       </template>
     </main>
 
@@ -300,7 +417,7 @@ function recomecar() {
   align-content: start;
   gap: var(--esp-4);
   width: 100%;
-  max-width: 36rem;
+  max-width: 64rem;
   margin: 0 auto;
   padding: var(--esp-6) var(--esp-4) var(--esp-4);
   box-sizing: border-box;
@@ -318,7 +435,21 @@ function recomecar() {
   letter-spacing: var(--tipo-titulo-espacamento);
   text-transform: uppercase;
 }
+.reservado {
+  max-width: 40rem;
+}
+.corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: var(--esp-6);
+  align-items: start;
+}
+.etapas {
+  display: grid;
+  gap: var(--esp-4);
+}
 .resumo {
+  display: none;
   padding: var(--esp-2) var(--esp-3);
   border-left: 4px solid var(--cobre);
   border-radius: var(--raio-sm);
@@ -337,11 +468,12 @@ function recomecar() {
 }
 .opcoes {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   gap: var(--esp-2);
 }
 .dias {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
   gap: var(--esp-2);
 }
 .opcao {
@@ -349,13 +481,13 @@ function recomecar() {
   align-items: center;
   justify-content: space-between;
   gap: var(--esp-3);
-  min-height: 52px;
-  padding: var(--esp-2) var(--esp-4);
+  min-height: 64px;
+  padding: var(--esp-3) var(--esp-4);
   border: 2px solid var(--linha-forte);
   border-radius: var(--raio-sm);
   background: var(--placa);
   color: var(--grafite);
-  font: var(--tipo-corpo);
+  font: var(--tipo-corpo-lg);
   text-align: left;
   cursor: pointer;
 }
@@ -375,10 +507,46 @@ function recomecar() {
 }
 .opcao__detalhe {
   color: var(--grafite-suave);
+  font: var(--tipo-corpo);
   white-space: nowrap;
+}
+.saudacao {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-1);
+  padding: var(--esp-3) var(--esp-4);
+  border-left: 4px solid var(--sucesso);
+  border-radius: var(--raio-sm);
+  background: var(--sucesso-suave);
+}
+.saudacao--nova {
+  border-left-color: var(--aco);
+  background: var(--aco-suave);
+}
+.saudacao__titulo {
+  font: var(--tipo-subtitulo);
+  letter-spacing: var(--tipo-subtitulo-espacamento);
+  text-transform: uppercase;
+}
+.erro {
+  color: var(--perigo);
+  font: var(--tipo-corpo-sm);
 }
 .navegacao {
   display: flex;
+}
+.detalhes {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+}
+.detalhes dt,
+.detalhes dd {
+  margin: 0;
+}
+.detalhes__total {
+  padding-top: var(--esp-3);
+  border-top: 1px solid var(--linha);
 }
 .publico__rodape {
   display: flex;
@@ -388,5 +556,17 @@ function recomecar() {
   padding: var(--esp-3);
   color: var(--grafite-suave);
   font: var(--tipo-corpo-sm);
+}
+/* Telas estreitas: uma coluna; o cartão vira o resumo em uma linha. */
+@media (max-width: 56rem) {
+  .corpo {
+    grid-template-columns: 1fr;
+  }
+  .lateral {
+    display: none;
+  }
+  .resumo {
+    display: block;
+  }
 }
 </style>
