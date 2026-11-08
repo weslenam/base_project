@@ -13,3 +13,6 @@ export const proibido = (m = 'Você não tem permissão para isso.') =>
 export const naoEncontrado = (m = 'Não encontrado.') => new ErroHttp(404, m);
 export const conflito = (m) => new ErroHttp(409, m);
 export const invalido = (m) => new ErroHttp(400, m);
+export const muitasRequisicoes = (
+  m = 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.',
+) => new ErroHttp(429, m);

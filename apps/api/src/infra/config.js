@@ -23,4 +23,10 @@ export const config = {
   paginaPublicaLiberada: process.env.PAGINA_PUBLICA === 'liberada',
   /** Validade da sessão em dias. */
   diasDeSessao: 30,
+  /**
+   * Atrás de proxy (nginx, balanceador), TRUST_PROXY=true faz o IP real valer
+   * para o limite de requisições (ADR 0014). Desligado por padrão: sem proxy,
+   * confiar no X-Forwarded-For deixaria qualquer um forjar o IP.
+   */
+  trustProxy: process.env.TRUST_PROXY === 'true',
 };

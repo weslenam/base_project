@@ -1,3 +1,4 @@
+import { ErroDeNegocio } from './erros.js';
 import { http } from './http.js';
 
 /**
@@ -79,8 +80,17 @@ export function criarApiHttp(base) {
       carregar: (slug, codigo) => http('GET', publicoUrl(slug, codigo)),
       horarios: (slug, codigo, p) =>
         http('GET', publicoUrl(slug, codigo, '/horarios', p)),
+      /**
+       * Recusa (ex.: 429, limite contra varredura de telefones, ADR 0014) vira
+       * "cliente novo": a saudação se perde, mas o agendamento segue.
+       */
       reconhecer: (slug, codigo, telefone) =>
-        http('GET', publicoUrl(slug, codigo, '/cliente', { telefone })),
+        http('GET', publicoUrl(slug, codigo, '/cliente', { telefone })).catch(
+          (erro) => {
+            if (erro instanceof ErroDeNegocio) return null;
+            throw erro;
+          },
+        ),
       agendar: (slug, codigo, d) =>
         http('POST', publicoUrl(slug, codigo, '/agendamentos'), d),
     },

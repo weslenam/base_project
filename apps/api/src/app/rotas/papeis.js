@@ -1,10 +1,14 @@
-import { permissoesInvalidas } from '@barbertime/dominio';
+import {
+  permissoesAlemDasSuas,
+  permissoesInvalidas,
+} from '@barbertime/dominio';
 import {
   conflito,
   invalido,
   naoEncontrado,
   proibido,
 } from '../../infra/erros.js';
+import { corpo, texto } from '../esquemas.js';
 
 const LISTAR = `
   select p.id, p.chave, p.nome, p.protegido, p.permissoes,
@@ -30,8 +34,27 @@ async function exigirEditavel(c, id) {
   return papel;
 }
 
+/**
+ * Ninguém concede o que não tem (ADR 0010): quem gerencia papéis não cria nem
+ * edita papel com permissão que ele não tem (nem o próprio papel), nem mexe em
+ * papel que tem mais acesso que ele.
+ */
+function exigirSoOQueTem(req, permissoes) {
+  if (permissoesAlemDasSuas(req.contexto.permissoesDoPapel, permissoes).length)
+    throw proibido('Você não pode dar a um papel permissões que você não tem.');
+}
+
 const nomeRepetido = (erro) =>
   erro.code === '23505' ? conflito('Já existe um papel com esse nome.') : erro;
+
+const PAPEL = corpo({
+  nome: texto(80),
+  permissoes: {
+    type: ['array', 'null'],
+    maxItems: 200,
+    items: { type: 'string', maxLength: 80 },
+  },
+});
 
 export default async function (fastify) {
   const gerenciar = { preHandler: fastify.exigir('papeis.gerenciar') };
@@ -52,29 +75,36 @@ export default async function (fastify) {
       ),
   );
 
-  fastify.post('/papeis', gerenciar, async (req, reply) => {
-    validar(req.body ?? {});
-    const { nome, permissoes } = req.body;
-    return fastify
-      .naBarbearia(req, async (c) => {
-        const {
-          rows: [novo],
-        } = await c.query(
-          'insert into papeis (barbearia_id, nome, permissoes) values ($1, $2, $3) returning id',
-          [req.contexto.barbeariaId, nome.trim(), [...new Set(permissoes)]],
-        );
-        reply.code(201);
-        return (await c.query(`${LISTAR} where p.id = $1`, [novo.id])).rows[0];
-      })
-      .catch((e) => Promise.reject(nomeRepetido(e)));
-  });
+  fastify.post(
+    '/papeis',
+    { ...gerenciar, schema: PAPEL },
+    async (req, reply) => {
+      validar(req.body ?? {});
+      const { nome, permissoes } = req.body;
+      exigirSoOQueTem(req, permissoes);
+      return fastify
+        .naBarbearia(req, async (c) => {
+          const {
+            rows: [novo],
+          } = await c.query(
+            'insert into papeis (barbearia_id, nome, permissoes) values ($1, $2, $3) returning id',
+            [req.contexto.barbeariaId, nome.trim(), [...new Set(permissoes)]],
+          );
+          reply.code(201);
+          return (await c.query(`${LISTAR} where p.id = $1`, [novo.id]))
+            .rows[0];
+        })
+        .catch((e) => Promise.reject(nomeRepetido(e)));
+    },
+  );
 
-  fastify.put('/papeis/:id', gerenciar, async (req) => {
+  fastify.put('/papeis/:id', { ...gerenciar, schema: PAPEL }, async (req) => {
     validar(req.body ?? {});
+    exigirSoOQueTem(req, req.body.permissoes);
     const id = Number(req.params.id);
     return fastify
       .naBarbearia(req, async (c) => {
-        await exigirEditavel(c, id);
+        exigirSoOQueTem(req, (await exigirEditavel(c, id)).permissoes);
         await c.query(
           'update papeis set nome = $2, permissoes = $3 where id = $1',
           [id, req.body.nome.trim(), [...new Set(req.body.permissoes)]],
@@ -88,6 +118,7 @@ export default async function (fastify) {
     const id = Number(req.params.id);
     await fastify.naBarbearia(req, async (c) => {
       const papel = await exigirEditavel(c, id);
+      exigirSoOQueTem(req, papel.permissoes);
       if (papel.usuarios) {
         throw conflito(
           `O papel ${papel.nome} está em uso por ${papel.usuarios} usuário(s). Troque o papel deles antes.`,

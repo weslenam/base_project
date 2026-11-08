@@ -47,6 +47,8 @@ export default fp(async function autenticacao(fastify) {
         papel: { id: rows[0].papelId, nome: rows[0].papelNome },
         modulosAtivos,
         permissoes: permissoesEfetivas(rows[0].permissoes, modulosAtivos),
+        /** Do papel, mesmo de módulo inativo: base do "não concede o que não tem". */
+        permissoesDoPapel: rows[0].permissoes,
       };
     });
     if (!contexto)

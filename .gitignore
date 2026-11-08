@@ -18,3 +18,6 @@ vitest.config.*.timestamp*
 # graphify (planejamento 0021): grafo derivado do código, regenerado localmente
 graphify-out/
 .claude/*.graphify-bak
+
+# Planejamento 0022: registro local da revisão de segurança (gate do commit)
+.claude/estado/

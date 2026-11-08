@@ -15,6 +15,14 @@ import {
   receberComanda,
   salvarComanda,
 } from '../../servicos/caixa.js';
+import {
+  corpo,
+  escalar,
+  inteiro,
+  itensDeComanda,
+  query,
+  texto,
+} from '../esquemas.js';
 
 // Caixa do dia e comandas (planejamento 0020, fase 1) + resumo e comandas do
 // cliente (planejamento 0016), agora pelo banco.
@@ -22,6 +30,18 @@ import {
 export default async function (fastify) {
   const operar = { preHandler: fastify.exigir('caixa.operar') };
   const fechar = { preHandler: fastify.exigir('caixa.fechar') };
+  const comanda = {
+    ...operar,
+    schema: corpo({
+      id: inteiro,
+      atendimentoId: inteiro,
+      barbeiroId: inteiro,
+      clienteId: inteiro,
+      itens: itensDeComanda,
+      desconto: escalar(),
+      forma: texto(30),
+    }),
+  };
   const verCliente = {
     preHandler: fastify.exigirAlguma('clientes.ver', 'caixa.operar'),
   };
@@ -31,11 +51,15 @@ export default async function (fastify) {
   fastify.get('/caixa', operar, (req) =>
     na(req, async (c) => caixaComResumo(c, await caixaDoDia(c))),
   );
-  fastify.post('/caixa/abrir', operar, (req) =>
-    na(req, (c) => abrirCaixa(c, barbearia(req), req.body ?? {})),
+  fastify.post(
+    '/caixa/abrir',
+    { ...operar, schema: corpo({ valorInicial: escalar() }) },
+    (req) => na(req, (c) => abrirCaixa(c, barbearia(req), req.body ?? {})),
   );
-  fastify.post('/caixa/fechar', fechar, (req) =>
-    na(req, (c) => fecharCaixa(c, req.body ?? {})),
+  fastify.post(
+    '/caixa/fechar',
+    { ...fechar, schema: corpo({ dinheiroContado: escalar() }) },
+    (req) => na(req, (c) => fecharCaixa(c, req.body ?? {})),
   );
 
   fastify.get('/comandas', operar, (req) =>
@@ -47,11 +71,11 @@ export default async function (fastify) {
   fastify.get('/comandas/:id', operar, (req) =>
     na(req, (c) => obterComanda(c, req.params.id)),
   );
-  fastify.post('/comandas', operar, async (req, reply) => {
+  fastify.post('/comandas', comanda, async (req, reply) => {
     reply.code(201);
     return na(req, (c) => salvarComanda(c, barbearia(req), req.body ?? {}));
   });
-  fastify.put('/comandas/:id', operar, (req) =>
+  fastify.put('/comandas/:id', comanda, (req) =>
     na(req, (c) =>
       salvarComanda(c, barbearia(req), {
         ...req.body,
@@ -59,8 +83,10 @@ export default async function (fastify) {
       }),
     ),
   );
-  fastify.post('/comandas/:id/receber', operar, (req) =>
-    na(req, (c) => receberComanda(c, req.params.id, req.body ?? {})),
+  fastify.post(
+    '/comandas/:id/receber',
+    { ...operar, schema: corpo({ forma: texto(30) }) },
+    (req) => na(req, (c) => receberComanda(c, req.params.id, req.body ?? {})),
   );
   fastify.post('/comandas/:id/cancelar', operar, (req) =>
     na(req, (c) => cancelarComanda(c, req.params.id)),
@@ -125,17 +151,23 @@ export default async function (fastify) {
     }),
   );
 
-  fastify.get('/clientes/:id/comandas', verCliente, (req) =>
-    na(req, async (c) => {
-      const limite = Math.min(50, Number(req.query.limite) || 5);
-      const deslocamento = Math.max(0, Number(req.query.deslocamento) || 0);
-      const todas = (await comandasDoCliente(c, req.params.id)).filter(
-        (x) => x.estado !== 'cancelada',
-      );
-      return {
-        total: todas.length,
-        itens: todas.slice(deslocamento, deslocamento + limite),
-      };
-    }),
+  fastify.get(
+    '/clientes/:id/comandas',
+    {
+      ...verCliente,
+      schema: query({ limite: escalar(), deslocamento: escalar() }),
+    },
+    (req) =>
+      na(req, async (c) => {
+        const limite = Math.min(50, Number(req.query.limite) || 5);
+        const deslocamento = Math.max(0, Number(req.query.deslocamento) || 0);
+        const todas = (await comandasDoCliente(c, req.params.id)).filter(
+          (x) => x.estado !== 'cancelada',
+        );
+        return {
+          total: todas.length,
+          itens: todas.slice(deslocamento, deslocamento + limite),
+        };
+      }),
   );
 }

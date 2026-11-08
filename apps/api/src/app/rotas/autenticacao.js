@@ -1,8 +1,11 @@
 import {
   conferirSenha,
   gerarHashDeSenha,
+  hashFalso,
   SENHA_MINIMA,
 } from '../../seguranca/senha.js';
+import { chaves } from '../../seguranca/limites.js';
+import { corpo, inteiro, TAM, texto } from '../esquemas.js';
 import {
   COOKIE,
   criarSessao,
@@ -43,8 +46,25 @@ async function dadosDaSessao(fastify, req) {
 }
 
 export default async function (fastify) {
-  /** Entrar: e-mail e senha. Abre na barbearia pedida ou na primeira do usuário. */
-  fastify.post('/auth/entrar', async (req, reply) => {
+  // Gera o hash falso já na subida: nem o primeiro login fica mais lento.
+  await hashFalso();
+
+  /**
+   * Entrar: e-mail e senha. Abre na barbearia pedida ou na primeira do usuário.
+   * Limite por IP e por e-mail (força bruta distribuída contra uma conta).
+   */
+  const entrar = {
+    schema: corpo({
+      email: texto(TAM.email),
+      senha: texto(TAM.senha),
+      barbeariaId: inteiro,
+    }),
+    preHandler: [
+      fastify.limitar('entrarPorIp', chaves.ip),
+      fastify.limitar('entrarPorEmail', chaves.email),
+    ],
+  };
+  fastify.post('/auth/entrar', entrar, async (req, reply) => {
     const { email, senha, barbeariaId } = req.body ?? {};
     const {
       rows: [usuario],
@@ -52,8 +72,13 @@ export default async function (fastify) {
       'select id, senha_hash from usuarios where lower(email) = lower($1)',
       [String(email ?? '')],
     );
-    // Mesma resposta para e-mail inexistente e senha errada.
-    if (!usuario || !(await conferirSenha(senha, usuario.senha_hash))) {
+    // Mesma resposta e o MESMO TEMPO para e-mail inexistente e senha errada:
+    // sem usuário, confere contra um hash falso de mesmo custo (ADR 0014).
+    const confere = await conferirSenha(
+      senha,
+      usuario?.senha_hash ?? (await hashFalso()),
+    );
+    if (!usuario || !confere) {
       throw naoAutenticado('E-mail ou senha incorretos.');
     }
     const { rows: barbearias } = await fastify.db.query(
@@ -81,39 +106,54 @@ export default async function (fastify) {
   fastify.get('/auth/eu', async (req) => dadosDaSessao(fastify, req));
 
   /** Trocar de barbearia (usuário com acesso a mais de uma). */
-  fastify.post('/auth/barbearia', async (req) => {
-    if (!req.sessao) throw naoAutenticado();
-    const id = Number(req.body?.barbeariaId);
-    const { rows } = await fastify.db.query(
-      'select 1 from barbearias_do_usuario($1) where barbearia_id = $2',
-      [req.sessao.usuarioId, id],
-    );
-    if (!rows.length) throw proibido('Você não tem acesso a essa barbearia.');
-    await trocarBarbeariaDaSessao(fastify.db, req.sessao.token, id);
-    req.sessao.barbeariaId = id;
-    req.contexto = null;
-    return dadosDaSessao(fastify, req);
-  });
+  fastify.post(
+    '/auth/barbearia',
+    { schema: corpo({ barbeariaId: inteiro }) },
+    async (req) => {
+      if (!req.sessao) throw naoAutenticado();
+      const id = Number(req.body?.barbeariaId);
+      const { rows } = await fastify.db.query(
+        'select 1 from barbearias_do_usuario($1) where barbearia_id = $2',
+        [req.sessao.usuarioId, id],
+      );
+      if (!rows.length) throw proibido('Você não tem acesso a essa barbearia.');
+      await trocarBarbeariaDaSessao(fastify.db, req.sessao.token, id);
+      req.sessao.barbeariaId = id;
+      req.contexto = null;
+      return dadosDaSessao(fastify, req);
+    },
+  );
 
   /** Meu perfil: o próprio usuário troca o nome. */
-  fastify.put('/auth/perfil', async (req) => {
-    await fastify.autenticado(req);
-    const nome = String(req.body?.nome ?? '').trim();
-    if (!nome) throw invalido('Informe o nome.');
-    if (nome.length > 120)
-      throw invalido('O nome pode ter até 120 caracteres.');
-    await fastify.db.query('update usuarios set nome = $2 where id = $1', [
-      req.contexto.usuarioId,
-      nome,
-    ]);
-    return dadosDaSessao(fastify, req);
-  });
+  fastify.put(
+    '/auth/perfil',
+    { schema: corpo({ nome: texto(500) }) },
+    async (req) => {
+      await fastify.autenticado(req);
+      const nome = String(req.body?.nome ?? '').trim();
+      if (!nome) throw invalido('Informe o nome.');
+      if (nome.length > 120)
+        throw invalido('O nome pode ter até 120 caracteres.');
+      await fastify.db.query('update usuarios set nome = $2 where id = $1', [
+        req.contexto.usuarioId,
+        nome,
+      ]);
+      return dadosDaSessao(fastify, req);
+    },
+  );
 
   /**
    * Trocar a própria senha: exige a atual. As outras sessões abertas caem
    * (ex.: celular esquecido logado); a atual continua.
    */
-  fastify.put('/auth/senha', async (req) => {
+  const trocarSenha = {
+    schema: corpo({
+      senhaAtual: texto(TAM.senha),
+      novaSenha: texto(TAM.senha),
+    }),
+    preHandler: fastify.limitar('senhaPorIp', chaves.ip),
+  };
+  fastify.put('/auth/senha', trocarSenha, async (req) => {
     await fastify.autenticado(req);
     const { senhaAtual, novaSenha } = req.body ?? {};
     const { usuarioId } = req.contexto;
@@ -147,7 +187,22 @@ export default async function (fastify) {
   });
 
   /** Cadastro self-service da barbearia (público). Já entra como Dono. */
-  fastify.post('/barbearias', async (req, reply) => {
+  const cadastro = {
+    schema: corpo({
+      nome: texto(TAM.nome),
+      slug: texto(TAM.slug),
+      dono: {
+        type: ['object', 'null'],
+        properties: {
+          nome: texto(TAM.nome),
+          email: texto(TAM.email),
+          senha: texto(TAM.senha),
+        },
+      },
+    }),
+    preHandler: fastify.limitar('cadastroPorIp', chaves.ip),
+  };
+  fastify.post('/barbearias', cadastro, async (req, reply) => {
     const { barbearia, usuarioId } = await criarBarbearia(
       fastify,
       req.body ?? {},

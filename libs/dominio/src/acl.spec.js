@@ -1,6 +1,7 @@
 import {
   CHAVES_DE_PERMISSAO,
   PAPEIS_PADRAO,
+  permissoesAlemDasSuas,
   permissoesEfetivas,
   permissoesInvalidas,
   permissoesPorGrupo,
@@ -60,6 +61,40 @@ describe('permissões', () => {
       'Pacotes',
       'Pagamento online',
     ]);
+  });
+});
+
+describe('ninguém concede o que não tem', () => {
+  const papel = (chave) =>
+    PAPEIS_PADRAO.find((p) => p.chave === chave).permissoes;
+
+  it('quem só administra usuários não dá o papel Dono nem age sobre ele', () => {
+    const rh = ['usuarios.gerenciar'];
+    expect(permissoesAlemDasSuas(rh, papel('dono'))).toContain(
+      'barbearia.configurar',
+    );
+    expect(permissoesAlemDasSuas(rh, papel('barbeiro'))).toEqual([
+      'agenda.ver_propria',
+    ]);
+    expect(permissoesAlemDasSuas(rh, rh)).toEqual([]);
+  });
+
+  it('o Dono, que tem todas, pode qualquer papel', () => {
+    for (const p of PAPEIS_PADRAO)
+      expect(permissoesAlemDasSuas(papel('dono'), p.permissoes)).toEqual([]);
+  });
+
+  it('gerente não promove ninguém à administração; repetidas contam uma vez', () => {
+    expect(
+      permissoesAlemDasSuas(papel('gerente'), [
+        'agenda.ver',
+        'papeis.gerenciar',
+        'papeis.gerenciar',
+      ]),
+    ).toEqual(['papeis.gerenciar']);
+    expect(permissoesAlemDasSuas(papel('gerente'), papel('recepcao'))).toEqual(
+      [],
+    );
   });
 });
 

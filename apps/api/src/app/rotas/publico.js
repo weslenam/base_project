@@ -13,6 +13,15 @@ import {
   criarAgendamento,
   ocupadosDoDia,
 } from '../../servicos/agenda.js';
+import { chaves } from '../../seguranca/limites.js';
+import {
+  clienteResumido,
+  corpo,
+  inteiro,
+  query,
+  TAM,
+  texto,
+} from '../esquemas.js';
 
 /**
  * Página pública de agendamento (planejamento 0019, ADR 0013). Sem sessão.
@@ -56,8 +65,47 @@ export default async function (fastify, { liberada = false } = {}) {
   const janela = (config, barbeiro, data) =>
     janelaDoAgendamentoOnline({ config, barbeiro, data, agora: agora() });
 
+  // Limites (ADR 0014): a página é aberta, então tudo tem teto por IP; o
+  // reconhecimento e o agendamento, que tocam dados de clientes, têm tetos
+  // também por barbearia e por telefone (varredura distribuída).
+  const codigo = { c: texto(TAM.codigo) };
+  const porIp = fastify.limitar('publicoPorIp', chaves.ip);
+  const pagina = { schema: query(codigo), preHandler: porIp };
+  const horarios = {
+    schema: query({
+      ...codigo,
+      data: texto(TAM.data),
+      barbeiroId: inteiro,
+      servicoId: inteiro,
+    }),
+    preHandler: porIp,
+  };
+  const reconhecer = {
+    schema: query({ ...codigo, telefone: texto(TAM.telefone) }),
+    preHandler: [
+      fastify.limitar('reconhecerPorIp', chaves.ip),
+      fastify.limitar('reconhecerPorBarbearia', chaves.slug),
+    ],
+  };
+  const agendar = {
+    schema: {
+      ...query(codigo),
+      ...corpo({
+        data: texto(TAM.data),
+        inicio: texto(TAM.hora),
+        barbeiroId: inteiro,
+        servicoId: inteiro,
+        cliente: clienteResumido,
+      }),
+    },
+    preHandler: [
+      fastify.limitar('agendarPorIp', chaves.ip),
+      fastify.limitar('agendarPorTelefone', chaves.telefoneDoCliente),
+    ],
+  };
+
   /** Tudo que a página precisa para começar. */
-  fastify.get('/publico/:slug', async (req) => {
+  fastify.get('/publico/:slug', pagina, async (req) => {
     const b = await publicada(req);
     return fastify.comBarbearia(b.id, async (c) => {
       const servicos = (
@@ -85,7 +133,7 @@ export default async function (fastify, { liberada = false } = {}) {
     });
   });
 
-  fastify.get('/publico/:slug/horarios', async (req) => {
+  fastify.get('/publico/:slug/horarios', horarios, async (req) => {
     const b = await publicada(req);
     const { data, barbeiroId, servicoId } = req.query;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data ?? '')))
@@ -104,8 +152,12 @@ export default async function (fastify, { liberada = false } = {}) {
     });
   });
 
-  /** Só diz se o telefone já é cliente, com o PRIMEIRO nome (LGPD). */
-  fastify.get('/publico/:slug/cliente', async (req) => {
+  /**
+   * Só diz se o telefone já é cliente, com o PRIMEIRO nome (LGPD). Com teto por
+   * IP e por barbearia, varrer números deixa de ser viável; estourado, o front
+   * segue como "cliente novo" (ADR 0014).
+   */
+  fastify.get('/publico/:slug/cliente', reconhecer, async (req) => {
     const b = await publicada(req);
     const telefone = String(req.query.telefone ?? '').replace(/\D/g, '');
     if (!/^\d{10,11}$/.test(telefone)) return null;
@@ -117,7 +169,7 @@ export default async function (fastify, { liberada = false } = {}) {
     return c ? { primeiroNome: c.nome.trim().split(/\s+/)[0] } : null;
   });
 
-  fastify.post('/publico/:slug/agendamentos', async (req, reply) => {
+  fastify.post('/publico/:slug/agendamentos', agendar, async (req, reply) => {
     const b = await publicada(req);
     const { data, inicio, barbeiroId, servicoId, cliente } = req.body ?? {};
     const r = await fastify.comBarbearia(b.id, (c) =>

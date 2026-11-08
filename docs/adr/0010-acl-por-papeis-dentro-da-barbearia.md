@@ -22,7 +22,12 @@ Dono, gerente, recepção e barbeiro precisam ver e fazer coisas diferentes, e c
 - **Proteções:**
   - a barbearia sempre tem ao menos um Dono ativo;
   - ninguém altera o próprio papel;
-  - papel em uso não pode ser excluído.
+  - papel em uso não pode ser excluído;
+  - **ninguém concede o que não tem** (2026-11-08, planejamento 0022). Isso vale para:
+    - **quem administra usuários**, que não dá papel com permissão que ele não tenha e não altera, remove nem troca a senha de quem tem permissão que ele não tenha;
+    - **quem gerencia papéis**, que não cria nem edita papel, inclusive o próprio, com permissão que ele não tenha, e não mexe em papel maior que o seu.
+
+    A comparação é com as permissões do papel (`permissoesAlemDasSuas`, no domínio). Sem essa regra, um papel personalizado com `usuarios.gerenciar` viraria Dono ou assumiria a conta do Dono. O achado veio da revisão de segurança.
 
 ## Consequências
 

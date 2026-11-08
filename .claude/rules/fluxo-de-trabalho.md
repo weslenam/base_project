@@ -1,12 +1,13 @@
 # Fluxo de trabalho
 
-Ordem obrigatória para todo pedido de código ou documentação neste repositório. Decidida no planejamento 0021.
+Ordem obrigatória para todo pedido de código ou documentação neste repositório. Decidida no planejamento 0021; a etapa de segurança, no 0022.
 
 Os hooks em `.claude/settings.json` (scripts em `.claude/hooks/`) **garantem** parte dela pelo harness, independentemente de memória:
 
 - injetam este fluxo em todo pedido;
 - lembram do grafo do graphify antes de buscas;
 - **bloqueiam** edição de UI sem a skill `design-system`;
+- **bloqueiam** `git commit` sem a revisão de segurança (`security-review`) sobre o que está em stage;
 - atualizam o grafo ao fim de cada resposta.
 
 ## Ordem obrigatória
@@ -20,7 +21,8 @@ Os hooks em `.claude/settings.json` (scripts em `.claude/hooks/`) **garantem** p
 4. **Implementar com testes.** Regras de negócio no `@barbertime/dominio`. API com RLS e permissões (ADRs 0009 a 0011). Teste novo para cada regra.
 5. **Verificar.** `pnpm verificar` (lint, testes, build); com banco ou API envolvidos, `pnpm verificar:tudo`. Não declarar pronto com falha.
 6. **Revisar.** Antes de abrir PR ou juntar na `main`, rode o plugin de revisão (`/code-review`) sobre o diff.
-7. **Fechar.**
+7. **Segurança (bloqueante).** Com tudo em stage (`git add`), carregue a skill `security-review` e revise o diff. Com achado aberto, corrija e revise de novo. Só sem achados, rode `.claude/hooks/registrar-security-review.sh`. **O hook nega `git commit`** sem a skill na sessão ou se o stage mudou depois do registro. Rota nova ou alterada segue o ADR 0014: parâmetros tipados, schema quando recebe corpo e limite próprio quando é pública ou trata credenciais.
+8. **Fechar.**
    - Marque as etapas e o status no planejamento e atualize os índices (`docs/planejamentos/README.md`, ADRs).
    - Commit com a atribuição combinada.
    - O grafo é atualizado sozinho pelo hook `Stop`; após refatoração grande, rode `graphify update . --force`.

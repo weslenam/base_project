@@ -159,6 +159,16 @@ export function permissoesEfetivas(doPapel = [], modulosAtivos = []) {
   });
 }
 
+/**
+ * Ninguém concede o que não tem (ADR 0010): devolve as permissões de `alvo`
+ * (papel a dar, papel de quem se quer alterar, permissões de um papel a editar)
+ * que `deQuemAge` não possui. Vazio: pode. Assim, quem só administra usuários
+ * não se torna Dono nem assume a conta de quem tem mais acesso que ele; o Dono,
+ * que tem todas, pode tudo.
+ */
+export const permissoesAlemDasSuas = (deQuemAge = [], alvo = []) =>
+  [...new Set(alvo)].filter((p) => !deQuemAge.includes(p));
+
 /** Permissões agrupadas para montar telas (ex.: checklist de papéis). */
 export function permissoesPorGrupo() {
   const grupos = new Map();

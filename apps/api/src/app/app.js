@@ -1,7 +1,10 @@
+import helmet from '@fastify/helmet';
 import sensible from './plugins/sensible.js';
 import banco from '../infra/banco.js';
 import { config } from '../infra/config.js';
 import autenticacao from '../seguranca/autenticacao.js';
+import entrada, { mensagemDeErro } from '../seguranca/entrada.js';
+import limites from '../seguranca/limites.js';
 import rotasSaude from './rotas/saude.js';
 import rotasAutenticacao from './rotas/autenticacao.js';
 import rotasUsuarios from './rotas/usuarios.js';
@@ -19,8 +22,14 @@ import rotasBalcao from './rotas/balcao.js';
 /**
  * Aplicação Fastify. Toda rota fica sob /api. Erros esperados saem como
  * { mensagem } com o status certo; os inesperados viram 500 genérico.
+ * Proteções contra abuso e entrada maliciosa (ADR 0014): cabeçalhos de
+ * segurança, guarda de entrada e limites de requisição. Sem CORS: o front usa a
+ * mesma origem.
  */
 export async function app(fastify, opts = {}) {
+  fastify.register(helmet);
+  fastify.register(entrada);
+  fastify.register(limites, { limites: opts.limites });
   fastify.register(sensible);
   fastify.register(banco, {
     databaseUrl: opts.databaseUrl ?? config.databaseUrl,
@@ -35,7 +44,7 @@ export async function app(fastify, opts = {}) {
         .code(500)
         .send({ mensagem: 'Erro interno. Tente de novo em instantes.' });
     }
-    return reply.code(status).send({ mensagem: erro.message });
+    return reply.code(status).send({ mensagem: mensagemDeErro(erro, status) });
   });
 
   fastify.register(

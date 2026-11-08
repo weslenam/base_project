@@ -13,6 +13,14 @@ import {
   ocupadosDoDia,
   validarHorario,
 } from '../../servicos/agenda.js';
+import {
+  TAM,
+  clienteResumido,
+  corpo,
+  inteiro,
+  query,
+  texto,
+} from '../esquemas.js';
 
 // Agenda interna (planejamentos 0019 e 0020). Lê `atendimentos` + `bloqueios` e
 // fala o vocabulário da tela atual (pendente, confirmado, atendido, faltou...).
@@ -37,43 +45,56 @@ export default async function (fastify) {
   const na = (req, fn) => fastify.naBarbearia(req, fn);
   const soOsProprios = (req) => !req.contexto.permissoes.includes('agenda.ver');
 
-  fastify.get('/agendamentos', ver, (req) =>
-    na(req, async (c) => {
-      const data = String(req.query.data ?? agora().data);
-      const eu = soOsProprios(req) ? req.contexto.usuarioId : null;
-      const { rows: atendimentos } = await c.query(
-        `${SELECT_ATENDIMENTO}
+  fastify.get(
+    '/agendamentos',
+    { ...ver, schema: query({ data: texto(TAM.data) }) },
+    (req) =>
+      na(req, async (c) => {
+        const data = String(req.query.data ?? agora().data);
+        const eu = soOsProprios(req) ? req.contexto.usuarioId : null;
+        const { rows: atendimentos } = await c.query(
+          `${SELECT_ATENDIMENTO}
           where a.data = $1 and a.inicio is not null
             and a.estado not in ('cancelado', 'desistiu')
             and ($2::bigint is null or b.usuario_id = $2)`,
-        [data, eu],
-      );
-      const { rows: bloqueios } = await c.query(
-        `${SELECT_BLOQUEIO}
+          [data, eu],
+        );
+        const { rows: bloqueios } = await c.query(
+          `${SELECT_BLOQUEIO}
           where k.data = $1 and not k.cancelado and ($2::bigint is null or b.usuario_id = $2)`,
-        [data, eu],
-      );
-      return [
-        ...atendimentos.map(comEstado),
-        ...bloqueios.map(bloqueioNaAgenda),
-      ].sort((x, y) => paraMinutos(x.inicio) - paraMinutos(y.inicio));
-    }),
+          [data, eu],
+        );
+        return [
+          ...atendimentos.map(comEstado),
+          ...bloqueios.map(bloqueioNaAgenda),
+        ].sort((x, y) => paraMinutos(x.inicio) - paraMinutos(y.inicio));
+      }),
   );
 
-  fastify.get('/agendamentos/horarios', ver, (req) =>
-    na(req, async (c) => {
-      const { data, barbeiroId, servicoId } = req.query;
-      const barbeiro = await buscarBarbeiro(c, barbeiroId);
-      const servico = await buscarServico(c, servicoId);
-      const hoje = agora();
-      if (data < hoje.data) return [];
-      return horariosLivres({
-        expediente: barbeiro,
-        duracao: servico.duracao,
-        ocupados: await ocupadosDoDia(c, data, barbeiro.id),
-        aPartirDe: data === hoje.data ? hoje.hora : undefined,
-      });
-    }),
+  fastify.get(
+    '/agendamentos/horarios',
+    {
+      ...ver,
+      schema: query({
+        data: texto(TAM.data),
+        barbeiroId: inteiro,
+        servicoId: inteiro,
+      }),
+    },
+    (req) =>
+      na(req, async (c) => {
+        const { data, barbeiroId, servicoId } = req.query;
+        const barbeiro = await buscarBarbeiro(c, barbeiroId);
+        const servico = await buscarServico(c, servicoId);
+        const hoje = agora();
+        if (data < hoje.data) return [];
+        return horariosLivres({
+          expediente: barbeiro,
+          duracao: servico.duracao,
+          ocupados: await ocupadosDoDia(c, data, barbeiro.id),
+          aPartirDe: data === hoje.data ? hoje.hora : undefined,
+        });
+      }),
   );
 
   async function bloqueio(c, id) {
@@ -108,84 +129,114 @@ export default async function (fastify) {
     }),
   );
 
-  fastify.post('/agendamentos', gerenciar, async (req, reply) => {
-    const r = await na(req, (c) =>
-      criarAgendamento(c, req.contexto.barbeariaId, req.body ?? {}),
-    );
-    reply.code(201);
-    return r;
-  });
-
-  fastify.post('/agendamentos/bloqueios', gerenciar, async (req, reply) => {
-    const { data, inicio, fim, barbeiroId, motivo } = req.body ?? {};
-    if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(String(data ?? '')) ||
-      !inicio ||
-      !fim ||
-      paraMinutos(inicio) >= paraMinutos(fim)
-    )
-      throw invalido('O fim do bloqueio precisa ser depois do início.');
-    const r = await na(req, async (c) => {
-      const barbeiro = await buscarBarbeiro(c, barbeiroId, { travar: true });
-      await validarHorario(c, { data, inicio, fim, barbeiro });
-      const {
-        rows: [novo],
-      } = await c.query(
-        `insert into bloqueios (barbearia_id, barbeiro_id, data, inicio, fim, motivo)
-         values ($1, $2, $3, $4, $5, $6) returning id`,
-        [
-          req.contexto.barbeariaId,
-          barbeiro.id,
-          data,
-          inicio,
-          fim,
-          String(motivo ?? '').trim() || 'Bloqueado',
-        ],
+  fastify.post(
+    '/agendamentos',
+    {
+      ...gerenciar,
+      schema: corpo({
+        data: texto(TAM.data),
+        inicio: texto(TAM.hora),
+        barbeiroId: inteiro,
+        servicoId: inteiro,
+        clienteId: inteiro,
+        cliente: clienteResumido,
+      }),
+    },
+    async (req, reply) => {
+      const r = await na(req, (c) =>
+        criarAgendamento(c, req.contexto.barbeariaId, req.body ?? {}),
       );
-      return bloqueio(c, -novo.id);
-    });
-    reply.code(201);
-    return r;
-  });
+      reply.code(201);
+      return r;
+    },
+  );
+
+  fastify.post(
+    '/agendamentos/bloqueios',
+    {
+      ...gerenciar,
+      schema: corpo({
+        data: texto(TAM.data),
+        inicio: texto(TAM.hora),
+        fim: texto(TAM.hora),
+        barbeiroId: inteiro,
+        motivo: texto(200),
+      }),
+    },
+    async (req, reply) => {
+      const { data, inicio, fim, barbeiroId, motivo } = req.body ?? {};
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(String(data ?? '')) ||
+        !inicio ||
+        !fim ||
+        paraMinutos(inicio) >= paraMinutos(fim)
+      )
+        throw invalido('O fim do bloqueio precisa ser depois do início.');
+      const r = await na(req, async (c) => {
+        const barbeiro = await buscarBarbeiro(c, barbeiroId, { travar: true });
+        await validarHorario(c, { data, inicio, fim, barbeiro });
+        const {
+          rows: [novo],
+        } = await c.query(
+          `insert into bloqueios (barbearia_id, barbeiro_id, data, inicio, fim, motivo)
+         values ($1, $2, $3, $4, $5, $6) returning id`,
+          [
+            req.contexto.barbeariaId,
+            barbeiro.id,
+            data,
+            inicio,
+            fim,
+            String(motivo ?? '').trim() || 'Bloqueado',
+          ],
+        );
+        return bloqueio(c, -novo.id);
+      });
+      reply.code(201);
+      return r;
+    },
+  );
 
   /** Ações da agenda atual: confirmar, marcar atendido, falta ou cancelar. */
-  fastify.put('/agendamentos/:id/estado', gerenciar, (req) =>
-    na(req, async (c) => {
-      const estado = req.body?.estado;
-      const negado = () =>
-        invalido('Esse agendamento não pode mais mudar para esse estado.');
-      if (Number(req.params.id) < 0) {
-        const k = await bloqueio(c, req.params.id);
-        if (estado !== 'cancelado') throw negado();
-        await c.query('update bloqueios set cancelado = true where id = $1', [
-          -k.id,
-        ]);
-        return { ...k, estado: 'cancelado' };
-      }
-      const a = await buscarAtendimento(c, req.params.id);
-      const acao = ACOES[estado];
-      // Como na agenda atual: pendente só confirma ou cancela.
-      const pendente = a.status === 'agendado' && !a.confirmadoEm;
-      if (
-        !acao?.de.includes(a.status) ||
-        (acao.confirmar && a.confirmadoEm) ||
-        (pendente && (estado === 'atendido' || estado === 'faltou'))
-      )
-        throw negado();
-      if (acao.confirmar) {
-        await c.query(
-          'update atendimentos set confirmado_em = now() where id = $1',
-          [a.id],
-        );
-      } else {
-        await c.query(
-          `update atendimentos set estado = $2,
+  fastify.put(
+    '/agendamentos/:id/estado',
+    { ...gerenciar, schema: corpo({ estado: texto(20) }) },
+    (req) =>
+      na(req, async (c) => {
+        const estado = req.body?.estado;
+        const negado = () =>
+          invalido('Esse agendamento não pode mais mudar para esse estado.');
+        if (Number(req.params.id) < 0) {
+          const k = await bloqueio(c, req.params.id);
+          if (estado !== 'cancelado') throw negado();
+          await c.query('update bloqueios set cancelado = true where id = $1', [
+            -k.id,
+          ]);
+          return { ...k, estado: 'cancelado' };
+        }
+        const a = await buscarAtendimento(c, req.params.id);
+        const acao = ACOES[estado];
+        // Como na agenda atual: pendente só confirma ou cancela.
+        const pendente = a.status === 'agendado' && !a.confirmadoEm;
+        if (
+          !acao?.de.includes(a.status) ||
+          (acao.confirmar && a.confirmadoEm) ||
+          (pendente && (estado === 'atendido' || estado === 'faltou'))
+        )
+          throw negado();
+        if (acao.confirmar) {
+          await c.query(
+            'update atendimentos set confirmado_em = now() where id = $1',
+            [a.id],
+          );
+        } else {
+          await c.query(
+            `update atendimentos set estado = $2,
              finalizado_em = case when $2 = 'finalizado' then now() else finalizado_em end
            where id = $1`,
-          [a.id, acao.para],
-        );
-      }
-      return buscarAtendimento(c, a.id);
-    }),
+            [a.id, acao.para],
+          );
+        }
+        return buscarAtendimento(c, a.id);
+      }),
   );
 }

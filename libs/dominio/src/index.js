@@ -24,6 +24,7 @@ export {
   CHAVES_DE_PERMISSAO,
   PAPEIS_PADRAO,
   permissoesInvalidas,
+  permissoesAlemDasSuas,
   permissoesEfetivas,
   permissoesPorGrupo,
 } from './permissoes.js';

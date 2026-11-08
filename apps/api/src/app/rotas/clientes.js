@@ -1,5 +1,6 @@
 import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
 import { SELECT_ATENDIMENTO, agora, comEstado } from '../../servicos/agenda.js';
+import { TAM, corpo, query, texto } from '../esquemas.js';
 
 // Clientes da barbearia (planejamento 0019).
 
@@ -32,6 +33,15 @@ export default async function (fastify) {
     ),
   };
   const excluir = { preHandler: fastify.exigir('clientes.excluir') };
+  const cliente = {
+    ...editar,
+    schema: corpo({
+      nome: texto(TAM.nome),
+      telefone: texto(TAM.telefone),
+      cpf: texto(TAM.cpf),
+      observacoes: texto(TAM.observacao),
+    }),
+  };
   const na = (req, fn) => fastify.naBarbearia(req, fn);
 
   async function obter(c, id) {
@@ -43,18 +53,21 @@ export default async function (fastify) {
   }
 
   /** busca: parte do nome ou dos dígitos do telefone. */
-  fastify.get('/clientes', ver, (req) =>
-    na(req, async (c) => {
-      const busca = String(req.query.busca ?? '').trim();
-      const digitos = busca.replace(/\D/g, '');
-      const { rows } = await c.query(
-        `${SELECT_CLIENTE}
+  fastify.get(
+    '/clientes',
+    { ...ver, schema: query({ busca: texto(TAM.nome) }) },
+    (req) =>
+      na(req, async (c) => {
+        const busca = String(req.query.busca ?? '').trim();
+        const digitos = busca.replace(/\D/g, '');
+        const { rows } = await c.query(
+          `${SELECT_CLIENTE}
           where $1 = '' or c.nome ilike '%' || $1 || '%' or ($2 <> '' and c.telefone like '%' || $2 || '%')
           limit 500`,
-        [busca, digitos],
-      );
-      return rows.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    }),
+          [busca, digitos],
+        );
+        return rows.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+      }),
   );
 
   fastify.get('/clientes/:id', ver, (req) =>
@@ -116,11 +129,11 @@ export default async function (fastify) {
       );
       return obter(c, novo.id);
     });
-  fastify.post('/clientes', editar, async (req, reply) => {
+  fastify.post('/clientes', cliente, async (req, reply) => {
     reply.code(201);
     return salvar(req);
   });
-  fastify.put('/clientes/:id', editar, salvar);
+  fastify.put('/clientes/:id', cliente, salvar);
 
   fastify.delete('/clientes/:id', excluir, async (req, reply) => {
     await na(req, async (c) => {

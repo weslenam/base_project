@@ -1,6 +1,7 @@
 import { paraMinutos } from '@barbertime/dominio';
 import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
 import { agora } from '../../servicos/agenda.js';
+import { TAM, corpo, escalar, texto } from '../esquemas.js';
 
 // Serviços, produtos e equipe (planejamento 0019). Exclusão lógica: o histórico
 // de agendamentos e comandas continua apontando para o registro.
@@ -56,6 +57,31 @@ export default async function (fastify) {
   const logado = { preHandler: fastify.autenticado };
   const catalogo = { preHandler: fastify.exigir('catalogo.gerenciar') };
   const equipe = { preHandler: fastify.exigir('equipe.gerenciar') };
+  const servico = {
+    ...catalogo,
+    schema: corpo({
+      nome: texto(TAM.nome),
+      duracao: escalar(),
+      preco: escalar(),
+    }),
+  };
+  const produto = {
+    ...catalogo,
+    schema: corpo({
+      nome: texto(TAM.nome),
+      preco: escalar(),
+      comissao: escalar(),
+    }),
+  };
+  const barbeiro = {
+    ...equipe,
+    schema: corpo({
+      nome: texto(TAM.nome),
+      inicio: texto(TAM.hora),
+      fim: texto(TAM.hora),
+      comissao: escalar(),
+    }),
+  };
   const na = (req, fn) => fastify.naBarbearia(req, fn);
 
   // ---- serviços ----
@@ -102,8 +128,8 @@ export default async function (fastify) {
         )
       ).rows[0];
     });
-  fastify.post('/servicos', catalogo, salvarServico);
-  fastify.put('/servicos/:id', catalogo, salvarServico);
+  fastify.post('/servicos', servico, salvarServico);
+  fastify.put('/servicos/:id', servico, salvarServico);
 
   fastify.delete('/servicos/:id', catalogo, async (req, reply) => {
     await na(req, async (c) => {
@@ -155,8 +181,8 @@ export default async function (fastify) {
         )
       ).rows[0];
     });
-  fastify.post('/produtos', catalogo, salvarProduto);
-  fastify.put('/produtos/:id', catalogo, salvarProduto);
+  fastify.post('/produtos', produto, salvarProduto);
+  fastify.put('/produtos/:id', produto, salvarProduto);
 
   fastify.delete('/produtos/:id', catalogo, async (req, reply) => {
     await na(req, async (c) => {
@@ -212,8 +238,8 @@ export default async function (fastify) {
       );
       return (await c.query(`${BARBEIRO} where id = $1`, [novo.id])).rows[0];
     });
-  fastify.post('/barbeiros', equipe, salvarBarbeiro);
-  fastify.put('/barbeiros/:id', equipe, salvarBarbeiro);
+  fastify.post('/barbeiros', barbeiro, salvarBarbeiro);
+  fastify.put('/barbeiros/:id', barbeiro, salvarBarbeiro);
 
   fastify.delete('/barbeiros/:id', equipe, async (req, reply) => {
     await na(req, async (c) => {

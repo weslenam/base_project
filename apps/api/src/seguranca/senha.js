@@ -39,3 +39,11 @@ export async function conferirSenha(senha, guardado) {
 }
 
 export const SENHA_MINIMA = 8;
+
+/**
+ * Hash de mesmo custo para conferir quando o e-mail não existe: o login leva o
+ * mesmo tempo nos dois casos e não revela quais e-mails têm conta (ADR 0014).
+ */
+let falso;
+export const hashFalso = () =>
+  (falso ??= gerarHashDeSenha(randomBytes(32).toString('hex')));

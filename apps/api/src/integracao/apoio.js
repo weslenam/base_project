@@ -2,12 +2,23 @@ import { inject } from 'vitest';
 import Fastify from 'fastify';
 import pg from 'pg';
 import { app } from '../app/app.js';
+import { LIMITES_PADRAO } from '../seguranca/limites.js';
+
+/**
+ * Os testes disparam muitas requisições do mesmo IP: por padrão, limites
+ * folgados. O seguranca.spec.js passa `limites: LIMITES_PADRAO` para testar os
+ * valores reais (planejamento 0022).
+ */
+export const LIMITES_FOLGADOS = Object.fromEntries(
+  Object.entries(LIMITES_PADRAO).map(([k, v]) => [k, { ...v, max: 1_000_000 }]),
+);
 
 export async function criarServidor(opcoes = {}) {
   const servidor = Fastify();
   servidor.register(app, {
     databaseUrl: inject('urlApp'),
     paginaPublicaLiberada: opcoes.paginaPublicaLiberada ?? true,
+    limites: opcoes.limites ?? LIMITES_FOLGADOS,
   });
   await servidor.ready();
   return servidor;

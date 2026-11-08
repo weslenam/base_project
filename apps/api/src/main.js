@@ -1,10 +1,11 @@
 import Fastify from 'fastify';
 import { app } from './app/app.js';
+import { config } from './infra/config.js';
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT ? Number(process.env.PORT) : 3333;
 
-const server = Fastify({ logger: true });
+const server = Fastify({ logger: true, trustProxy: config.trustProxy });
 server.register(app);
 
 server.listen({ port, host }, (err) => {

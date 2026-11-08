@@ -24,6 +24,7 @@ import {
   exigirCaixaAberto,
   caixaDoDia,
 } from '../../servicos/caixa.js';
+import { TAM, corpo, inteiro, logico, query, texto } from '../esquemas.js';
 
 // Balcão (planejamento 0020, fase 1; especificação docs/atendimento/balcao.md).
 // Agenda e fila são visões da mesma tabela `atendimentos`.
@@ -156,73 +157,89 @@ export default async function (fastify) {
   });
 
   /** Previsão para um avulso novo: quem pode agora e a espera com cada barbeiro. */
-  fastify.get('/balcao/encaixe', operar, async (req) => {
-    const config = await configDoBalcao(req);
-    return na(req, async (c) => {
-      const servico = await buscarServico(c, req.query.servicoId);
-      const d = await estadoDoDia(c, config);
-      const r = sugerirEncaixe({
-        situacao: d.situacao,
-        fila: d.fila,
-        duracao: servico.duracao,
-        agora: d.hora,
-        folga: config.folgaMinutos,
+  fastify.get(
+    '/balcao/encaixe',
+    { ...operar, schema: query({ servicoId: inteiro }) },
+    async (req) => {
+      const config = await configDoBalcao(req);
+      return na(req, async (c) => {
+        const servico = await buscarServico(c, req.query.servicoId);
+        const d = await estadoDoDia(c, config);
+        const r = sugerirEncaixe({
+          situacao: d.situacao,
+          fila: d.fila,
+          duracao: servico.duracao,
+          agora: d.hora,
+          folga: config.folgaMinutos,
+        });
+        const nome = Object.fromEntries(d.barbeiros.map((b) => [b.id, b.nome]));
+        return {
+          porBarbeiro: r.porBarbeiro.map((p) => ({
+            ...p,
+            barbeiroNome: nome[p.barbeiroId],
+            estado: d.situacao.find((s) => s.id === p.barbeiroId).estado,
+          })),
+          primeiroLivre: r.primeiroLivre && {
+            ...r.primeiroLivre,
+            barbeiroNome: nome[r.primeiroLivre.barbeiroId],
+          },
+        };
       });
-      const nome = Object.fromEntries(d.barbeiros.map((b) => [b.id, b.nome]));
-      return {
-        porBarbeiro: r.porBarbeiro.map((p) => ({
-          ...p,
-          barbeiroNome: nome[p.barbeiroId],
-          estado: d.situacao.find((s) => s.id === p.barbeiroId).estado,
-        })),
-        primeiroLivre: r.primeiroLivre && {
-          ...r.primeiroLivre,
-          barbeiroNome: nome[r.primeiroLivre.barbeiroId],
-        },
-      };
-    });
-  });
+    },
+  );
 
   /** Avulso em até 3 toques: serviço, barbeiro (ou primeiro livre), WhatsApp opcional. */
-  fastify.post('/balcao/avulsos', operar, async (req, reply) => {
-    const config = await configDoBalcao(req);
-    const { servicoId, barbeiroId, telefone, nome } = req.body ?? {};
-    const digitos = String(telefone ?? '').replace(/\D/g, '');
-    if (config.exigirTelefone && !digitos)
-      throw invalido('Informe o WhatsApp do cliente.');
-    const r = await na(req, async (c) => {
-      await exigirCaixaAberto(c);
-      const servico = await buscarServico(c, servicoId);
-      if (barbeiroId) await buscarBarbeiro(c, barbeiroId);
-      const clienteId = digitos
-        ? await clientePorTelefone(c, req.contexto.barbeariaId, {
-            telefone: digitos,
-            nome: String(nome ?? '').trim() || 'Cliente balcão',
-          })
-        : null;
-      const {
-        rows: [novo],
-      } = await c.query(
-        `insert into atendimentos
+  fastify.post(
+    '/balcao/avulsos',
+    {
+      ...operar,
+      schema: corpo({
+        servicoId: inteiro,
+        barbeiroId: inteiro,
+        telefone: texto(TAM.telefone),
+        nome: texto(TAM.nome),
+      }),
+    },
+    async (req, reply) => {
+      const config = await configDoBalcao(req);
+      const { servicoId, barbeiroId, telefone, nome } = req.body ?? {};
+      const digitos = String(telefone ?? '').replace(/\D/g, '');
+      if (config.exigirTelefone && !digitos)
+        throw invalido('Informe o WhatsApp do cliente.');
+      const r = await na(req, async (c) => {
+        await exigirCaixaAberto(c);
+        const servico = await buscarServico(c, servicoId);
+        if (barbeiroId) await buscarBarbeiro(c, barbeiroId);
+        const clienteId = digitos
+          ? await clientePorTelefone(c, req.contexto.barbeariaId, {
+              telefone: digitos,
+              nome: String(nome ?? '').trim() || 'Cliente balcão',
+            })
+          : null;
+        const {
+          rows: [novo],
+        } = await c.query(
+          `insert into atendimentos
            (barbearia_id, origem, canal, data, duracao, barbeiro_id, servico_id, cliente_id, cliente_nome, estado, chegou_em)
          values ($1, 'avulso', 'balcao', $2, $3, $4, $5, $6, $7, 'na_fila', now()) returning id`,
-        [
-          req.contexto.barbeariaId,
-          agora().data,
-          servico.duracao,
-          barbeiroId ? Number(barbeiroId) : null,
-          servico.id,
-          clienteId,
-          clienteId ? null : String(nome ?? '').trim() || null,
-        ],
-      );
-      const a = await buscarAtendimento(c, novo.id);
-      await comandaDoAtendimento(c, req.contexto.barbeariaId, a);
-      return buscarAtendimento(c, novo.id);
-    });
-    reply.code(201);
-    return r;
-  });
+          [
+            req.contexto.barbeariaId,
+            agora().data,
+            servico.duracao,
+            barbeiroId ? Number(barbeiroId) : null,
+            servico.id,
+            clienteId,
+            clienteId ? null : String(nome ?? '').trim() || null,
+          ],
+        );
+        const a = await buscarAtendimento(c, novo.id);
+        await comandaDoAtendimento(c, req.contexto.barbeariaId, a);
+        return buscarAtendimento(c, novo.id);
+      });
+      reply.code(201);
+      return r;
+    },
+  );
 
   /** Muda o status seguindo o ciclo de vida da especificação. */
   async function transitar(c, a, para, extra = '') {
@@ -244,64 +261,70 @@ export default async function (fastify) {
     }),
   );
 
-  fastify.post('/atendimentos/:id/iniciar', operar, async (req) => {
-    const config = await configDoBalcao(req);
-    return na(req, async (c) => {
-      const a = await buscarAtendimento(c, req.params.id);
-      const barbeiroId = Number(req.body?.barbeiroId ?? a.barbeiroId);
-      if (!barbeiroId) throw invalido('Escolha quem vai atender.');
-      const barbeiro = await buscarBarbeiro(c, barbeiroId, { travar: true });
-      if (barbeiro.emPausa) throw conflito(`${barbeiro.nome} está em pausa.`);
-      const ocupado = await c.query(
-        "select 1 from atendimentos where barbeiro_id = $1 and estado = 'em_atendimento'",
-        [barbeiro.id],
-      );
-      if (ocupado.rowCount)
-        throw conflito(`${barbeiro.nome} já está atendendo.`);
+  fastify.post(
+    '/atendimentos/:id/iniciar',
+    { ...operar, schema: corpo({ barbeiroId: inteiro }) },
+    async (req) => {
+      const config = await configDoBalcao(req);
+      return na(req, async (c) => {
+        const a = await buscarAtendimento(c, req.params.id);
+        const barbeiroId = Number(req.body?.barbeiroId ?? a.barbeiroId);
+        if (!barbeiroId) throw invalido('Escolha quem vai atender.');
+        const barbeiro = await buscarBarbeiro(c, barbeiroId, { travar: true });
+        if (barbeiro.emPausa) throw conflito(`${barbeiro.nome} está em pausa.`);
+        const ocupado = await c.query(
+          "select 1 from atendimentos where barbeiro_id = $1 and estado = 'em_atendimento'",
+          [barbeiro.id],
+        );
+        if (ocupado.rowCount)
+          throw conflito(`${barbeiro.nome} já está atendendo.`);
 
-      const { hora } = agora();
-      let horario = '';
-      if (a.origem === 'avulso') {
-        // O avulso nunca atropela quem agendou.
-        const fim = fimDe(hora, a.duracao ?? 30);
-        const { rows: reservados } = await c.query(
-          `select a.inicio, a.fim, coalesce(cl.nome, 'cliente') as nome
+        const { hora } = agora();
+        let horario = '';
+        if (a.origem === 'avulso') {
+          // O avulso nunca atropela quem agendou.
+          const fim = fimDe(hora, a.duracao ?? 30);
+          const { rows: reservados } = await c.query(
+            `select a.inicio, a.fim, coalesce(cl.nome, 'cliente') as nome
              from atendimentos a left join clientes cl on cl.id = a.cliente_id
             where a.barbeiro_id = $1 and a.data = $2 and a.id <> $3
               and (a.estado = 'chegou' or (a.estado = 'agendado' and a.inicio >= $4))
             order by a.inicio`,
-          [
-            barbeiro.id,
-            agora().data,
-            a.id,
-            paraHora(Math.max(0, paraMinutos(hora) - config.toleranciaMinutos)),
-          ],
-        );
-        const limite = paraMinutos(fim) + config.folgaMinutos;
-        const atropela = reservados.find(
-          (r) =>
-            paraMinutos(r.inicio) < limite &&
-            paraMinutos(r.fim) > paraMinutos(hora),
-        );
-        if (atropela)
-          throw conflito(
-            `Isso atropela o agendamento das ${atropela.inicio} (${atropela.nome}) com ${barbeiro.nome}. Escolha outro barbeiro ou aguarde.`,
+            [
+              barbeiro.id,
+              agora().data,
+              a.id,
+              paraHora(
+                Math.max(0, paraMinutos(hora) - config.toleranciaMinutos),
+              ),
+            ],
           );
-        horario = `, inicio = '${hora}', fim = '${fim}'`;
-      }
-      await transitar(
-        c,
-        a,
-        'em_atendimento',
-        `, barbeiro_id = ${barbeiro.id}, iniciado_em = now()${horario}`,
-      );
-      await c.query(
-        "update comandas set barbeiro_id = coalesce(barbeiro_id, $2) where atendimento_id = $1 and estado = 'aberta'",
-        [a.id, barbeiro.id],
-      );
-      return buscarAtendimento(c, a.id);
-    });
-  });
+          const limite = paraMinutos(fim) + config.folgaMinutos;
+          const atropela = reservados.find(
+            (r) =>
+              paraMinutos(r.inicio) < limite &&
+              paraMinutos(r.fim) > paraMinutos(hora),
+          );
+          if (atropela)
+            throw conflito(
+              `Isso atropela o agendamento das ${atropela.inicio} (${atropela.nome}) com ${barbeiro.nome}. Escolha outro barbeiro ou aguarde.`,
+            );
+          horario = `, inicio = '${hora}', fim = '${fim}'`;
+        }
+        await transitar(
+          c,
+          a,
+          'em_atendimento',
+          `, barbeiro_id = ${barbeiro.id}, iniciado_em = now()${horario}`,
+        );
+        await c.query(
+          "update comandas set barbeiro_id = coalesce(barbeiro_id, $2) where atendimento_id = $1 and estado = 'aberta'",
+          [a.id, barbeiro.id],
+        );
+        return buscarAtendimento(c, a.id);
+      });
+    },
+  );
 
   fastify.post('/atendimentos/:id/finalizar', operar, (req) =>
     na(req, async (c) => {
@@ -330,14 +353,17 @@ export default async function (fastify) {
   );
 
   /** Pausa: o barbeiro some da sugestão de encaixe. */
-  fastify.post('/barbeiros/:id/pausa', operar, (req) =>
-    na(req, async (c) => {
-      const b = await buscarBarbeiro(c, req.params.id);
-      await c.query('update barbeiros set em_pausa = $2 where id = $1', [
-        b.id,
-        Boolean(req.body?.emPausa),
-      ]);
-      return { ...b, emPausa: Boolean(req.body?.emPausa) };
-    }),
+  fastify.post(
+    '/barbeiros/:id/pausa',
+    { ...operar, schema: corpo({ emPausa: logico }) },
+    (req) =>
+      na(req, async (c) => {
+        const b = await buscarBarbeiro(c, req.params.id);
+        await c.query('update barbeiros set em_pausa = $2 where id = $1', [
+          b.id,
+          Boolean(req.body?.emPausa),
+        ]);
+        return { ...b, emPausa: Boolean(req.body?.emPausa) };
+      }),
   );
 }
