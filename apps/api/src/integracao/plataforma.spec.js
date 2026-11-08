@@ -225,6 +225,16 @@ describe('painel da barbearia', () => {
           ]),
         ],
       );
+      // Agendamentos: uma falta hoje conta; um marcado para o dia 1º do mês
+      // seguinte não entra no mês atual.
+      const marcar = (data, estado) =>
+        c.query(
+          `insert into atendimentos (barbearia_id, data, inicio, fim, barbeiro_id, servico_id, estado, origem)
+           values ($1, $2, '08:00', '08:30', $3, $4, $5, 'agendamento')`,
+          [id, data, joao.id, corte.id, estado],
+        );
+      await marcar(hoje, 'no_show');
+      await marcar(somarMeses(`${hoje.slice(0, 7)}-01`, 1), 'agendado');
     });
     return { ...b, id };
   }
@@ -255,6 +265,7 @@ describe('painel da barbearia', () => {
       variacao: -33.3,
     });
     expect(p.clientes).toMatchObject({ total: 1, novos: 1, atendidos: 1 });
+    expect(p.agendamentos).toEqual({ marcados: 1, noShow: 1, cancelados: 0 });
     expect(p.topServicos).toEqual([
       { nome: 'Corte', quantidade: 2, valor: 100 },
       { nome: 'Barba', quantidade: 2, valor: 60 },
@@ -278,7 +289,17 @@ describe('painel da barbearia', () => {
     expect(tudo).not.toContain('Cliente Secreto');
     expect(tudo).not.toContain('11999990000');
 
-    expect(p.auditoria[0]).toMatchObject({ acao: 'ver_painel' });
+    // A abertura fica auditada, mas não ocupa o histórico mostrado no painel.
+    const {
+      rows: [vistas],
+    } = await comoSuperusuario((c) =>
+      c.query(
+        "select count(*)::int as n from auditoria_plataforma where barbearia_id = $1 and acao = 'ver_painel'",
+        [b.id],
+      ),
+    );
+    expect(vistas.n).toBe(1);
+    expect(p.auditoria.map((a) => a.acao)).not.toContain('ver_painel');
   });
 
   it('barbearia inexistente: 404', async () => {

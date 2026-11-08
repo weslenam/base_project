@@ -153,6 +153,14 @@ export default async function (fastify) {
   });
 
   // ---- produtos ----
+  // Custo e saldo só para quem vê o estoque (planejamento 0027).
+  const semCusto = (req, p) => {
+    if (req.contexto.permissoes.includes('estoque.ver')) return p;
+    const { ultimoCusto, saldo, ...resto } = p;
+    void ultimoCusto;
+    void saldo;
+    return resto;
+  };
   fastify.get('/produtos', logado, (req) =>
     na(req, async (c) =>
       (
@@ -160,14 +168,7 @@ export default async function (fastify) {
           `${PRODUTO} where excluido_em is null order by nome collate "C"`,
         )
       ).rows
-        // Custo e saldo só para quem vê o estoque (planejamento 0027).
-        .map((p) => {
-          if (req.contexto.permissoes.includes('estoque.ver')) return p;
-          const { ultimoCusto, saldo, ...resto } = p;
-          void ultimoCusto;
-          void saldo;
-          return resto;
-        })
+        .map((p) => semCusto(req, p))
         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
     ),
   );
@@ -220,7 +221,10 @@ export default async function (fastify) {
              unidade = $6, estoque_minimo = $7 where id = $1`,
           [id, ...valores],
         );
-        return (await c.query(`${PRODUTO} where id = $1`, [id])).rows[0];
+        return semCusto(
+          req,
+          (await c.query(`${PRODUTO} where id = $1`, [id])).rows[0],
+        );
       }
       const {
         rows: [novo],
@@ -229,7 +233,10 @@ export default async function (fastify) {
          values ($1, $2, $3, $4, $5, $6, $7) returning id`,
         [req.contexto.barbeariaId, ...valores],
       );
-      return (await c.query(`${PRODUTO} where id = $1`, [novo.id])).rows[0];
+      return semCusto(
+        req,
+        (await c.query(`${PRODUTO} where id = $1`, [novo.id])).rows[0],
+      );
     });
   fastify.post('/produtos', produto, salvarProduto);
   fastify.put('/produtos/:id', produto, salvarProduto);

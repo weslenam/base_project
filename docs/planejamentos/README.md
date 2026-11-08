@@ -30,3 +30,4 @@
 | [0026](0026-correcoes-da-revisao-do-pr-3-e-do-backend.md)         | Correções da revisão do PR #3 e do backend                                    | Concluído                | 2026-11-08 |
 | [0027](0027-estoque-compras-e-financeiro.md)                      | Estoque, compras e financeiro (contas a pagar e a receber)                    | Em andamento (parte 1)   | 2026-11-08 |
 | [0028](0028-barbertime-business-center.md)                        | BarberTime Business Center (administração da plataforma)                      | Concluído                | 2026-11-08 |
+| [0029](0029-correcoes-da-revisao-do-business-center-e-estoque.md) | Correções da revisão do Business Center e do estoque                          | Concluído                | 2026-11-08 |

@@ -377,6 +377,47 @@ describe('ajustes da revisão (planejamento 0027)', () => {
     expect((await dono.get('/api/produtos')).corpo[0]).toHaveProperty('saldo');
   });
 
+  it('salvar produto sem estoque.ver também não devolve custo nem saldo', async () => {
+    // Sem o módulo estoque, o Dono gerencia o catálogo mas não vê o estoque.
+    const { dono } = await novaBarbearia(servidor);
+    const criado = await dono.post('/api/produtos', {
+      nome: 'Cera',
+      preco: 25,
+    });
+    expect(criado.status).toBe(200);
+    expect(criado.corpo).not.toHaveProperty('ultimoCusto');
+    expect(criado.corpo).not.toHaveProperty('saldo');
+    const editado = await dono.put(`/api/produtos/${criado.corpo.id}`, {
+      nome: 'Cera',
+      preco: 28,
+    });
+    expect(editado.status).toBe(200);
+    expect(editado.corpo).not.toHaveProperty('ultimoCusto');
+    expect(editado.corpo).not.toHaveProperty('saldo');
+  });
+
+  it('compra lançada com data antiga não sobrescreve o último custo', async () => {
+    const { dono, fornecedor, pomada } = await comEstoque();
+    const comprar = (custo, data) =>
+      dono.post('/api/compras', {
+        fornecedorId: fornecedor.id,
+        data,
+        itens: [
+          { produtoId: pomada.id, quantidade: '1', custoUnitario: custo },
+        ],
+        parcelas: [{ valor: custo, vencimento: hoje() }],
+      });
+    expect((await comprar('10', hoje())).status).toBe(201);
+    const antiga = new Date(Date.now() - 30 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    expect((await comprar('8', antiga)).status).toBe(201);
+    const custo = (await dono.get('/api/estoque')).corpo.produtos.find(
+      (p) => p.id === pomada.id,
+    ).ultimoCusto;
+    expect(custo).toBe(10);
+  });
+
   it('compra sem fornecedor dá 400, não 500', async () => {
     const { dono, pomada } = await comEstoque();
     const r = await dono.post('/api/compras', {

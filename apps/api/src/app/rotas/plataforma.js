@@ -148,33 +148,38 @@ async function painel(c, hoje) {
       (porDia.get(p.data) ?? 0) + Math.round(totalDaComanda(p).total * 100),
     );
 
-  const [clientes, agendamentos, caixa, usuarios, modulos] = await Promise.all([
-    c.query(
-      `select count(*)::int as total,
+  const [clientes, agendamentos, caixa, usuarios, modulos, ultima] =
+    await Promise.all([
+      c.query(
+        `select count(*)::int as total,
               count(*) filter (where criado_em >= $1::date)::int as novos
          from clientes where excluido_em is null`,
-      [inicio],
-    ),
-    c.query(
-      `select count(*)::int as marcados,
+        [inicio],
+      ),
+      c.query(
+        `select count(*)::int as marcados,
               count(*) filter (where estado = 'no_show')::int as "noShow",
               count(*) filter (where estado = 'cancelado')::int as cancelados
          from atendimentos
-        where origem = 'agendamento' and data >= $1 and data <= $2`,
-      [inicio, somarMeses(inicio, 1)],
-    ),
-    c.query(
-      `select id, data, aberto_as as "abertoAs", valor_inicial as "valorInicial"
+        where origem = 'agendamento' and data >= $1 and data < $2`,
+        [inicio, somarMeses(inicio, 1)],
+      ),
+      c.query(
+        `select id, data, aberto_as as "abertoAs", valor_inicial as "valorInicial"
          from caixas where aberto order by data desc, id desc limit 1`,
-    ),
-    c.query(
-      `select u.id, u.nome, u.email, v.ativo, p.chave as "papelChave", p.nome as "papelNome"
+      ),
+      c.query(
+        `select u.id, u.nome, u.email, v.ativo, p.chave as "papelChave", p.nome as "papelNome"
          from vinculos v join usuarios u on u.id = v.usuario_id
          join papeis p on p.id = v.papel_id
         order by p.chave = 'dono' desc, u.nome`,
-    ),
-    c.query('select modulo, estado, atualizado_em from barbearia_modulos'),
-  ]);
+      ),
+      c.query('select modulo, estado, atualizado_em from barbearia_modulos'),
+      c.query(
+        `select max(cx.data) as data from comandas cm join caixas cx on cx.id = cm.caixa_id
+        where cm.estado = 'paga'`,
+      ),
+    ]);
 
   let caixaAtual = null;
   if (caixa.rows[0]) {
@@ -202,6 +207,7 @@ async function painel(c, hoje) {
   const ticketAtual = ticketMedio(atual.faturamento, atual.quantidade);
   const ticketAntes = ticketMedio(antes.faturamento, antes.quantidade);
   return {
+    ultimaComandaPaga: ultima.rows[0].data,
     mes: { inicio, anterior, hoje },
     faturamento: {
       atual: atual.faturamento,
@@ -338,23 +344,19 @@ async function rotas(fastify) {
       const id = req.params.id;
       const barbearia = await exigirBarbearia(fastify.db, id);
       await auditar(fastify.db, req, 'ver_painel', { barbeariaId: id });
-      const {
-        rows: [resumo],
-      } = await fastify.db.query(
-        'select ultima_comanda_paga as "ultimaComandaPaga" from resumo_barbearias() where barbearia_id = $1',
-        [id],
-      );
-      barbearia.ultimaComandaPaga = resumo?.ultimaComandaPaga ?? null;
-      barbearia.selo = seloDe(barbearia);
       const fuso = 'America/Sao_Paulo';
-      const indicadores = await fastify.comBarbearia(id, (c) =>
-        painel(c, momentoNoFuso(new Date(), fuso).data),
+      const { ultimaComandaPaga, ...indicadores } = await fastify.comBarbearia(
+        id,
+        (c) => painel(c, momentoNoFuso(new Date(), fuso).data),
       );
+      barbearia.ultimaComandaPaga = ultimaComandaPaga;
+      barbearia.selo = seloDe(barbearia);
       const { rows: auditoria } = await fastify.db.query(
         `select a.id, a.acao, a.motivo, a.dados, a.criada_em as "criadaEm",
                 o.nome as "operadorNome"
            from auditoria_plataforma a join operadores o on o.id = a.operador_id
-          where a.barbearia_id = $1 order by a.criada_em desc, a.id desc limit 50`,
+          where a.barbearia_id = $1 and a.acao <> 'ver_painel'
+          order by a.criada_em desc, a.id desc limit 50`,
         [id],
       );
       return { barbearia, ...indicadores, auditoria };
@@ -399,12 +401,13 @@ async function rotas(fastify) {
            do update set estado = excluded.estado, atualizado_em = now()`,
           [id, chave, estado],
         );
-        return { chave, de, para: estado };
-      });
-      await auditar(fastify.db, req, `modulo_${acao}`, {
-        barbeariaId: id,
-        motivo,
-        dados: resultado,
+        const dados = { chave, de, para: estado };
+        await auditar(c, req, `modulo_${acao}`, {
+          barbeariaId: id,
+          motivo,
+          dados,
+        });
+        return dados;
       });
       return resultado;
     },
@@ -425,8 +428,8 @@ async function rotas(fastify) {
         );
         // Quem está dentro sai na hora.
         await c.query('delete from sessoes where barbearia_id = $1', [id]);
+        await auditar(c, req, 'suspender', { barbeariaId: id, motivo });
       });
-      await auditar(fastify.db, req, 'suspender', { barbeariaId: id, motivo });
       return exigirBarbearia(fastify.db, id);
     },
   );
@@ -439,14 +442,16 @@ async function rotas(fastify) {
       const motivo = exigirMotivo(req.body);
       const b = await exigirBarbearia(fastify.db, id);
       if (!b.suspensaEm) throw invalido('A barbearia não está suspensa.');
-      await fastify.db.query(
-        'update barbearias set suspensa_em = null, motivo_suspensao = null where id = $1',
-        [id],
-      );
-      await auditar(fastify.db, req, 'reativar', {
-        barbeariaId: id,
-        motivo,
-        dados: { motivoDaSuspensao: b.motivoSuspensao },
+      await fastify.emTransacao(async (c) => {
+        await c.query(
+          'update barbearias set suspensa_em = null, motivo_suspensao = null where id = $1',
+          [id],
+        );
+        await auditar(c, req, 'reativar', {
+          barbeariaId: id,
+          motivo,
+          dados: { motivoDaSuspensao: b.motivoSuspensao },
+        });
       });
       return exigirBarbearia(fastify.db, id);
     },
@@ -490,15 +495,16 @@ async function rotas(fastify) {
           'update vinculos set papel_id = $1 where usuario_id = $2',
           [papel.dono, usuarioId],
         );
-        return {
+        const resultado = {
           novoDono: usuarioId,
           antigosDonos: antigos.map((a) => a.usuario_id),
         };
-      });
-      await auditar(fastify.db, req, 'transferir_dono', {
-        barbeariaId: id,
-        motivo,
-        dados,
+        await auditar(c, req, 'transferir_dono', {
+          barbeariaId: id,
+          motivo,
+          dados: resultado,
+        });
+        return resultado;
       });
       return dados;
     },

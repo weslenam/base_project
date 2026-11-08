@@ -254,11 +254,17 @@ export async function registrarCompra(c, barbeariaId, usuarioId, dados) {
        values ($1, $2, $3, $4, $5)`,
       [barbeariaId, compra.id, i.produtoId, i.quantidade, i.custoUnitario],
     );
-    await c.query('update produtos set ultimo_custo = $2 where id = $1', [
-      i.produtoId,
-      i.custoUnitario,
-    ]);
   }
+  // Último custo = o da compra válida mais recente pela data (compra lançada
+  // com data antiga não sobrescreve o custo de uma mais nova), igual ao cancelamento.
+  await c.query(
+    `update produtos p set ultimo_custo = (
+       select i.custo_unitario from itens_compra i join compras cp on cp.id = i.compra_id
+        where i.produto_id = p.id and cp.cancelada_em is null
+        order by cp.data desc, cp.id desc limit 1)
+      where p.id in (select produto_id from itens_compra where compra_id = $1)`,
+    [compra.id],
+  );
   if (total > 0) {
     await garantirCategoriasPadrao(c, barbeariaId);
     const {
