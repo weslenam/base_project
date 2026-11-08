@@ -38,10 +38,20 @@ async function aoEnviar() {
         height="40"
       />
       <h1 id="titulo-entrar" class="ds-titulo">Entrar</h1>
+      <p
+        v-if="route.query.senha === 'nova'"
+        class="acesso__aviso"
+        role="status"
+      >
+        Senha criada. Entre com a senha nova.
+      </p>
       <DsFormulario id="form-entrar" @enviar="aoEnviar">
         <DsInput v-model="email" tipo="email" rotulo="E-mail" obrigatorio />
         <DsInput v-model="senha" tipo="senha" rotulo="Senha" obrigatorio />
         <p v-if="erro" class="acesso__erro" role="alert">{{ erro }}</p>
+        <RouterLink to="/esqueci-senha" class="acesso__link"
+          >Esqueci minha senha</RouterLink
+        >
         <DsBotao tipo="submit" bloco tamanho="lg" :carregando="entrando"
           >Entrar</DsBotao
         >

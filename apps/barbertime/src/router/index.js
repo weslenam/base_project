@@ -115,7 +115,7 @@ export const rotas = [
     path: '/papeis',
     component: () => import('../telas/administracao/PapeisView.vue'),
     meta: {
-      permissoes: ['papeis.gerenciar'],
+      permissoes: ['usuarios.gerenciar'],
       menu: {
         titulo: 'Papéis e permissões',
         icone: 'bloqueio',
@@ -161,6 +161,20 @@ export const rotas = [
     name: 'cadastro',
     meta: { semLayout: true },
     component: () => import('../telas/acesso/CadastroView.vue'),
+  },
+  {
+    // Esqueci a senha (planejamento 0023): ninguém troca a senha de outra pessoa.
+    path: '/esqueci-senha',
+    name: 'esqueci-senha',
+    meta: { semLayout: true },
+    component: () => import('../telas/acesso/EsqueciSenhaView.vue'),
+  },
+  {
+    // O token vem no fragmento do link (#t=...), que não vai ao servidor.
+    path: '/redefinir-senha',
+    name: 'redefinir-senha',
+    meta: { semLayout: true },
+    component: () => import('../telas/acesso/RedefinirSenhaView.vue'),
   },
   {
     // Página pública do cliente final: sem login e sem menu interno.

@@ -27,6 +27,7 @@ Faltavam defesas contra abuso e entrada maliciosa:
   - Os valores ficam em `config.limites` (planejamento 0022).
   - Excedeu, recebe 429 com mensagem em pt-BR.
   - Atrás de proxy, `TRUST_PROXY` liga o IP real. O padrão é desligado, para que ninguém forje o IP pelo cabeçalho.
+- **Recuperação de senha (planejamento 0023):** `POST /auth/esqueci` responde sempre igual e envia o e-mail sem esperar. O token tem 32 bytes, só o sha256 vai para o banco, vale 1h e uma vez só, e vai no fragmento do link (`#t=`). Limites: 5 por 15 min por IP e 3 por hora por e-mail para pedir; 10 por 15 min por IP para redefinir. Redefinir derruba todas as sessões.
 - **Login em tempo constante:** sem usuário, a senha é conferida contra um hash falso de mesmo custo.
 - **Reconhecimento por telefone na página pública:**
   - Continua existindo, porque o produto precisa dele, mas com limite por IP e por barbearia e resposta só com o primeiro nome.

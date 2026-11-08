@@ -71,6 +71,72 @@ describe('entrar e guarda de rotas', () => {
   });
 });
 
+describe('esqueci a senha (planejamento 0023)', () => {
+  const RESPOSTA = {
+    ok: true,
+    mensagem:
+      'Se este e-mail tiver uma conta, enviamos um link para criar uma senha nova. Ele vale por 1 hora.',
+  };
+
+  it('Entrar leva a "Esqueci minha senha", que pede o link e mostra a resposta da API', async () => {
+    const chamadas = simularApi({ 'POST /api/auth/esqueci': RESPOSTA });
+    app = await montarApp('/entrar', { sessao: null });
+    await esperar(() => expect(texto()).toContain('Esqueci minha senha'));
+    [...document.querySelectorAll('a')]
+      .find((l) => l.textContent.includes('Esqueci minha senha'))
+      .click();
+    await esperar(() =>
+      expect(router.currentRoute.value.path).toBe('/esqueci-senha'),
+    );
+    await preencher('E-mail', 'dono@barbertime.dev');
+    await clicar('Enviar link');
+    await esperar(() => expect(texto()).toContain('enviamos um link'));
+    expect(chamadas.at(-1)).toMatchObject({
+      metodo: 'POST',
+      url: '/api/auth/esqueci',
+      corpo: { email: 'dono@barbertime.dev' },
+    });
+  });
+
+  it('o link do e-mail cria a senha nova e volta para Entrar avisando', async () => {
+    const chamadas = simularApi({
+      'POST /api/auth/redefinir': {
+        ok: true,
+        mensagem: 'Senha criada. Entre com a senha nova.',
+      },
+    });
+    app = await montarApp('/redefinir-senha#t=abc123', { sessao: null });
+    await preencher('Senha nova', 'senha-nova-123');
+    await preencher('Repita a senha nova', 'senha-nova-123');
+    await clicar('Criar senha');
+    await esperar(() => expect(router.currentRoute.value.name).toBe('entrar'));
+    expect(chamadas.at(-1).corpo).toEqual({
+      token: 'abc123',
+      senha: 'senha-nova-123',
+    });
+    await esperar(() => expect(texto()).toContain('Senha criada'));
+  });
+
+  it('senhas diferentes não chegam à API; link vencido mostra a mensagem', async () => {
+    const chamadas = simularApi({
+      'POST /api/auth/redefinir': () => [
+        400,
+        { mensagem: 'Este link é inválido ou expirou.' },
+      ],
+    });
+    app = await montarApp('/redefinir-senha#t=velho', { sessao: null });
+    await preencher('Senha nova', 'senha-nova-123');
+    await preencher('Repita a senha nova', 'outra-senha-1');
+    await clicar('Criar senha');
+    await esperar(() => expect(texto()).toContain('As senhas não conferem.'));
+    expect(chamadas).toHaveLength(0);
+
+    await preencher('Repita a senha nova', 'senha-nova-123');
+    await clicar('Criar senha');
+    await esperar(() => expect(texto()).toContain('inválido ou expirou'));
+  });
+});
+
 describe('menu e telas pelo papel', () => {
   it('Recepção vê agenda, caixa e clientes, sem administração', async () => {
     const recepcao = sessaoCom('Recepção', [

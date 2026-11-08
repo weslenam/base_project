@@ -15,11 +15,20 @@ export const LIMITES_FOLGADOS = Object.fromEntries(
 
 export async function criarServidor(opcoes = {}) {
   const servidor = Fastify();
+  const caixaDeEntrada = [];
   servidor.register(app, {
     databaseUrl: inject('urlApp'),
     paginaPublicaLiberada: opcoes.paginaPublicaLiberada ?? true,
     limites: opcoes.limites ?? LIMITES_FOLGADOS,
+    // Correio falso: os testes leem os e-mails em `servidor.caixaDeEntrada`.
+    correio: {
+      enviar: async (msg) => {
+        caixaDeEntrada.push(msg);
+      },
+    },
+    appUrl: 'http://app.teste',
   });
+  servidor.caixaDeEntrada = caixaDeEntrada;
   await servidor.ready();
   return servidor;
 }

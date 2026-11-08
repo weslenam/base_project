@@ -1,4 +1,6 @@
-// Catálogo fechado de permissões (ADR 0010). Front e API usam este mesmo catálogo.
+// Catálogo fechado de permissões e hierarquia fixa de papéis (ADR 0010).
+// Front e API usam este mesmo catálogo; as permissões de cada papel vêm daqui,
+// não do banco.
 
 export const PERMISSOES = Object.freeze([
   {
@@ -60,12 +62,7 @@ export const PERMISSOES = Object.freeze([
   {
     chave: 'usuarios.gerenciar',
     grupo: 'Administração',
-    descricao: 'Convidar e remover usuários',
-  },
-  {
-    chave: 'papeis.gerenciar',
-    grupo: 'Administração',
-    descricao: 'Criar e editar papéis e permissões',
+    descricao: 'Convidar, trocar o papel e remover quem está abaixo de você',
   },
   {
     chave: 'modulos.gerenciar',
@@ -102,31 +99,33 @@ export const CHAVES_DE_PERMISSAO = Object.freeze(
   PERMISSOES.map((p) => p.chave),
 );
 
-const ADMINISTRACAO = [
-  'barbearia.configurar',
-  'usuarios.gerenciar',
-  'papeis.gerenciar',
-  'modulos.gerenciar',
-];
+/** Só do Dono: configurar a barbearia e contratar módulos. */
+const SO_DO_DONO = ['barbearia.configurar', 'modulos.gerenciar'];
 
-/** Papéis criados com toda barbearia nova. O Dono é protegido (não edita nem exclui). */
+/**
+ * Os quatro papéis fixos, do nível 1 (topo) ao 4 (ADR 0010, planejamento 0023).
+ * Não há papéis personalizados.
+ */
 export const PAPEIS_PADRAO = Object.freeze([
   {
     chave: 'dono',
     nome: 'Dono',
+    nivel: 1,
     protegido: true,
     permissoes: [...CHAVES_DE_PERMISSAO],
   },
   {
     chave: 'gerente',
     nome: 'Gerente',
-    protegido: false,
-    permissoes: CHAVES_DE_PERMISSAO.filter((p) => !ADMINISTRACAO.includes(p)),
+    nivel: 2,
+    protegido: true,
+    permissoes: CHAVES_DE_PERMISSAO.filter((p) => !SO_DO_DONO.includes(p)),
   },
   {
     chave: 'recepcao',
     nome: 'Recepção',
-    protegido: false,
+    nivel: 3,
+    protegido: true,
     permissoes: [
       'agenda.ver',
       'agenda.gerenciar',
@@ -139,7 +138,8 @@ export const PAPEIS_PADRAO = Object.freeze([
   {
     chave: 'barbeiro',
     nome: 'Barbeiro',
-    protegido: false,
+    nivel: 4,
+    protegido: true,
     permissoes: ['agenda.ver_propria'],
   },
 ]);
@@ -159,15 +159,35 @@ export function permissoesEfetivas(doPapel = [], modulosAtivos = []) {
   });
 }
 
+const papelFixo = (chave) => PAPEIS_PADRAO.find((p) => p.chave === chave);
+
+/** Nível do papel (1 = Dono, 4 = Barbeiro). Chave desconhecida: null. */
+export const nivelDoPapel = (chave) => papelFixo(chave)?.nivel ?? null;
+
 /**
- * Ninguém concede o que não tem (ADR 0010): devolve as permissões de `alvo`
- * (papel a dar, papel de quem se quer alterar, permissões de um papel a editar)
- * que `deQuemAge` não possui. Vazio: pode. Assim, quem só administra usuários
- * não se torna Dono nem assume a conta de quem tem mais acesso que ele; o Dono,
- * que tem todas, pode tudo.
+ * Permissões fixas do papel, pela chave (vazio se desconhecida). A API usa
+ * isto, e não a coluna do banco: nem um dado adulterado dá acesso.
  */
-export const permissoesAlemDasSuas = (deQuemAge = [], alvo = []) =>
-  [...new Set(alvo)].filter((p) => !deQuemAge.includes(p));
+export const permissoesDoPapel = (chave) => [
+  ...(papelFixo(chave)?.permissoes ?? []),
+];
+
+/**
+ * Hierarquia estrita (ADR 0010): só se age sobre quem está ABAIXO, nunca acima
+ * nem na lateral. Vale para convidar, dar papel, trocar papel, desativar e
+ * remover. Ninguém dá o papel Dono (não há nível acima de 1).
+ */
+export function podeAgirSobre(chaveDeQuemAge, chaveDoAlvo) {
+  const eu = nivelDoPapel(chaveDeQuemAge);
+  const alvo = nivelDoPapel(chaveDoAlvo);
+  return eu !== null && alvo !== null && alvo > eu;
+}
+
+/** Papéis que quem tem `chave` pode dar (os de nível abaixo do seu). */
+export const papeisAbaixoDe = (chave) =>
+  PAPEIS_PADRAO.filter((p) => podeAgirSobre(chave, p.chave)).map(
+    (p) => p.chave,
+  );
 
 /** Permissões agrupadas para montar telas (ex.: checklist de papéis). */
 export function permissoesPorGrupo() {

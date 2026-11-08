@@ -18,6 +18,8 @@ import rotasAgenda from './rotas/agenda.js';
 import rotasPublico from './rotas/publico.js';
 import rotasCaixa from './rotas/caixa.js';
 import rotasBalcao from './rotas/balcao.js';
+import rotasSenha from './rotas/senha.js';
+import { criarCorreioSmtp } from '../infra/correio.js';
 
 /**
  * Aplicação Fastify. Toda rota fica sob /api. Erros esperados saem como
@@ -51,6 +53,11 @@ export async function app(fastify, opts = {}) {
     async (api) => {
       api.register(rotasSaude);
       api.register(rotasAutenticacao);
+      api.register(rotasSenha, {
+        correio:
+          opts.correio ?? criarCorreioSmtp(config.smtpUrl, config.remetente),
+        appUrl: opts.appUrl ?? config.appUrl,
+      });
       api.register(rotasUsuarios);
       api.register(rotasPapeis);
       api.register(rotasModulos);

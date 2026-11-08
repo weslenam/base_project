@@ -11,10 +11,17 @@ export const SESSAO_DONO = Object.freeze({
   usuario: { id: 1, nome: 'Zé Carlos', email: 'dono@barbertime.dev' },
   barbearia: { id: 1, nome: 'Barbearia do Zé', slug: 'barbearia-modelo' },
   barbearias: [{ id: 1, nome: 'Barbearia do Zé', slug: 'barbearia-modelo' }],
-  papel: { id: 1, nome: 'Dono' },
+  papel: { id: 1, nome: 'Dono', chave: 'dono' },
   permissoes: [...CHAVES_DE_PERMISSAO],
   modulosAtivos: [...CHAVES_DE_MODULO],
 });
+
+const CHAVE_DO_PAPEL = {
+  Dono: 'dono',
+  Gerente: 'gerente',
+  Recepção: 'recepcao',
+  Barbeiro: 'barbeiro',
+};
 
 export const sessaoCom = (
   papel,
@@ -23,7 +30,7 @@ export const sessaoCom = (
 ) => ({
   ...SESSAO_DONO,
   usuario: { id: 9, nome: `Usuário ${papel}`, email: 'x@barbertime.dev' },
-  papel: { id: 9, nome: papel },
+  papel: { id: 9, nome: papel, chave: CHAVE_DO_PAPEL[papel] ?? null },
   permissoes,
   modulosAtivos,
 });

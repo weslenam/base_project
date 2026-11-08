@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso } from '@barbertime/dominio';
 import { LIMITES_PADRAO } from '../seguranca/limites.js';
-import { criarServidor, navegador, novaBarbearia, unico } from './apoio.js';
+import {
+  comoSuperusuario,
+  criarServidor,
+  navegador,
+  novaBarbearia,
+  unico,
+} from './apoio.js';
 
 // Planejamento 0022 / ADR 0014: ataques contra a API real, com o banco.
 // `preparo` (limites folgados) monta os dados; `alvo` usa os limites REAIS.
@@ -108,29 +114,32 @@ describe('força bruta no login', () => {
 
   it('e-mail inexistente e senha errada levam o mesmo tempo (sem descoberta de contas)', async () => {
     const { email } = await novaBarbearia(preparo);
+    const tentar = (corpo) =>
+      preparo.inject({
+        method: 'POST',
+        url: '/api/auth/entrar',
+        payload: corpo,
+      });
     const medir = async (corpo) => {
       const tempos = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 7; i++) {
         const t = performance.now();
-        const r = await preparo.inject({
-          method: 'POST',
-          url: '/api/auth/entrar',
-          payload: corpo,
-        });
+        const r = await tentar(corpo);
         tempos.push(performance.now() - t);
         expect(r.statusCode).toBe(401);
         expect(r.json().mensagem).toBe('E-mail ou senha incorretos.');
       }
-      return tempos.sort((a, b) => a - b)[2]; // mediana
+      return tempos.sort((a, b) => a - b)[3]; // mediana
     };
-    const inexistente = await medir({
-      email: 'nao-existe@teste.dev',
-      senha: 'errada-123',
-    });
-    const senhaErrada = await medir({ email, senha: 'errada-123' });
-    // Sem o hash falso, o inexistente seria ~20x mais rápido (sem scrypt).
-    expect(inexistente / senhaErrada).toBeGreaterThan(0.5);
-    expect(inexistente / senhaErrada).toBeLessThan(2);
+    const inexistente = { email: 'nao-existe@teste.dev', senha: 'errada-123' };
+    const senhaErrada = { email, senha: 'errada-123' };
+    // Aquecimento: a primeira chamada de cada caminho paga JIT e conexões.
+    await tentar(inexistente);
+    await tentar(senhaErrada);
+    const razao = (await medir(inexistente)) / (await medir(senhaErrada));
+    // Sem o hash falso, a razão cai para ~0,07 (o inexistente não roda scrypt).
+    expect(razao).toBeGreaterThan(0.33);
+    expect(razao).toBeLessThan(3);
   });
 });
 
@@ -239,114 +248,222 @@ describe('injeção e confusão de tipo nas rotas reais', () => {
   });
 });
 
-describe('escalada de privilégio: ninguém concede o que não tem', () => {
-  /** Dono cria um papel personalizado e uma pessoa com ele, já logada. */
-  async function comPapel(permissoes) {
+describe('escalada de privilégio: hierarquia fixa (ADR 0010)', () => {
+  /** Barbearia com uma pessoa de cada papel, cada uma logada. */
+  async function equipe() {
     const b = await novaBarbearia(preparo);
-    const papel = (
-      await b.dono.post('/api/papeis', { nome: unico('Papel'), permissoes })
-    ).corpo;
-    const email = `${unico('func')}@teste.dev`;
-    const criado = await b.dono.post('/api/usuarios', {
-      nome: 'Funcionário',
-      email,
-      senha: 'senha-segura',
-      papelId: papel.id,
-    });
-    expect(criado.status).toBe(201);
-    const funcionario = navegador(preparo);
-    await funcionario.post('/api/auth/entrar', {
-      email,
-      senha: 'senha-segura',
-    });
-    const papeis = (await b.dono.get('/api/papeis')).corpo;
-    const usuarios = (await b.dono.get('/api/usuarios')).corpo;
-    return {
-      ...b,
-      papel,
-      funcionario,
-      papelDono: papeis.find((p) => p.chave === 'dono'),
-      idDono: usuarios.find((u) => u.dono).id,
-    };
+    const papeis = Object.fromEntries(
+      (await b.dono.get('/api/papeis')).corpo.map((p) => [p.chave, p.id]),
+    );
+    const pessoas = {};
+    for (const chave of ['gerente', 'recepcao', 'barbeiro']) {
+      const email = `${unico(chave)}@teste.dev`;
+      const r = await b.dono.post('/api/usuarios', {
+        nome: chave,
+        email,
+        senha: 'senha-segura',
+        papelId: papeis[chave],
+      });
+      expect(r.status).toBe(201);
+      const n = navegador(preparo);
+      await n.post('/api/auth/entrar', { email, senha: 'senha-segura' });
+      pessoas[chave] = { id: r.corpo.id, n, email };
+    }
+    const idDono = (await b.dono.get('/api/auth/eu')).corpo.usuario.id;
+    return { ...b, papeis, pessoas, idDono };
   }
 
-  it('quem só administra usuários não vira Dono nem assume a conta do Dono', async () => {
-    const { funcionario, papelDono, idDono, papel, dono, email } =
-      await comPapel(['usuarios.gerenciar']);
-    const negado =
-      'Você não pode dar um papel com permissões que você não tem.';
-
-    const virarDono = await funcionario.post('/api/usuarios', {
-      nome: 'Comparsa',
-      email: `${unico('comparsa')}@teste.dev`,
+  it('ninguém dá o papel Dono, nem o próprio Dono', async () => {
+    const { dono, papeis, pessoas } = await equipe();
+    const promover = await dono.put(`/api/usuarios/${pessoas.gerente.id}`, {
+      papelId: papeis.dono,
+    });
+    expect(promover.status).toBe(403);
+    expect(promover.corpo.mensagem).toBe(
+      'Você só pode dar papéis abaixo do seu.',
+    );
+    const convidarDono = await dono.post('/api/usuarios', {
+      nome: 'Sócio',
+      email: `${unico('socio')}@teste.dev`,
       senha: 'senha-segura',
-      papelId: papelDono.id,
+      papelId: papeis.dono,
     });
-    expect(virarDono.status).toBe(403);
-    expect(virarDono.corpo.mensagem).toBe(negado);
+    expect(convidarDono.status).toBe(403);
+  });
 
-    const senhaDoDono = await funcionario.put(`/api/usuarios/${idDono}/senha`, {
-      senha: 'tomei-a-conta',
-    });
-    expect(senhaDoDono.status).toBe(403);
+  it('Gerente gerencia só Recepção e Barbeiro: nada acima nem na lateral', async () => {
+    const { pessoas, papeis, idDono, dono } = await equipe();
+    const g = pessoas.gerente.n;
+    // Para baixo: pode.
     expect(
-      (await funcionario.put(`/api/usuarios/${idDono}`, { ativo: false }))
+      (
+        await g.put(`/api/usuarios/${pessoas.barbeiro.id}`, {
+          papelId: papeis.recepcao,
+        })
+      ).status,
+    ).toBe(200);
+    // Lateral: não convida outro Gerente nem promove alguém a Gerente.
+    expect(
+      (
+        await g.post('/api/usuarios', {
+          nome: 'Outro gerente',
+          email: `${unico('g2')}@teste.dev`,
+          senha: 'senha-segura',
+          papelId: papeis.gerente,
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await g.put(`/api/usuarios/${pessoas.recepcao.id}`, {
+          papelId: papeis.gerente,
+        })
+      ).status,
+    ).toBe(403);
+    // Acima: não desativa, rebaixa nem remove o Dono.
+    const contraODono = await g.put(`/api/usuarios/${idDono}`, {
+      ativo: false,
+    });
+    expect(contraODono.status).toBe(403);
+    expect(contraODono.corpo.mensagem).toBe(
+      'Você só pode alterar o acesso de quem está abaixo de você.',
+    );
+    expect(
+      (await g.put(`/api/usuarios/${idDono}`, { papelId: papeis.barbeiro }))
         .status,
     ).toBe(403);
-    expect((await funcionario.delete(`/api/usuarios/${idDono}`)).status).toBe(
-      403,
-    );
+    expect((await g.delete(`/api/usuarios/${idDono}`)).status).toBe(403);
+    // O Dono continua Dono e ativo.
+    expect((await dono.get('/api/auth/eu')).corpo.papel.chave).toBe('dono');
+  });
 
-    // O Dono continua entrando com a senha dele.
+  it('Recepção e Barbeiro não gerenciam ninguém', async () => {
+    const { pessoas } = await equipe();
+    for (const chave of ['recepcao', 'barbeiro']) {
+      const r = await pessoas[chave].n.put(
+        `/api/usuarios/${pessoas.barbeiro.id}`,
+        {
+          ativo: false,
+        },
+      );
+      expect(r.status).toBe(403);
+      expect((await pessoas[chave].n.get('/api/papeis')).status).toBe(403);
+    }
+  });
+
+  it('permissões vêm do código: adulterar a coluna do banco não dá acesso', async () => {
+    const { pessoas, sessao } = await equipe();
+    await comoSuperusuario((c) =>
+      c.query(
+        "update papeis set permissoes = array['barbearia.configurar','modulos.gerenciar'] where barbearia_id = $1 and chave = 'barbeiro'",
+        [sessao.barbearia.id],
+      ),
+    );
+    const eu = (await pessoas.barbeiro.n.get('/api/auth/eu')).corpo;
+    expect(eu.permissoes).toEqual(['agenda.ver_propria']);
+    expect((await pessoas.barbeiro.n.get('/api/barbearia')).status).toBe(403);
+  });
+});
+
+describe('esqueci a senha (planejamento 0023)', () => {
+  const tokenDoEmail = (msg) => msg.texto.match(/#t=([\w-]+)/)[1];
+
+  it('mesma resposta exista o e-mail ou não; só a conta real recebe o link', async () => {
+    const { email } = await novaBarbearia(preparo);
+    const antes = preparo.caixaDeEntrada.length;
+    const pedir = (e) =>
+      preparo.inject({
+        method: 'POST',
+        url: '/api/auth/esqueci',
+        payload: { email: e },
+      });
+    const real = await pedir(email.toUpperCase());
+    const falso = await pedir('ninguem-aqui@teste.dev');
+    expect(real.statusCode).toBe(200);
+    expect(falso.statusCode).toBe(200);
+    expect(real.json()).toEqual(falso.json());
+    await new Promise((r) => setTimeout(r, 20)); // envio é assíncrono
+    const novos = preparo.caixaDeEntrada.slice(antes);
+    expect(novos.map((m) => m.para)).toEqual([email]);
+    expect(novos[0].texto).toContain('http://app.teste/redefinir-senha#t=');
+  });
+
+  it('o link cria a senha nova uma vez só, derruba as sessões e o anterior deixa de valer', async () => {
+    const { email, dono } = await novaBarbearia(preparo);
+    const pedir = () =>
+      preparo.inject({
+        method: 'POST',
+        url: '/api/auth/esqueci',
+        payload: { email },
+      });
+    await pedir();
+    await new Promise((r) => setTimeout(r, 20));
+    const antigo = tokenDoEmail(preparo.caixaDeEntrada.at(-1));
+    await pedir();
+    await new Promise((r) => setTimeout(r, 20));
+    const token = tokenDoEmail(preparo.caixaDeEntrada.at(-1));
+    const redefinir = (t, senha = 'senha-nova-123') =>
+      preparo.inject({
+        method: 'POST',
+        url: '/api/auth/redefinir',
+        payload: { token: t, senha },
+      });
+
+    expect((await redefinir(antigo)).statusCode).toBe(400); // substituído
+    expect((await redefinir(token, 'curta')).statusCode).toBe(400); // não queima o link
+    const ok = await redefinir(token);
+    expect(ok.statusCode).toBe(200);
+    expect((await redefinir(token)).statusCode).toBe(400); // uso único
+    expect((await dono.get('/api/auth/eu')).status).toBe(401); // sessões caíram
+
     const n = navegador(preparo);
     expect(
       (await n.post('/api/auth/entrar', { email, senha: 'senha-segura' }))
         .status,
-    ).toBe(200);
-
-    // Papel com o mesmo acesso (ou menos) continua podendo ser dado.
-    const igual = await funcionario.post('/api/usuarios', {
-      nome: 'Colega',
-      email: `${unico('colega')}@teste.dev`,
-      senha: 'senha-segura',
-      papelId: papel.id,
-    });
-    expect(igual.status).toBe(201);
-    // E o Dono, que tem tudo, continua podendo tudo.
+    ).toBe(401);
     expect(
-      (
-        await dono.put(`/api/usuarios/${igual.corpo.id}`, {
-          papelId: papelDono.id,
-        })
-      ).status,
+      (await n.post('/api/auth/entrar', { email, senha: 'senha-nova-123' }))
+        .status,
     ).toBe(200);
   });
 
-  it('quem gerencia papéis não aumenta o próprio papel nem cria um maior', async () => {
-    const { funcionario, papel } = await comPapel(['papeis.gerenciar']);
-    const proprio = await funcionario.put(`/api/papeis/${papel.id}`, {
-      nome: papel.nome,
-      permissoes: ['papeis.gerenciar', 'caixa.fechar'],
+  it('link expirado ou inventado não funciona', async () => {
+    const { email } = await novaBarbearia(preparo);
+    await preparo.inject({
+      method: 'POST',
+      url: '/api/auth/esqueci',
+      payload: { email },
     });
-    expect(proprio.status).toBe(403);
-    expect(proprio.corpo.mensagem).toBe(
-      'Você não pode dar a um papel permissões que você não tem.',
+    await new Promise((r) => setTimeout(r, 20));
+    const token = tokenDoEmail(preparo.caixaDeEntrada.at(-1));
+    await comoSuperusuario((c) =>
+      c.query(
+        "update redefinicoes_senha set expira_em = now() - interval '1 minute'",
+      ),
     );
-    expect(
-      (
-        await funcionario.post('/api/papeis', {
-          nome: unico('Maior'),
-          permissoes: ['barbearia.configurar'],
-        })
-      ).status,
-    ).toBe(403);
-    expect(
-      (
-        await funcionario.post('/api/papeis', {
-          nome: unico('Menor'),
-          permissoes: ['papeis.gerenciar'],
-        })
-      ).status,
-    ).toBe(201);
+    for (const t of [token, 'inventado', '']) {
+      const r = await preparo.inject({
+        method: 'POST',
+        url: '/api/auth/redefinir',
+        payload: { token: t, senha: 'senha-nova-123' },
+      });
+      expect(r.statusCode).toBe(400);
+      expect(r.json().mensagem).toContain('inválido ou expirou');
+    }
+  });
+
+  it('pedidos em massa para a mesma conta: 429 depois de 3 por hora', async () => {
+    const { email } = await novaBarbearia(preparo);
+    await comAlvo(async (pedir) => {
+      for (let i = 0; i < LIMITES_PADRAO.esqueciPorEmail.max; i++)
+        expect(
+          (await pedir('POST', '/api/auth/esqueci', { email }, novoIp()))
+            .statusCode,
+        ).toBe(200);
+      expect(
+        (await pedir('POST', '/api/auth/esqueci', { email }, novoIp()))
+          .statusCode,
+      ).toBe(429);
+    });
   });
 });

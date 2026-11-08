@@ -100,54 +100,45 @@ describe('ACL dentro da barbearia', () => {
     expect(r.corpo.mensagem).toBe('Você não tem permissão para isso.');
   });
 
-  it('papel personalizado: criado pelo dono, vale para quem recebe', async () => {
+  it('papéis fixos e só leitura: Dono, Gerente, Recepção e Barbeiro (ADR 0010)', async () => {
     const { dono } = await novaBarbearia(servidor);
-    const invalido = await dono.post('/api/papeis', {
-      nome: 'Caixa',
-      permissoes: ['caixa.operar', 'tudo.liberado'],
-    });
-    expect(invalido.status).toBe(400);
-    expect(invalido.corpo.mensagem).toContain('tudo.liberado');
-
-    const caixa = await dono.post('/api/papeis', {
-      nome: 'Caixa',
-      permissoes: ['caixa.operar', 'caixa.fechar'],
-    });
-    expect(caixa.status).toBe(201);
+    const papeis = (await dono.get('/api/papeis')).corpo;
+    expect(papeis.map((p) => [p.chave, p.nivel])).toEqual([
+      ['dono', 1],
+      ['gerente', 2],
+      ['recepcao', 3],
+      ['barbeiro', 4],
+    ]);
+    expect(papeis.find((p) => p.chave === 'barbeiro').permissoes).toEqual([
+      'agenda.ver_propria',
+    ]);
+    // Não se cria, edita nem exclui papel.
+    const recepcao = papeis.find((p) => p.chave === 'recepcao');
     expect(
       (await dono.post('/api/papeis', { nome: 'Caixa', permissoes: [] }))
         .status,
-    ).toBe(409);
-
-    const { navegador: operador, usuario } = await convidar(dono, 'barbeiro');
+    ).toBe(404);
     expect(
       (
-        await dono.put(`/api/usuarios/${usuario.id}`, {
-          papelId: caixa.corpo.id,
+        await dono.put(`/api/papeis/${recepcao.id}`, {
+          nome: 'X',
+          permissoes: ['caixa.fechar'],
         })
       ).status,
-    ).toBe(200);
-    const eu = (await operador.get('/api/auth/eu')).corpo;
-    expect(eu.papel.nome).toBe('Caixa');
-    expect(eu.permissoes.sort()).toEqual(['caixa.fechar', 'caixa.operar']);
+    ).toBe(404);
+    expect((await dono.delete(`/api/papeis/${recepcao.id}`)).status).toBe(404);
   });
 
-  it('papel Dono é protegido e papel em uso não é excluído', async () => {
-    const { dono } = await novaBarbearia(servidor);
-    const papelDono = await papelPorChave(dono, 'dono');
-    expect(
-      (
-        await dono.put(`/api/papeis/${papelDono.id}`, {
-          nome: 'Chefe',
-          permissoes: [],
-        })
-      ).status,
-    ).toBe(403);
-    await convidar(dono, 'recepcao');
-    const recepcao = await papelPorChave(dono, 'recepcao');
-    const r = await dono.delete(`/api/papeis/${recepcao.id}`);
-    expect(r.status).toBe(409);
-    expect(r.corpo.mensagem).toContain('em uso');
+  it('nem pelo banco nasce papel fora da hierarquia', async () => {
+    const { sessao } = await novaBarbearia(servidor);
+    await expect(
+      comoSuperusuario((c) =>
+        c.query(
+          "insert into papeis (barbearia_id, chave, nome) values ($1, 'rh', 'RH')",
+          [sessao.barbearia.id],
+        ),
+      ),
+    ).rejects.toThrow(/papeis_hierarquia_fixa/);
   });
 
   it('ninguém altera o próprio acesso', async () => {

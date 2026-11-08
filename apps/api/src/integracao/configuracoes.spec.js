@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { criarServidor, navegador, novaBarbearia, unico } from './apoio.js';
 
-// Planejamento 0017: configurações da barbearia, perfil, troca de senha e
-// senha provisória definida pelo Dono.
+// Planejamento 0017: configurações da barbearia, perfil e troca de senha.
+// Planejamento 0023: a senha provisória definida pelo Dono saiu.
 
 let servidor;
 beforeAll(async () => {
@@ -139,48 +139,15 @@ describe('meu perfil e senha', () => {
   });
 });
 
-describe('senha provisória definida pelo Dono', () => {
-  it('define para conta exclusiva da barbearia e derruba as sessões dela', async () => {
+describe('senha de outra pessoa (planejamento 0023)', () => {
+  it('não existe rota para trocar a senha de outra pessoa', async () => {
     const { dono } = await novaBarbearia(servidor);
-    const { navegador: rec, usuario, email } = await convidar(dono, 'recepcao');
+    const { navegador: rec, usuario } = await convidar(dono, 'recepcao');
     const r = await dono.put(`/api/usuarios/${usuario.id}/senha`, {
       senha: 'provisoria-1',
     });
-    expect(r.status).toBe(200);
-    expect((await rec.get('/api/auth/eu')).status).toBe(401);
-    const n = navegador(servidor);
-    expect(
-      (await n.post('/api/auth/entrar', { email, senha: 'provisoria-1' }))
-        .status,
-    ).toBe(200);
-  });
-
-  it('recusa conta que também acessa outra barbearia (409) e a própria conta (403)', async () => {
-    const a = await novaBarbearia(servidor);
-    const b = await novaBarbearia(servidor);
-    const email = `${unico('dupla')}@teste.dev`;
-    const { usuario } = await convidar(a.dono, 'barbeiro', email);
-    await convidar(b.dono, 'barbeiro', email);
-    const r = await a.dono.put(`/api/usuarios/${usuario.id}/senha`, {
-      senha: 'provisoria-1',
-    });
-    expect(r.status).toBe(409);
-    expect(r.corpo.mensagem).toContain('outra barbearia');
-
-    const eu = (await a.dono.get('/api/auth/eu')).corpo.usuario.id;
-    expect(
-      (await a.dono.put(`/api/usuarios/${eu}/senha`, { senha: 'provisoria-1' }))
-        .status,
-    ).toBe(403);
-  });
-
-  it('usuário de outra barbearia não é encontrado (404)', async () => {
-    const a = await novaBarbearia(servidor);
-    const b = await novaBarbearia(servidor);
-    const eu = (await b.dono.get('/api/auth/eu')).corpo.usuario.id;
-    const r = await a.dono.put(`/api/usuarios/${eu}/senha`, {
-      senha: 'provisoria-1',
-    });
     expect(r.status).toBe(404);
+    // A sessão da pessoa continua, e a senha dela também.
+    expect((await rec.get('/api/auth/eu')).status).toBe(200);
   });
 });

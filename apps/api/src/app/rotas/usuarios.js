@@ -1,56 +1,41 @@
-import { permissoesAlemDasSuas } from '@barbertime/dominio';
+import { podeAgirSobre } from '@barbertime/dominio';
 import {
   conflito,
   invalido,
   naoEncontrado,
   proibido,
 } from '../../infra/erros.js';
-import { gerarHashDeSenha, SENHA_MINIMA } from '../../seguranca/senha.js';
-import { encerrarOutrasSessoes } from '../../seguranca/sessao.js';
+import { gerarHashDeSenha } from '../../seguranca/senha.js';
 import { validarNovoUsuario } from '../../servicos/barbearias.js';
 import { TAM, corpo, inteiro, logico, texto } from '../esquemas.js';
 
 const LISTAR = `
   select u.id, u.nome, u.email, v.ativo, p.id as "papelId", p.nome as "papelNome",
-         p.chave = 'dono' as dono
+         p.chave as "papelChave", p.chave = 'dono' as dono
     from vinculos v
     join usuarios u on u.id = v.usuario_id
     join papeis p on p.id = v.papel_id`;
 
-/** A barbearia nunca fica sem um Dono ativo (ADR 0010). */
-async function garantirDono(c, { removendoUsuario }) {
-  const { rows } = await c.query(
-    `select count(*)::int as n from vinculos v join papeis p on p.id = v.papel_id
-      where p.chave = 'dono' and v.ativo and v.usuario_id <> $1`,
-    [removendoUsuario],
-  );
-  if (!rows[0].n)
-    throw conflito('A barbearia precisa de pelo menos um Dono ativo.');
-}
-
 /**
- * Ninguém concede o que não tem (ADR 0010): quem administra usuários só dá
- * papéis e só altera, remove ou troca a senha de quem não tem permissão que ele
- * não tenha. Sem isso, um papel com `usuarios.gerenciar` viraria Dono.
+ * Hierarquia fixa (ADR 0010, planejamento 0023): só se age sobre quem está
+ * ABAIXO, nunca acima nem na lateral. Vale para o papel dado, o papel atual do
+ * alvo e o papel novo. Ninguém dá o papel Dono, e o Dono é intocável.
+ * Senha de outra pessoa: não existe rota; cada um troca a sua em Meu perfil ou
+ * recupera por e-mail.
  */
-function exigirSoOQueTem(req, permissoesAlvo, mensagem) {
-  if (
-    permissoesAlemDasSuas(req.contexto.permissoesDoPapel, permissoesAlvo).length
-  )
+function exigirAbaixo(req, chaveDoAlvo, mensagem) {
+  if (!podeAgirSobre(req.contexto.papel.chave, chaveDoAlvo))
     throw proibido(mensagem);
 }
-const NAO_DA_PAPEL =
-  'Você não pode dar um papel com permissões que você não tem.';
-const NAO_ALTERA =
-  'Você não pode alterar o acesso de quem tem permissões que você não tem.';
+const SO_ABAIXO = 'Você só pode dar papéis abaixo do seu.';
+const SO_QUEM_ESTA_ABAIXO =
+  'Você só pode alterar o acesso de quem está abaixo de você.';
 
-/** Permissões do papel atual do usuário nesta barbearia (null se não tem acesso). */
-async function permissoesDoUsuario(c, id) {
-  const { rows } = await c.query(
-    'select p.permissoes from vinculos v join papeis p on p.id = v.papel_id where v.usuario_id = $1',
-    [id],
-  );
-  return rows[0]?.permissoes ?? null;
+async function papelPorId(c, id) {
+  const {
+    rows: [papel],
+  } = await c.query('select id, chave from papeis where id = $1', [id]);
+  return papel ?? null;
 }
 
 export default async function (fastify) {
@@ -63,7 +48,7 @@ export default async function (fastify) {
     ),
   );
 
-  /** Convida: cria a conta (com senha provisória) ou vincula conta existente pelo e-mail. */
+  /** Convida: cria a conta (com senha inicial) ou vincula conta existente pelo e-mail. */
   fastify.post(
     '/usuarios',
     {
@@ -78,12 +63,9 @@ export default async function (fastify) {
     async (req, reply) => {
       const { nome, email, senha, papelId } = req.body ?? {};
       return fastify.naBarbearia(req, async (c) => {
-        const papel = await c.query(
-          'select permissoes from papeis where id = $1',
-          [Number(papelId)],
-        );
-        if (!papel.rowCount) throw invalido('Escolha o papel do usuário.');
-        exigirSoOQueTem(req, papel.rows[0].permissoes, NAO_DA_PAPEL);
+        const papel = await papelPorId(c, Number(papelId));
+        if (!papel) throw invalido('Escolha o papel do usuário.');
+        exigirAbaixo(req, papel.chave, SO_ABAIXO);
 
         let {
           rows: [usuario],
@@ -108,7 +90,7 @@ export default async function (fastify) {
           throw conflito('Esse e-mail já tem acesso a esta barbearia.');
         await c.query(
           'insert into vinculos (barbearia_id, usuario_id, papel_id) values ($1, $2, $3)',
-          [req.contexto.barbeariaId, usuario.id, Number(papelId)],
+          [req.contexto.barbeariaId, usuario.id, papel.id],
         );
         reply.code(201);
         return (await c.query(`${LISTAR} where u.id = $1`, [usuario.id]))
@@ -117,7 +99,7 @@ export default async function (fastify) {
     },
   );
 
-  /** Troca papel ou ativa/desativa o acesso. */
+  /** Troca o papel ou ativa/desativa o acesso de quem está abaixo. */
   fastify.put(
     '/usuarios/:id',
     { ...acesso, schema: corpo({ papelId: inteiro, ativo: logico }) },
@@ -132,82 +114,22 @@ export default async function (fastify) {
         } = await c.query(`${LISTAR} where u.id = $1`, [id]);
         if (!atual)
           throw naoEncontrado('Usuário não encontrado nesta barbearia.');
-        exigirSoOQueTem(req, await permissoesDoUsuario(c, id), NAO_ALTERA);
-        const novoPapel = papelId ? Number(papelId) : atual.papelId;
-        const {
-          rows: [papel],
-        } = await c.query(
-          'select chave, permissoes from papeis where id = $1',
-          [novoPapel],
-        );
+        exigirAbaixo(req, atual.papelChave, SO_QUEM_ESTA_ABAIXO);
+        const papel = papelId
+          ? await papelPorId(c, Number(papelId))
+          : { id: atual.papelId, chave: atual.papelChave };
         if (!papel) throw invalido('Papel não encontrado.');
-        exigirSoOQueTem(req, papel.permissoes, NAO_DA_PAPEL);
-        const deixaDeSerDonoAtivo =
-          atual.dono &&
-          atual.ativo &&
-          (papel.chave !== 'dono' || ativo === false);
-        if (deixaDeSerDonoAtivo)
-          await garantirDono(c, { removendoUsuario: id });
+        exigirAbaixo(req, papel.chave, SO_ABAIXO);
         await c.query(
           'update vinculos set papel_id = $2, ativo = $3 where usuario_id = $1',
-          [id, novoPapel, ativo ?? atual.ativo],
+          [id, papel.id, ativo ?? atual.ativo],
         );
         return (await c.query(`${LISTAR} where u.id = $1`, [id])).rows[0];
       });
     },
   );
 
-  /**
-   * Senha provisória definida pelo Dono (quem esqueceu a senha). Só para conta
-   * que acessa apenas esta barbearia: a conta é global e outro tenant também
-   * pode depender dela. Todas as sessões da pessoa caem.
-   */
-  fastify.put(
-    '/usuarios/:id/senha',
-    { ...acesso, schema: corpo({ senha: texto(TAM.senha) }) },
-    async (req) => {
-      const id = Number(req.params.id);
-      if (id === req.contexto.usuarioId) {
-        throw proibido('Para trocar a sua senha, use Meu perfil.');
-      }
-      const senha = String(req.body?.senha ?? '');
-      if (senha.length < SENHA_MINIMA) {
-        throw invalido(
-          `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`,
-        );
-      }
-      const doAlvo = await fastify.naBarbearia(req, (c) =>
-        permissoesDoUsuario(c, id),
-      );
-      if (!doAlvo)
-        throw naoEncontrado('Usuário não encontrado nesta barbearia.');
-      // Trocar a senha de alguém é assumir a conta: só de quem não tem mais acesso.
-      exigirSoOQueTem(
-        req,
-        doAlvo,
-        'Você não pode trocar a senha de quem tem permissões que você não tem.',
-      );
-      const {
-        rows: [{ exclusivo }],
-      } = await fastify.db.query(
-        'select usuario_so_na_barbearia($1, $2) as exclusivo',
-        [id, req.contexto.barbeariaId],
-      );
-      if (!exclusivo) {
-        throw conflito(
-          'Essa pessoa também acessa outra barbearia com esta conta. Ela mesma precisa trocar a senha em Meu perfil.',
-        );
-      }
-      await fastify.db.query(
-        'update usuarios set senha_hash = $2 where id = $1',
-        [id, await gerarHashDeSenha(senha)],
-      );
-      await encerrarOutrasSessoes(fastify.db, id);
-      return { ok: true };
-    },
-  );
-
-  /** Remove o acesso à barbearia (a conta do usuário continua existindo). */
+  /** Remove o acesso à barbearia de quem está abaixo (a conta continua existindo). */
   fastify.delete('/usuarios/:id', acesso, async (req, reply) => {
     const id = Number(req.params.id);
     if (id === req.contexto.usuarioId)
@@ -218,9 +140,7 @@ export default async function (fastify) {
       } = await c.query(`${LISTAR} where u.id = $1`, [id]);
       if (!atual)
         throw naoEncontrado('Usuário não encontrado nesta barbearia.');
-      exigirSoOQueTem(req, await permissoesDoUsuario(c, id), NAO_ALTERA);
-      if (atual.dono && atual.ativo)
-        await garantirDono(c, { removendoUsuario: id });
+      exigirAbaixo(req, atual.papelChave, SO_QUEM_ESTA_ABAIXO);
       await c.query('delete from vinculos where usuario_id = $1', [id]);
     });
     reply.code(204);

@@ -211,69 +211,6 @@ describe('meu perfil', () => {
   });
 });
 
-describe('senha provisória em Usuários', () => {
-  const USUARIOS = [
-    {
-      id: 1,
-      nome: 'Zé Carlos',
-      email: 'dono@barbertime.dev',
-      ativo: true,
-      papelId: 1,
-      papelNome: 'Dono',
-      dono: true,
-    },
-    {
-      id: 4,
-      nome: 'Marcos Barbeiro',
-      email: 'barbeiro@barbertime.dev',
-      ativo: true,
-      papelId: 4,
-      papelNome: 'Barbeiro',
-      dono: false,
-    },
-  ];
-  const PAPEIS = [
-    { id: 1, chave: 'dono', nome: 'Dono', protegido: true, permissoes: [] },
-    {
-      id: 4,
-      chave: 'barbeiro',
-      nome: 'Barbeiro',
-      protegido: false,
-      permissoes: [],
-    },
-  ];
-
-  it('Dono define a senha provisória de quem esqueceu', async () => {
-    const chamadas = simularApi({
-      'GET /api/usuarios': USUARIOS,
-      'GET /api/papeis': PAPEIS,
-      'PUT /api/usuarios/4/senha': { ok: true },
-    });
-    app = await montarApp('/usuarios');
-    await esperar(() => expect(texto()).toContain('Marcos Barbeiro'));
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.includes('Marcos'))
-      .click();
-    await preencher('Nova senha provisória', 'provisoria-1');
-    await clicar('Definir senha');
-    await esperar(() => expect(texto()).toContain('Senha provisória definida'));
-    expect(chamadas.find((c) => c.metodo === 'PUT').corpo).toEqual({
-      senha: 'provisoria-1',
-    });
-  });
-
-  it('a própria conta não mostra a opção', async () => {
-    simularApi({ 'GET /api/usuarios': USUARIOS, 'GET /api/papeis': PAPEIS });
-    app = await montarApp('/usuarios');
-    await esperar(() => expect(texto()).toContain('Zé Carlos'));
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.includes('Zé Carlos'))
-      .click();
-    await esperar(() => expect(texto()).toContain('use Meu perfil'));
-    expect(campo('Nova senha provisória')).toBeFalsy();
-  });
-});
-
 describe('página pública nas configurações', () => {
   const comModo = (modo) => {
     const b = BARBEARIA();

@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import { DsBotao, DsCartao, DsIcone, DsPagina, DsSelo } from '@barbertime/ui';
+import { DsBotao, DsCartao, DsPagina, DsSelo } from '@barbertime/ui';
 import { CHAVES_DE_PERMISSAO } from '@barbertime/dominio';
 import { administracao } from '../../dados/administracao.js';
 import { useAcao } from '../../dados/useAcao.js';
@@ -17,7 +17,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(papel = null) {
+function abrir(papel) {
   selecionado.value = papel;
   dialogoAberto.value = true;
 }
@@ -25,20 +25,15 @@ function abrir(papel = null) {
 
 <template>
   <DsPagina titulo="Papéis e permissões">
-    <template #acoes>
-      <DsBotao @click="abrir()">
-        <DsIcone nome="adicionar" />
-        Novo papel
-      </DsBotao>
-    </template>
     <p class="ds-corpo-sm ds-suave">
-      Cada usuário tem um papel nesta barbearia. Os papéis padrão podem ser
-      ajustados (menos o Dono), e você pode criar os seus.
+      Cada usuário tem um papel nesta barbearia. A hierarquia é fixa: Dono,
+      Gerente, Recepção e Barbeiro. Cada um só convida, troca o papel ou remove
+      quem está abaixo dele, e cada pessoa troca a própria senha em Meu perfil.
     </p>
     <div class="papeis">
       <DsCartao v-for="p in papeis" :key="p.id" :titulo="p.nome">
         <template #cabecalho-acoes>
-          <DsSelo v-if="p.protegido" estado="assinante">Protegido</DsSelo>
+          <DsSelo estado="assinante">Nível {{ p.nivel }}</DsSelo>
         </template>
         <p class="ds-corpo-sm">
           {{ p.permissoes.length }} de
@@ -47,16 +42,12 @@ function abrir(papel = null) {
         </p>
         <template #acoes>
           <DsBotao variante="secundario" tamanho="sm" @click="abrir(p)">
-            {{ p.protegido ? 'Ver permissões' : 'Editar' }}
+            Ver permissões
           </DsBotao>
         </template>
       </DsCartao>
     </div>
-    <PapelDialogo
-      v-model="dialogoAberto"
-      :papel="selecionado"
-      @salvo="carregar"
-    />
+    <PapelDialogo v-model="dialogoAberto" :papel="selecionado" />
   </DsPagina>
 </template>
 

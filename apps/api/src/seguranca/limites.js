@@ -21,6 +21,9 @@ export const LIMITES_PADRAO = Object.freeze({
   reconhecerPorBarbearia: { max: 100, janela: 60 * MINUTO },
   agendarPorIp: { max: 5, janela: 10 * MINUTO },
   agendarPorTelefone: { max: 3, janela: 60 * MINUTO },
+  esqueciPorIp: { max: 5, janela: 15 * MINUTO },
+  esqueciPorEmail: { max: 3, janela: 60 * MINUTO },
+  redefinirPorIp: { max: 10, janela: 15 * MINUTO },
 });
 
 /** Normalizações das chaves: o atacante não escapa trocando caixa ou máscara. */

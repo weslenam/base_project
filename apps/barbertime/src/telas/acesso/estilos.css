@@ -34,3 +34,12 @@
   color: var(--cobre);
   font-weight: 600;
 }
+.acesso__link {
+  justify-self: end;
+  color: var(--cobre);
+  font: var(--tipo-corpo-sm);
+  font-weight: 600;
+}
+.acesso__aviso {
+  font: var(--tipo-corpo-sm);
+}

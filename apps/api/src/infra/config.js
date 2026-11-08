@@ -29,4 +29,10 @@ export const config = {
    * confiar no X-Forwarded-For deixaria qualquer um forjar o IP.
    */
   trustProxy: process.env.TRUST_PROXY === 'true',
+  /** SMTP dos e-mails (recuperação de senha). No dev, o Mailpit do Docker. */
+  smtpUrl: process.env.SMTP_URL ?? 'smtp://localhost:1025',
+  remetente:
+    process.env.EMAIL_REMETENTE ?? 'BarberTime <nao-responda@barbertime.local>',
+  /** Endereço do app, para os links enviados por e-mail. */
+  appUrl: process.env.APP_URL ?? 'http://localhost:4200',
 };

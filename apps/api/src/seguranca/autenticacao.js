@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin';
 import cookie from '@fastify/cookie';
-import { permissoesEfetivas } from '@barbertime/dominio';
+import { permissoesDoPapel, permissoesEfetivas } from '@barbertime/dominio';
 import { naoAutenticado, proibido } from '../infra/erros.js';
 import { COOKIE, lerSessao } from './sessao.js';
 
@@ -31,7 +31,7 @@ export default fp(async function autenticacao(fastify) {
     if (!barbeariaId) throw proibido('Escolha uma barbearia para continuar.');
     const contexto = await fastify.comBarbearia(barbeariaId, async (c) => {
       const { rows } = await c.query(
-        `select p.id as "papelId", p.nome as "papelNome", p.permissoes
+        `select p.id as "papelId", p.nome as "papelNome", p.chave
            from vinculos v join papeis p on p.id = v.papel_id
           where v.usuario_id = $1 and v.ativo`,
         [usuarioId],
@@ -44,11 +44,18 @@ export default fp(async function autenticacao(fastify) {
       return {
         usuarioId,
         barbeariaId,
-        papel: { id: rows[0].papelId, nome: rows[0].papelNome },
+        papel: {
+          id: rows[0].papelId,
+          nome: rows[0].papelNome,
+          chave: rows[0].chave,
+        },
         modulosAtivos,
-        permissoes: permissoesEfetivas(rows[0].permissoes, modulosAtivos),
-        /** Do papel, mesmo de módulo inativo: base do "não concede o que não tem". */
-        permissoesDoPapel: rows[0].permissoes,
+        // Permissões fixas pela chave do papel (ADR 0010): a coluna do banco
+        // não é fonte de verdade, nem um dado adulterado dá acesso.
+        permissoes: permissoesEfetivas(
+          permissoesDoPapel(rows[0].chave),
+          modulosAtivos,
+        ),
       };
     });
     if (!contexto)

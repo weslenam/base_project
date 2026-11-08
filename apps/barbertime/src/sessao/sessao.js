@@ -58,6 +58,11 @@ export function useSessao() {
     /** Devolve { ok, sessoesEncerradas }. */
     trocarSenha: (senhaAtual, novaSenha) =>
       http('PUT', '/api/auth/senha', { senhaAtual, novaSenha }),
+    /** Esqueci a senha (planejamento 0023): devolve { ok, mensagem }, sempre igual. */
+    pedirRedefinicao: (email) => http('POST', '/api/auth/esqueci', { email }),
+    /** Cria a senha nova com o token do link do e-mail. */
+    redefinirSenha: (token, senha) =>
+      http('POST', '/api/auth/redefinir', { token, senha }),
     async sair() {
       await http('POST', '/api/auth/sair').catch(() => undefined);
       definirSessao(null);

@@ -24,7 +24,10 @@ export {
   CHAVES_DE_PERMISSAO,
   PAPEIS_PADRAO,
   permissoesInvalidas,
-  permissoesAlemDasSuas,
+  nivelDoPapel,
+  papeisAbaixoDe,
+  permissoesDoPapel,
+  podeAgirSobre,
   permissoesEfetivas,
   permissoesPorGrupo,
 } from './permissoes.js';

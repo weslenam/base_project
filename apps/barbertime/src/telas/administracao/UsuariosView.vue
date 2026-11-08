@@ -47,8 +47,8 @@ function abrir(usuario = null) {
       </DsBotao>
     </template>
     <p class="ds-corpo-sm ds-suave">
-      Quem acessa o sistema desta barbearia e com qual papel. Clique para trocar
-      o papel ou desativar o acesso.
+      Quem acessa o sistema desta barbearia e com qual papel. Você só altera o
+      acesso de quem está abaixo de você na hierarquia.
     </p>
     <DsTabela
       :colunas="colunas"
@@ -73,6 +73,7 @@ function abrir(usuario = null) {
       :usuario="selecionado"
       :papeis="papeis"
       :eu="sessao?.usuario.id"
+      :meu-papel="sessao?.papel?.chave"
       @salvo="carregar"
     />
   </DsPagina>

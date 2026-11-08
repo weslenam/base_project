@@ -7,8 +7,6 @@ export const administracao = {
     convidar: (dados) => http('POST', '/api/usuarios', dados),
     alterar: (id, dados) => http('PUT', `/api/usuarios/${id}`, dados),
     remover: (id) => http('DELETE', `/api/usuarios/${id}`),
-    definirSenha: (id, senha) =>
-      http('PUT', `/api/usuarios/${id}/senha`, { senha }),
   },
   barbearia: {
     obter: () => http('GET', '/api/barbearia'),
@@ -18,9 +16,6 @@ export const administracao = {
   },
   papeis: {
     listar: () => http('GET', '/api/papeis'),
-    criar: (dados) => http('POST', '/api/papeis', dados),
-    alterar: (id, dados) => http('PUT', `/api/papeis/${id}`, dados),
-    excluir: (id) => http('DELETE', `/api/papeis/${id}`),
   },
   modulos: {
     listar: () => http('GET', '/api/modulos'),

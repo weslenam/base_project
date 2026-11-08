@@ -1,10 +1,13 @@
 import {
   CHAVES_DE_PERMISSAO,
   PAPEIS_PADRAO,
-  permissoesAlemDasSuas,
+  nivelDoPapel,
+  papeisAbaixoDe,
+  permissoesDoPapel,
   permissoesEfetivas,
   permissoesInvalidas,
   permissoesPorGrupo,
+  podeAgirSobre,
 } from './permissoes.js';
 import { MODULOS, moduloDoCatalogo, transicaoDeModulo } from './modulos.js';
 
@@ -22,19 +25,18 @@ describe('permissões', () => {
     expect(dono.permissoes.sort()).toEqual([...CHAVES_DE_PERMISSAO].sort());
   });
 
-  it('gerente não administra usuários, papéis nem módulos; recepção não fecha caixa', () => {
-    const papel = (c) => PAPEIS_PADRAO.find((p) => p.chave === c).permissoes;
-    for (const p of [
-      'usuarios.gerenciar',
-      'papeis.gerenciar',
-      'modulos.gerenciar',
-    ]) {
+  it('gerente gerencia usuários, mas não configura a barbearia nem módulos; recepção não fecha caixa', () => {
+    const papel = permissoesDoPapel;
+    expect(papel('gerente')).toContain('usuarios.gerenciar');
+    for (const p of ['barbearia.configurar', 'modulos.gerenciar'])
       expect(papel('gerente')).not.toContain(p);
-    }
+    expect(CHAVES_DE_PERMISSAO).not.toContain('papeis.gerenciar');
     expect(papel('recepcao')).not.toContain('caixa.fechar');
+    expect(papel('recepcao')).not.toContain('usuarios.gerenciar');
     expect(papel('barbeiro')).toEqual(['agenda.ver_propria']);
     expect(papel('recepcao')).toContain('pacotes.vender');
     expect(papel('recepcao')).not.toContain('pacotes.gerenciar');
+    expect(papel('inventado')).toEqual([]);
   });
 
   it('recusa permissão fora do catálogo', () => {
@@ -64,37 +66,35 @@ describe('permissões', () => {
   });
 });
 
-describe('ninguém concede o que não tem', () => {
-  const papel = (chave) =>
-    PAPEIS_PADRAO.find((p) => p.chave === chave).permissoes;
-
-  it('quem só administra usuários não dá o papel Dono nem age sobre ele', () => {
-    const rh = ['usuarios.gerenciar'];
-    expect(permissoesAlemDasSuas(rh, papel('dono'))).toContain(
-      'barbearia.configurar',
-    );
-    expect(permissoesAlemDasSuas(rh, papel('barbeiro'))).toEqual([
-      'agenda.ver_propria',
+describe('hierarquia fixa (ADR 0010, planejamento 0023)', () => {
+  it('quatro papéis fixos, do Dono (1) ao Barbeiro (4), todos protegidos', () => {
+    expect(PAPEIS_PADRAO.map((p) => [p.chave, p.nivel])).toEqual([
+      ['dono', 1],
+      ['gerente', 2],
+      ['recepcao', 3],
+      ['barbeiro', 4],
     ]);
-    expect(permissoesAlemDasSuas(rh, rh)).toEqual([]);
+    expect(PAPEIS_PADRAO.every((p) => p.protegido)).toBe(true);
+    expect(nivelDoPapel('personalizado')).toBeNull();
   });
 
-  it('o Dono, que tem todas, pode qualquer papel', () => {
-    for (const p of PAPEIS_PADRAO)
-      expect(permissoesAlemDasSuas(papel('dono'), p.permissoes)).toEqual([]);
+  it('só age sobre quem está abaixo: nunca acima nem na lateral', () => {
+    expect(podeAgirSobre('dono', 'gerente')).toBe(true);
+    expect(podeAgirSobre('gerente', 'recepcao')).toBe(true);
+    expect(podeAgirSobre('gerente', 'barbeiro')).toBe(true);
+    expect(podeAgirSobre('gerente', 'gerente')).toBe(false); // lateral
+    expect(podeAgirSobre('gerente', 'dono')).toBe(false); // acima
+    expect(podeAgirSobre('dono', 'dono')).toBe(false); // ninguém dá o papel Dono
+    expect(podeAgirSobre('barbeiro', 'barbeiro')).toBe(false);
+    expect(podeAgirSobre('recepcao', 'inventado')).toBe(false);
+    expect(podeAgirSobre(undefined, 'barbeiro')).toBe(false);
   });
 
-  it('gerente não promove ninguém à administração; repetidas contam uma vez', () => {
-    expect(
-      permissoesAlemDasSuas(papel('gerente'), [
-        'agenda.ver',
-        'papeis.gerenciar',
-        'papeis.gerenciar',
-      ]),
-    ).toEqual(['papeis.gerenciar']);
-    expect(permissoesAlemDasSuas(papel('gerente'), papel('recepcao'))).toEqual(
-      [],
-    );
+  it('papéis que cada um pode dar', () => {
+    expect(papeisAbaixoDe('dono')).toEqual(['gerente', 'recepcao', 'barbeiro']);
+    expect(papeisAbaixoDe('gerente')).toEqual(['recepcao', 'barbeiro']);
+    expect(papeisAbaixoDe('recepcao')).toEqual(['barbeiro']);
+    expect(papeisAbaixoDe('barbeiro')).toEqual([]);
   });
 });
 
