@@ -4,7 +4,7 @@
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** planejamentos 0006 (clientes), 0008 (comandas), 0011 (sem rolagem) e 0015 (fidelidade e pacotes)
-- **Commits:** ainda não commitado (branch `feat/backend-acl-modulos`)
+- **Commits:** 5f595ad (branch `feat/backend-acl-modulos`)
 
 ## Solicitação de origem
 
