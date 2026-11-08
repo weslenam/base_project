@@ -4,7 +4,7 @@
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0001, 0010, 0011, 0014 e 0018 (novo); planejamentos 0023, 0024 (C1) e 0025 (S4)
-- **Commits:** ainda não commitado
+- **Commits:** 912aaf5 (Business Center) e a semente de movimento
 
 ## Solicitação de origem
 
@@ -147,3 +147,7 @@ Nada disso dá acesso a dados pessoais de clientes finais.
     - domínio: 91 testes;
     - API: 18 testes unitários e 96 de integração (9 novos, com números conhecidos e checagem de que não há dado pessoal na resposta);
     - Business Center: 6 testes das telas.
+- 2026-11-08: semente de movimento para desenvolvimento (`apps/api/scripts/movimento-exemplo.js`, chamada pelo `api:semear` só fora de produção).
+  - Barbearia modelo: 60 dias de caixas, comandas, agendamentos com faltas e cancelamentos, 30 clientes fictícios, caixa de hoje aberto e um pedido do módulo Estoque.
+  - Segunda barbearia: uma venda há 10 dias, para exercitar o selo "Parada".
+  - Determinística e idempotente: só roda onde ainda não há caixa.

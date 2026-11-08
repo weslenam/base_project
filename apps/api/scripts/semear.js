@@ -8,6 +8,8 @@ import { criarBarbearia } from '../src/servicos/barbearias.js';
 import { gerarHashDeSenha } from '../src/seguranca/senha.js';
 import { semearOperacao, temPerfil } from './operacao-exemplo.js';
 import { criarOperador } from '../src/servicos/operadores.js';
+import { momentoNoFuso } from '@barbertime/dominio';
+import { semearMovimento, semearVendaAntiga } from './movimento-exemplo.js';
 
 const SENHA = 'barbertime123';
 await migrar(config.databaseUrlMigracao);
@@ -141,6 +143,29 @@ for (const b of cadastradas.filter((x) => temPerfil(x.slug))) {
       ? `Operação de simulação criada para ${b.slug}.`
       : `${b.slug} já tem serviços; simulação não aplicada.`,
   );
+}
+
+// Movimento de exemplo para o painel do Business Center (planejamento 0028).
+if (!config.producao) {
+  const hoje = momentoNoFuso(new Date()).data;
+  if (
+    await fastify.comBarbearia(modelo.id, (c) =>
+      semearMovimento(c, { barbeariaId: modelo.id, hoje }),
+    )
+  )
+    console.log('Movimento de 60 dias criado na barbearia modelo.');
+  const { rows: outras } = await fastify.db.query(
+    "select id, slug from barbearias where slug <> 'barbearia-modelo' order by id limit 1",
+  );
+  for (const b of outras)
+    if (
+      await fastify.comBarbearia(b.id, (c) =>
+        semearVendaAntiga(c, { barbeariaId: b.id, hoje }),
+      )
+    )
+      console.log(
+        `Venda antiga criada em ${b.slug} (sem venda há 10 dias: "Parada" quando tiver mais de 14 dias de cadastro).`,
+      );
 }
 
 // Operador do Business Center (planejamento 0028). SEGREDO TOTP FIXO, SÓ DEV:
