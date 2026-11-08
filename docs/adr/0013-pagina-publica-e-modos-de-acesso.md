@@ -22,6 +22,11 @@ Cada barbearia tem uma página em que o cliente final agenda sem login (`/agenda
   - Aplica o horário de funcionamento e as regras do agendamento online (antecedência mínima, dias à frente).
 - **Compartilhar:** em Configurações > Página pública, com o link, copiar, WhatsApp, QR code (`DsQrCode`) e abrir a página. O link não aparece mais no menu, porque o modo `com_link` precisa do código.
 
+- **Trava geral (2026-11-07, a pedido do usuário):** a página pública fica **bloqueada no sistema todo** até a análise de segurança: "vamos deixar o acesso ao publico bloqueado depois analisamos".
+  - Enquanto isso, `/api/publico/*` responde 404 para qualquer barbearia.
+  - Libera com `PAGINA_PUBLICA=liberada`.
+  - Barbearias novas começam com o modo `desativada`.
+
 ## Consequências
 
 - Trocar o código ou o endereço quebra links já enviados. A tela avisa antes.

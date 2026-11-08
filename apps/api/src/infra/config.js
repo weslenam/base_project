@@ -15,6 +15,12 @@ export const config = {
   databaseUrlMigracao:
     process.env.DATABASE_URL_MIGRACAO ??
     'postgres://postgres:troque-me-postgres@localhost:5432/barbertime',
+  /**
+   * Trava geral da página pública de agendamento (planejamento 0019): bloqueada
+   * até a análise de segurança (limite de requisições etc.). Libere com
+   * PAGINA_PUBLICA=liberada.
+   */
+  paginaPublicaLiberada: process.env.PAGINA_PUBLICA === 'liberada',
   /** Validade da sessão em dias. */
   diasDeSessao: 30,
 };

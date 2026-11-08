@@ -43,11 +43,16 @@ export async function app(fastify, opts = {}) {
       api.register(rotasUsuarios);
       api.register(rotasPapeis);
       api.register(rotasModulos);
-      api.register(rotasBarbearia);
+      api.register(rotasBarbearia, {
+        paginaPublicaLiberada:
+          opts.paginaPublicaLiberada ?? config.paginaPublicaLiberada,
+      });
       api.register(rotasCadastros);
       api.register(rotasClientes);
       api.register(rotasAgenda);
-      api.register(rotasPublico);
+      api.register(rotasPublico, {
+        liberada: opts.paginaPublicaLiberada ?? config.paginaPublicaLiberada,
+      });
       api.register(rotasPagamentos, opts.pagamentos ?? {});
     },
     { prefix: '/api' },

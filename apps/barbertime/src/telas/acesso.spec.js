@@ -83,12 +83,7 @@ describe('menu e telas pelo papel', () => {
     app = await montarApp('/agenda', { sessao: recepcao });
     await esperar(() => expect(menu()).toContain('Agenda'));
     expect(menu()).toEqual(
-      expect.arrayContaining([
-        'Agenda',
-        'Caixa',
-        'Clientes',
-        'Módulos',
-      ]),
+      expect.arrayContaining(['Agenda', 'Caixa', 'Clientes', 'Módulos']),
     );
     for (const item of [
       'Equipe',

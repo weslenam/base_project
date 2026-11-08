@@ -271,6 +271,11 @@ async function salvar() {
         </template>
         <template #pagina>
           <div class="pagina">
+            <p v-if="form.paginaPublicaLiberada === false" class="trava">
+              A página pública de agendamento está bloqueada no sistema por
+              enquanto. Você já pode deixar a escolha pronta; ela passa a valer
+              quando a página for liberada.
+            </p>
             <div class="pagina__modo">
               <DsEscolha
                 v-model="form.configuracoes.paginaPublica.modo"
@@ -290,7 +295,10 @@ async function salvar() {
               </p>
             </div>
             <section
-              v-if="modoSalvo !== 'desativada'"
+              v-if="
+                modoSalvo !== 'desativada' &&
+                form.paginaPublicaLiberada !== false
+              "
               class="compartilhar"
               aria-label="Compartilhar a página"
             >
@@ -389,6 +397,13 @@ async function salvar() {
 }
 .pagina__modo p {
   margin: 0;
+}
+.trava {
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border-left: 3px solid var(--cobre);
+  border-radius: var(--raio-sm);
+  background: var(--cobre-suave);
 }
 .aviso {
   color: var(--cobre);

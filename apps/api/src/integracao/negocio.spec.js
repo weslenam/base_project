@@ -37,6 +37,10 @@ async function montada(nome) {
       comissao: 40,
     })
   ).corpo;
+  // Página pública começa desativada (padrão); aqui ela é aberta.
+  const cfg = (await b.dono.get('/api/barbearia')).corpo;
+  cfg.configuracoes.paginaPublica.modo = 'publica';
+  await b.dono.put('/api/barbearia', cfg);
   return { ...b, servico, barbeiro };
 }
 
@@ -314,5 +318,23 @@ describe('página pública', () => {
     expect(r.corpo.mensagem).toBe(
       (await p.get('/api/publico/nao-existe')).corpo.mensagem,
     );
+  });
+});
+
+describe('trava geral da página pública', () => {
+  it('bloqueada no sistema: nenhuma página abre, nem no modo pública', async () => {
+    const travado = await criarServidor({ paginaPublicaLiberada: false });
+    try {
+      const b = await novaBarbearia(travado);
+      const cfg = (await b.dono.get('/api/barbearia')).corpo;
+      expect(cfg.paginaPublicaLiberada).toBe(false);
+      cfg.configuracoes.paginaPublica.modo = 'publica';
+      await b.dono.put('/api/barbearia', cfg);
+      expect(
+        (await navegador(travado).get(`/api/publico/${b.slug}`)).status,
+      ).toBe(404);
+    } finally {
+      await travado.close();
+    }
   });
 });

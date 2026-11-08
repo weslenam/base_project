@@ -324,3 +324,21 @@ describe('página pública nas configurações', () => {
     expect(link()).toBeUndefined();
   });
 });
+
+describe('trava geral da página pública', () => {
+  it('bloqueada no sistema: avisa e não oferece link', async () => {
+    const b = BARBEARIA();
+    b.configuracoes.paginaPublica.modo = 'publica';
+    b.tokenPublico = 'abc123';
+    b.paginaPublicaLiberada = false;
+    simularApi({ 'GET /api/barbearia': b });
+    app = await montarApp('/configuracoes');
+    await clicar('Página pública');
+    await esperar(() =>
+      expect(texto()).toContain('bloqueada no sistema por enquanto'),
+    );
+    expect(
+      document.querySelector('[aria-label="Compartilhar a página"]'),
+    ).toBeNull();
+  });
+});

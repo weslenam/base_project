@@ -1,9 +1,9 @@
-# Planejamento 0020: Operação pelo próprio barbeiro, encaixe e fila
+# Planejamento 0020: Balcão: atendimento rápido (avulso + agendado), fila e operação pelo barbeiro
 
-- **Status:** Rascunho (começa depois da parte 2 do planejamento 0019)
+- **Status:** Aprovado: só a fase 1 agora
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam
-- **Relacionado:** planejamentos 0009, 0010, 0012 e 0019; ADR 0010
+- **Relacionado:** especificação [docs/atendimento/balcao.md](../atendimento/balcao.md); planejamentos 0009, 0010, 0012, 0015 e 0019; ADRs 0010, 0011 e 0013
 - **Commits:** ainda não commitado
 
 ## Solicitação de origem
@@ -11,32 +11,88 @@
 > temos que achar uma forma do sistema se adaptar para o barbeiro porque normalmente no dia a dia o proprio barbeiro pode fazer o fechamento não tem alguem para fazer o atendimento eventualmente o dono faz mas não é o padrão então temos que trabalhar com agendamento e encaixe (avulso - que cadastramos em seguida) havia algo como fila nos sistemas concorrentes podemos fazer o mesmo
 
 - **Quando:** 2026-11-07 · **Origem:** Conversa com o assistente (durante o planejamento 0019)
-- **Esclarecimentos:** a fazer antes de aprovar (ver _Perguntas em aberto_).
 
-## Objetivo (rascunho)
+### Solicitações relacionadas
 
-Na maioria das barbearias não há recepção: **o próprio barbeiro** atende, abre e fecha a comanda e recebe. O dono faz isso às vezes, mas não é o padrão.
+> baixe o drive o balcao.md para implementarmos
 
-O sistema precisa se adaptar a esse modo de trabalho:
+> inclui nos documento acesse-o
 
-1. **"Meu dia" do barbeiro:** uma tela com a agenda dele, o próximo cliente e a fila. Nela, o barbeiro marca atendido e já abre e fecha a comanda com poucos toques.
-2. **Encaixe:** atender agora quem chegou sem horário (avulso). O cadastro é opcional na hora e pode ser completado depois.
-3. **Fila de espera** (como nos concorrentes):
-   - quem chega sem horário entra na fila de um barbeiro ou de "qualquer um";
-   - a fila mostra a posição e a estimativa de espera;
-   - ao chamar, a pessoa vira um encaixe na agenda.
-4. **Papéis:** o papel Barbeiro passa a operar o próprio caixa e as próprias comandas. A barbearia escolhe se o caixa é único ou um por barbeiro.
+> dentro da pasta docs/atendimento do projeto
 
-## Decisões já tomadas
+(2026-11-07) A especificação do usuário está em **`docs/atendimento/balcao.md`** e é a fonte deste plano. Onde este plano e a especificação divergirem, vale a especificação, salvo decisão registrada abaixo.
 
-- `barbeiros.usuario_id` (criado no 0019) liga o barbeiro à conta de usuário. É a base de "minha agenda", "minhas comandas" e "meu caixa".
+## Objetivo
 
-## Perguntas em aberto
+Implementar o **Balcão**: um PDV de atendimento rápido em que o avulso (sem horário) e o agendado seguem o mesmo caminho. Inclui:
 
-- **Caixa:** um caixa da barbearia (cada barbeiro recebe nele) ou um caixa por barbeiro?
-- **Fila pública:** o cliente entra na fila pelo celular (link ou QR na porta) ou só o barbeiro inclui?
-- **Comissão** (pedido anterior, adiado): o fechamento do barbeiro já mostra quanto ele fez no dia?
+- **Fila presencial.**
+- **Encaixe** que não atropela quem agendou.
+- **Check-in.**
+- **Visão do barbeiro no celular**, já que na maioria das barbearias o próprio barbeiro atende e fecha.
+- **Fechamento** no caixa do dia.
+
+A promoção de horário vazio, o Pix sem maquininha e o modo offline entram em fases próprias (abaixo).
+
+## Decisões (da especificação e de ajuste ao que existe)
+
+1. **Entidade única `atendimento`** (especificação): agenda e fila são visões do mesmo dado.
+   - A tabela `agendamentos` do 0019 evolui para `atendimentos`, com o ciclo de vida da especificação: `agendado → chegou → em_atendimento → finalizado → pago`, `na_fila → em_atendimento`, e as saídas `desistiu`, `no_show` e `cancelado`.
+   - A "confirmação de presença" atual vira um atributo (`confirmado_em`), não um status.
+   - **Bloqueios** (almoço, folga) saem para uma tabela própria, porque não são atendimento.
+2. **A comanda nasce no check-in ou na entrada na fila** (especificação). Isso substitui a parte 2 do 0019: caixa e comandas vão para o banco já ligados ao atendimento.
+3. **O avulso nunca rouba o horário de quem agendou.** O encaixe usa:
+   - `janela = próximo agendado − (agora ou fim do atual)`;
+   - `pode agora = livre E janela ≥ duração + folga`;
+   - **folga** de 5 min e **tolerância** de 10 min, configuráveis em Configurações (ADR 0012).
+4. **Prioridade da fila:**
+   1. agendado que chegou dentro da tolerância;
+   2. avulsos por ordem de chegada;
+   3. agendado atrasado além da tolerância, que perde a vez.
+5. **Fila só presencial.** O QR na porta só faz check-in de quem agendou (especificação).
+6. **Um caixa do dia por barbearia**, com avulsos e agendados juntos. Qualquer barbeiro com permissão de caixa recebe.
+   - Isso pede permissões novas para o papel Barbeiro: `atendimento.operar_proprio` (iniciar, finalizar e lançar na própria comanda) e receber.
+7. **Tempo real:** o balcão e o celular do barbeiro atualizam sozinhos.
+   - Fase 1: atualização periódica curta.
+   - Fase 2: SSE.
+
+## Fases
+
+- **Fase 1: Balcão no banco (o núcleo).**
+  - Migração de `atendimentos`, `bloqueios`, `caixas`, `comandas` e itens.
+  - API do ciclo de vida, encaixe e fila.
+  - Tela **Balcão** em tela cheia para tablet, com três colunas:
+    - **Agora:** barbeiros livre / ocupado / pausa.
+    - **Fila e chegadas:** quem espera, com o tempo de espera.
+    - **Próximos:** agendados das próximas 2–3 h, com Check-in.
+  - **"+ Avulso" em até 3 toques:** serviço → barbeiro ("Primeiro livre") → WhatsApp opcional ou "Cliente balcão".
+  - Comanda aberta desde a fila e cobrança com as formas atuais (dinheiro, Pix registrado manualmente, cartão).
+  - Agenda e caixa passam a ler o mesmo dado.
+- **Fase 2: Barbeiro no celular, atalhos e tempo real.**
+  - "Seu próximo", Iniciar, Finalizar e Pausa.
+  - Atalhos N, C, 1–9 e F no PC.
+  - SSE.
+- **Fase 3: Check-in por QR na porta** e duração real média por barbeiro e serviço (aprendida do histórico).
+- **Fase 4: Fechamento com Pix na tela** (`charge.paid`), comprovante por WhatsApp, sinal abatido e comissão no caixa.
+  - Depende de `docs/pagamentos/checkout-sem-maquininha.md`, que a especificação cita mas **não está no repositório**.
+- **Fase 5: Promoção de horário vazio:** detecção, sugestão com aprovação, oferta, público com opt-in (LGPD), envio por WhatsApp (módulo adicional) e métricas.
+- **Fase 6: Resiliência offline:** ações em fila local, sincronização e indicador "offline".
+- **Depois da fase 1:** a parte 3 do 0019 (fidelidade e pacotes no banco), ligada ao pagamento do atendimento.
+
+## Esclarecimentos
+
+- O `checkout-sem-maquininha.md` não está no projeto. Como fecho? → **"Fase 1 com formas manuais"**. O Pix na tela entra na fase 4, quando o arquivo existir.
+- Ordem das fases? → **"Só a fase 1 agora"**: implementar o núcleo e parar para o usuário testar antes de decidir o resto.
+
+## Critérios de pronto (fase 1)
+
+- Registrar um avulso em até 3 toques e em menos de 10 s.
+- O avulso nunca ocupa a janela de um agendado. A fila segue a prioridade definida.
+- Do check-in (ou da fila) ao pago, a comanda acompanha o atendimento. O caixa do dia mostra avulsos e agendados.
+- Tudo isolado por barbearia (RLS). `pnpm verificar:tudo` passa.
 
 ## Registro de mudanças
 
-- 2026-11-07: rascunho criado a partir do pedido.
+- 2026-11-07: rascunho criado a partir do pedido de operação pelo barbeiro.
+- 2026-11-07: reescrito a partir da especificação `docs/atendimento/balcao.md`. A parte 2 do 0019 (caixa e comandas) foi absorvida pela fase 1.
+- 2026-11-07: aprovado pelo usuário (só a fase 1; fechamento com formas manuais).

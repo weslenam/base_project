@@ -80,3 +80,4 @@ Qualquer barbearia cadastrada consegue publicar a página de agendamento e opera
 
 - 2026-11-07: plano criado com as respostas do usuário.
 - 2026-11-07: parte 1 concluída. Decidido junto: o item "Página pública" saiu do menu, porque no modo "só com o link" a sessão não conhece o código. O link fica em Configurações > Página pública. O pedido de operação pelo próprio barbeiro, com encaixe e fila, virou o planejamento 0020.
+- 2026-11-07: a pedido do usuário ("vamos deixar o acesso ao publico bloqueado depois analisamos"), a página pública fica travada no sistema todo (`PAGINA_PUBLICA`, padrão bloqueada) e barbearias novas começam com o modo "Desativada". A parte 2 (caixa e comandas) foi absorvida pela fase 1 do planejamento 0020 (Balcão).

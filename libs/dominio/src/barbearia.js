@@ -25,8 +25,8 @@ export const CONFIG_BARBEARIA_PADRAO = Object.freeze({
     diasAFrente: 30,
     cancelamentoAteHoras: 2,
   },
-  /** publica | com_link (exige o token do link) | desativada (ADR 0013) */
-  paginaPublica: { modo: 'publica' },
+  /** publica | com_link (exige o token do link) | desativada (ADR 0013). Começa desativada. */
+  paginaPublica: { modo: 'desativada' },
 });
 
 export const MODOS_DA_PAGINA_PUBLICA = Object.freeze([

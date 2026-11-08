@@ -18,12 +18,16 @@ const formatar = (b) => ({
 });
 
 /** Configurações da barbearia atual (planejamento 0017, ADR 0012). */
-export default async function (fastify) {
+export default async function (
+  fastify,
+  { paginaPublicaLiberada = false } = {},
+) {
   const acesso = { preHandler: fastify.exigir('barbearia.configurar') };
 
   fastify.get('/barbearia', acesso, async (req) => {
     const { rows } = await fastify.db.query(LER, [req.contexto.barbeariaId]);
-    return formatar(rows[0]);
+    // A tela avisa quando a página pública está travada no sistema todo.
+    return { ...formatar(rows[0]), paginaPublicaLiberada };
   });
 
   fastify.put('/barbearia', acesso, async (req) => {

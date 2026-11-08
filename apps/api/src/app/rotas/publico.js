@@ -27,9 +27,11 @@ const mesmoToken = (a, b) => {
   return x.length === y.length && timingSafeEqual(x, y);
 };
 
-export default async function (fastify) {
+export default async function (fastify, { liberada = false } = {}) {
   /** Barbearia publicada pelo slug (+ código do link, se o modo pedir). */
   async function publicada(req) {
+    // Trava geral: enquanto bloqueada, nenhuma página pública abre.
+    if (!liberada) throw naoEncontrado(NAO_ENCONTRADA);
     const {
       rows: [b],
     } = await fastify.db.query(

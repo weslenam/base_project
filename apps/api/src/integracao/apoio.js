@@ -3,9 +3,12 @@ import Fastify from 'fastify';
 import pg from 'pg';
 import { app } from '../app/app.js';
 
-export async function criarServidor() {
+export async function criarServidor(opcoes = {}) {
   const servidor = Fastify();
-  servidor.register(app, { databaseUrl: inject('urlApp') });
+  servidor.register(app, {
+    databaseUrl: inject('urlApp'),
+    paginaPublicaLiberada: opcoes.paginaPublicaLiberada ?? true,
+  });
   await servidor.ready();
   return servidor;
 }
