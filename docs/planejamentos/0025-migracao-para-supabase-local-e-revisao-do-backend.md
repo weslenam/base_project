@@ -1,6 +1,6 @@
 # Planejamento 0025: Migração para o Supabase local e revisão do backend
 
-- **Status:** Aprovado (entrevista feita), aguardando a sprint S1
+- **Status:** Em andamento (S1 e S2 concluídas; próxima: S3)
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0001, 0002, 0006, 0009, 0010, 0011, 0013 e 0014; planejamentos 0013, 0019, 0020, 0022, 0023 e 0024
@@ -308,14 +308,14 @@ Cada fase tem o próprio commit e passa por verificar, revisar e segurança.
 - [x] **F0. Entrevista e ADRs.** Rodar a skill `grill-me` com as questões abaixo, registrar as respostas em _Esclarecimentos_, escrever os ADRs (seção 2.15) e mudar o status para Aprovado.
   - _Pronto:_ decisões registradas.
   - _Rollback:_ n/a.
-- [ ] **F1. Stack local e baseline.**
+- [x] **F1. Stack local e baseline.**
   - Instalar o CLI, `supabase init`, ajustar o `config.toml` (portas, `[api] schemas`, serviços desligados).
   - Escrever a migração baseline, o papel `barbertime_app` e a semente.
   - A API continua com a sessão própria e o `app.barbearia_id`, apontando para a 54322.
   - O `preparar.js` passa a usar o Supabase.
   - _Pronto:_ `pnpm verificar:tudo` verde contra o Supabase local; login, balcão e caixa funcionando no navegador; o Studio mostra as tabelas.
   - _Rollback:_ o `docker-compose` com o Postgres continua no repositório até a F6; basta voltar o `.env`.
-- [ ] **F2. Isolamento endurecido.**
+- [x] **F2. Isolamento endurecido.** (RLS nas tabelas globais adiada para a S4)
   - Schema `app` (ou revogação em `public`), função `app.barbearia_atual()` e políticas reescritas.
   - RLS em `barbearias`, e revogar o acesso do `barbertime_app` a tabelas de que ele não precisa.
   - pgTAP de isolamento e de "anon não lê nada".
@@ -551,3 +551,10 @@ Se o `rollback` falhar (conexão caída), a exceção do rollback substitui o er
   - **Testes:** o `postgres` do Supabase não é superusuário, mas tem `BYPASSRLS`, e o `search_path` dele vem no próprio papel. Por isso o cliente administrativo dos testes pede `app`.
   - **Scripts:** `pnpm banco` sobe o Supabase, migra e semeia. `pnpm banco:compose` é a volta atrás para o compose.
   - **Resultado:** `pnpm verificar:tudo` verde contra o Supabase local (83 testes de integração).
+- 2026-11-08: **S2 concluída** (isolamento).
+  - **Migração `20261108130000_isolamento.sql`:** o `barbertime_app` perde `delete` em `usuarios` e `barbearias`, que a API nunca apaga.
+  - **`isolamento.spec.js`:** trava regressão em quatro pontos: toda tabela de barbearia tem RLS ligado e forçado; toda tabela com `barbearia_id` tem política por `app.barbearia_atual()`; `anon`, `authenticated` e `service_role` sem acesso a `app`; o `barbertime_app` sem `BYPASSRLS`.
+  - **Testes na integração em vez de pgTAP:** rodam no `pnpm verificar:tudo` e no CI com um Postgres simples.
+  - **Teste manual:** a chave anônima recebe 406 ou 404 em `/rest/v1`.
+  - **RLS nas tabelas globais** (`barbearias`, `usuarios`, `sessoes`, `redefinicoes_senha`) **foi adiada para a S4.** O login e a página pública as leem antes de existir barbearia no contexto, e a S4 refaz a identidade (as duas últimas tabelas saem com `AUTH=supabase`).
+  - **Resultado:** `verificar:tudo` verde (87 testes de integração).
