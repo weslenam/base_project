@@ -1,4 +1,5 @@
 import {
+  resumoDeComandas,
   diferencaDeCaixa,
   FORMAS_DE_PAGAMENTO,
   motivoParaNaoReceber,
@@ -112,5 +113,72 @@ describe('diferencaDeCaixa', () => {
     expect(diferencaDeCaixa(180.5, 175)).toBe(5.5);
     expect(diferencaDeCaixa(170, 175)).toBe(-5);
     expect(diferencaDeCaixa(175, 175)).toBe(0);
+  });
+});
+
+describe('resumoDeComandas', () => {
+  const comandas = [
+    {
+      estado: 'paga',
+      data: '2026-10-24',
+      hora: '10:00',
+      barbeiroId: 1,
+      desconto: 0,
+      itens: [{ tipo: 'servico', nome: 'Corte + barba', preco: 70 }],
+    },
+    {
+      estado: 'paga',
+      data: '2026-10-31',
+      hora: '15:00',
+      barbeiroId: 2,
+      desconto: 4.9,
+      itens: [
+        { tipo: 'servico', nome: 'Corte', preco: 45 },
+        { tipo: 'produto', nome: 'Pomada', preco: 39.9 },
+      ],
+    },
+    {
+      estado: 'paga',
+      data: '2026-11-05',
+      hora: '09:00',
+      barbeiroId: 1,
+      desconto: 0,
+      itens: [{ tipo: 'produto', nome: 'Óleo', preco: 34.9 }],
+    },
+    {
+      estado: 'cancelada',
+      data: '2026-11-06',
+      hora: '09:00',
+      desconto: 0,
+      itens: [{ tipo: 'servico', preco: 999 }],
+    },
+    {
+      estado: 'aberta',
+      data: '2026-11-07',
+      hora: '09:00',
+      desconto: 0,
+      itens: [{ tipo: 'servico', preco: 999 }],
+    },
+  ];
+
+  it('totais por tipo, total gasto (com desconto) e ticket médio só das pagas', () => {
+    expect(resumoDeComandas(comandas)).toEqual({
+      comandas: 3,
+      totalServicos: 115,
+      totalProdutos: 74.8,
+      totalGasto: 184.9,
+      ticketMedio: 61.63,
+      ultimaVisita: '2026-11-05',
+      ultimoServico: { nome: 'Corte', data: '2026-10-31', barbeiroId: 2 },
+    });
+  });
+
+  it('sem comandas pagas', () => {
+    expect(resumoDeComandas([])).toMatchObject({
+      comandas: 0,
+      totalGasto: 0,
+      ticketMedio: 0,
+      ultimoServico: null,
+    });
   });
 });

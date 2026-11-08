@@ -565,3 +565,31 @@ describe('fidelidade e pacotes (planejamento 0015)', () => {
     await api.pacotes.excluir(3);
   });
 });
+
+describe('resumo e comandas do cliente (planejamento 0016)', () => {
+  it('resumo: totais por tipo, ticket médio e último serviço com barbeiro', async () => {
+    const r = await api.clientes.resumo(1);
+    expect(r).toMatchObject({
+      comandas: 7,
+      totalServicos: 390, // 70 + 45 + 70 + 45 + 70 + 45 + 45
+      totalProdutos: 74.8,
+      totalGasto: 459.9, // 390 + 74,80 em produtos − 4,90 de desconto
+      ultimaVisita: HOJE,
+      ultimoServico: {
+        nome: 'Corte + barba',
+        data: HOJE,
+        barbeiroNome: 'Zé Carlos',
+      },
+      faltas: 0,
+    });
+  });
+
+  it('comandas em páginas de 5, mais recentes primeiro, com data', async () => {
+    const p1 = await api.clientes.comandas(1);
+    expect(p1.total).toBe(7);
+    expect(p1.itens).toHaveLength(5);
+    expect(p1.itens[0]).toMatchObject({ id: 1, data: HOJE, total: 70 });
+    const p2 = await api.clientes.comandas(1, { deslocamento: 5 });
+    expect(p2.itens.map((c) => c.id)).toEqual([9, 10]);
+  });
+});

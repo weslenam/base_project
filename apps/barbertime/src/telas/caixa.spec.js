@@ -124,7 +124,7 @@ describe('agenda → comanda', () => {
     app = await montarApp('/agenda');
     await clicarContendo('Rafael Souza');
     await clicarContendo('Abrir comanda');
-    await esperar(() => expect(texto()).toContain('Comanda #4'));
+    await esperar(() => expect(texto()).toMatch(/Comanda #\d+/));
     expect(texto()).toContain('Corte + barba');
     expect(normalizar(texto())).toContain('Receber R$ 70,00');
   });

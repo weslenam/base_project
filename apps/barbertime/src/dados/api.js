@@ -1,4 +1,5 @@
 import {
+  resumoDeComandas,
   creditosDaComanda,
   FIDELIDADE_PADRAO,
   podeUsarPacote,
@@ -125,6 +126,15 @@ export function criarApi({ agora = () => new Date() } = {}) {
       throw new ErroDeNegocio('Abra o caixa de hoje antes de lançar comandas.');
     return caixa;
   }
+
+  /** Comandas de um cliente, com a data do caixa em que foram lançadas. */
+  const comandasDoCliente = (clienteId) =>
+    banco.comandas
+      .filter((c) => c.clienteId === clienteId)
+      .map((c) => ({
+        ...c,
+        data: banco.caixas.find((x) => x.id === c.caixaId)?.data ?? null,
+      }));
 
   const completarComanda = (c) => ({
     ...c,
@@ -399,6 +409,36 @@ export function criarApi({ agora = () => new Date() } = {}) {
       async obter(id) {
         const cliente = buscar('clientes', id, 'Cliente');
         return copia({ ...cliente, ...resumoDoCliente(cliente.id) });
+      },
+      /** Resumo das comandas pagas do cliente (planejamento 0016). */
+      async resumo(id) {
+        const cliente = buscar('clientes', id, 'Cliente');
+        const r = resumoDeComandas(comandasDoCliente(cliente.id));
+        return copia({
+          ...r,
+          faltas: resumoDoCliente(cliente.id).faltas,
+          ultimoServico: r.ultimoServico && {
+            ...r.ultimoServico,
+            barbeiroNome:
+              banco.barbeiros.find((b) => b.id === r.ultimoServico.barbeiroId)
+                ?.nome ?? '',
+          },
+        });
+      },
+      /** Comandas do cliente, mais recentes primeiro, em páginas ("Ver mais"). */
+      async comandas(id, { limite = 5, deslocamento = 0 } = {}) {
+        const cliente = buscar('clientes', id, 'Cliente');
+        const todas = comandasDoCliente(cliente.id)
+          .filter((c) => c.estado !== 'cancelada')
+          .sort((a, b) =>
+            `${a.data} ${a.hora}` < `${b.data} ${b.hora}` ? 1 : -1,
+          );
+        return {
+          total: todas.length,
+          itens: todas
+            .slice(deslocamento, deslocamento + limite)
+            .map((c) => copia(completarComanda(c))),
+        };
       },
       async historico(id) {
         const cliente = buscar('clientes', id, 'Cliente');

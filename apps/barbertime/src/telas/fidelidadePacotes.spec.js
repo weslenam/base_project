@@ -85,7 +85,7 @@ describe('na comanda', () => {
     app = await montarApp('/agenda');
     await clicarContendo('Diego Alves');
     await clicarContendo('Abrir comanda');
-    await esperar(() => expect(texto()).toContain('Comanda #4'));
+    await esperar(() => expect(texto()).toMatch(/Comanda #\d+/));
     await escolherNoSelect('Escolher serviço', 'Corte ·');
     await esperar(() =>
       expect(texto()).toContain('Usar o pacote Clube do corte'),

@@ -76,3 +76,44 @@ export function resumoDoCaixa({ valorInicial = 0, comandas = [] }) {
 /** Diferença entre o dinheiro contado e o esperado (positivo = sobra). */
 export const diferencaDeCaixa = (contado, esperado) =>
   emReais(emCentavos(contado) - emCentavos(esperado));
+
+/**
+ * Resumo das comandas de um cliente: só as pagas contam. Totais por tipo são o
+ * valor bruto dos itens; o desconto entra só no total gasto.
+ * `comandas` em qualquer ordem, cada uma com `data` (AAAA-MM-DD) e `hora`.
+ */
+export function resumoDeComandas(comandas = []) {
+  const pagas = comandas
+    .filter((c) => c.estado === 'paga')
+    .sort((a, b) => (`${a.data} ${a.hora}` < `${b.data} ${b.hora}` ? 1 : -1));
+  let servicos = 0;
+  let produtos = 0;
+  let total = 0;
+  for (const c of pagas) {
+    const t = totalDaComanda(c);
+    servicos += emCentavos(t.servicos);
+    produtos += emCentavos(t.produtos);
+    total += emCentavos(t.total);
+  }
+  let ultimoServico = null;
+  for (const c of pagas) {
+    const item = (c.itens ?? []).find((i) => i.tipo === 'servico');
+    if (item) {
+      ultimoServico = {
+        nome: item.nome,
+        data: c.data,
+        barbeiroId: c.barbeiroId,
+      };
+      break;
+    }
+  }
+  return {
+    comandas: pagas.length,
+    totalServicos: emReais(servicos),
+    totalProdutos: emReais(produtos),
+    totalGasto: emReais(total),
+    ticketMedio: pagas.length ? emReais(Math.round(total / pagas.length)) : 0,
+    ultimaVisita: pagas[0]?.data ?? null,
+    ultimoServico,
+  };
+}

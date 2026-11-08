@@ -17,3 +17,4 @@
 | [0013](0013-backend-acl-e-modulos.md)             | Backend real, administração com ACL e módulos adicionais                   | Em andamento | 2026-11-07 |
 | [0014](0014-agendamento-publico-com-stepper.md)   | Agendamento público em etapas (stepper), sem rolagem                       | Concluído    | 2026-11-07 |
 | [0015](0015-fidelidade-e-pacotes.md)              | Módulos de fidelidade (selos e cashback) e pacotes                         | Em andamento | 2026-11-07 |
+| [0016](0016-cliente-com-resumo-e-comandas.md)     | Cadastro do cliente com resumo e histórico de comandas                     | Concluído    | 2026-11-07 |

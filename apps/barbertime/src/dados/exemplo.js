@@ -28,6 +28,67 @@ const PACOTES = [
   },
 ];
 
+const servico = (refId, nome, preco, barbeiroId) => ({
+  tipo: 'servico',
+  refId,
+  nome,
+  preco,
+  quantidade: 1,
+  barbeiroId,
+});
+const produto = (refId, nome, preco, barbeiroId) => ({
+  tipo: 'produto',
+  refId,
+  nome,
+  preco,
+  quantidade: 1,
+  barbeiroId,
+});
+const paga = (
+  id,
+  caixaId,
+  hora,
+  clienteId,
+  barbeiroId,
+  forma,
+  itens,
+  desconto = 0,
+) => ({
+  id,
+  caixaId,
+  hora,
+  clienteId,
+  barbeiroId,
+  agendamentoId: null,
+  itens,
+  desconto,
+  forma,
+  estado: 'paga',
+});
+
+/** Comandas pagas de dias anteriores (caixas 2 a 7). O Rafael tem mais de 5, para o "Ver mais". */
+const HISTORICO_DE_COMANDAS = [
+  paga(
+    4,
+    2,
+    '10:35',
+    1,
+    1,
+    'pix',
+    [servico(1, 'Corte', 45, 1), produto(1, 'Pomada modeladora', 39.9, 1)],
+    4.9,
+  ),
+  paga(5, 3, '11:55', 1, 1, 'dinheiro', [servico(3, 'Corte + barba', 70, 1)]),
+  paga(6, 4, '09:25', 3, 2, 'debito', [servico(2, 'Barba', 30, 2)]),
+  paga(7, 4, '14:10', 1, 1, 'credito', [servico(1, 'Corte', 45, 1)]),
+  paga(8, 5, '16:00', 1, 1, 'pix', [
+    servico(3, 'Corte + barba', 70, 1),
+    produto(2, 'Óleo para barba', 34.9, 1),
+  ]),
+  paga(9, 6, '10:00', 1, 3, 'dinheiro', [servico(1, 'Corte', 45, 3)]),
+  paga(10, 7, '10:30', 1, 1, 'pix', [servico(1, 'Corte', 45, 1)]),
+];
+
 export function criarDadosDeExemplo(hoje) {
   const dia = (n) => somarDias(hoje, n);
   return {
@@ -152,6 +213,15 @@ export function criarDadosDeExemplo(hoje) {
     ],
     caixas: [
       { id: 1, data: hoje, valorInicial: 100, aberto: true, abertoAs: '08:50' },
+      // Dias anteriores (fechados): base do histórico de comandas dos clientes.
+      ...[-7, -14, -21, -28, -35, -42].map((d, i) => ({
+        id: i + 2,
+        data: dia(d),
+        valorInicial: 100,
+        aberto: false,
+        abertoAs: '08:50',
+        fechadoAs: '19:30',
+      })),
     ],
     comandas: [
       {
@@ -225,6 +295,7 @@ export function criarDadosDeExemplo(hoje) {
         forma: null,
         estado: 'aberta',
       },
+      ...HISTORICO_DE_COMANDAS,
     ],
     agendamentos: [
       // hoje

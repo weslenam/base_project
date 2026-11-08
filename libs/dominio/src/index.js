@@ -17,6 +17,7 @@ export {
   motivoParaNaoReceber,
   resumoDoCaixa,
   diferencaDeCaixa,
+  resumoDeComandas,
 } from './caixa.js';
 export {
   PERMISSOES,

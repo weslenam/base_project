@@ -123,19 +123,19 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 ## Telas
 
-| Rota                    | Tela                                                                                                                                                              |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/agenda`               | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar) |
-| `/clientes`             | Busca por nome ou telefone, cadastro com telefone, CPF e observações, histórico e exclusão                                                                        |
-| `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                         |
-| `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`), em etapas: serviço → barbeiro → dia → horário → dados                                         |
-| `/componentes`          | Vitrine do kit de UI                                                                                                                                              |
-| `/pacotes`              | Pacotes de serviços: por quantidade ou livres, mensais ou de compra única, com intervalo mínimo e/ou máximo por semana (módulo Pacotes)                           |
-| `/fidelidade`           | Cartão de selos e/ou cashback (módulo Fidelidade)                                                                                                                 |
-| `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar                                                                                   |
-| `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                         |
-| `/modulos`              | Módulos inclusos e serviços adicionais                                                                                                                            |
-| `/entrar` · `/cadastro` | Login e cadastro self-service da barbearia                                                                                                                        |
+| Rota                    | Tela                                                                                                                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/agenda`               | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar)                                           |
+| `/clientes`             | Busca por nome ou telefone; cadastro em duas colunas com abas Resumo (serviços, produtos, total gasto, ticket médio, último serviço, fidelidade e pacotes), Comandas (5 por vez, "Ver mais") e Agendamentos |
+| `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                                                                   |
+| `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`), em etapas: serviço → barbeiro → dia → horário → dados                                                                                   |
+| `/componentes`          | Vitrine do kit de UI                                                                                                                                                                                        |
+| `/pacotes`              | Pacotes de serviços: por quantidade ou livres, mensais ou de compra única, com intervalo mínimo e/ou máximo por semana (módulo Pacotes)                                                                     |
+| `/fidelidade`           | Cartão de selos e/ou cashback (módulo Fidelidade)                                                                                                                                                           |
+| `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar                                                                                                                             |
+| `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                                                                   |
+| `/modulos`              | Módulos inclusos e serviços adicionais                                                                                                                                                                      |
+| `/entrar` · `/cadastro` | Login e cadastro self-service da barbearia                                                                                                                                                                  |
 
 **Cliente no balcão (comanda e novo agendamento):** um campo aceita nome ou telefone. Com letras, busca pelo nome; com números, pelo telefone (os últimos 4 dígitos já bastam). Quem começa com o nome ou termina com os dígitos aparece primeiro. Se nada for encontrado, dá para cadastrar ali mesmo, com o que foi digitado já preenchido. O botão "Procurar na lista" abre todos os clientes com atendimentos, última visita e faltas. Na comanda, deixar sem cliente grava como **cliente avulso**: entra no caixa e na comissão do barbeiro, mas não vai para o histórico de ninguém. O agendamento sempre exige cliente.
 
