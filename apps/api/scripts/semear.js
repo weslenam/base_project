@@ -2,7 +2,7 @@
 // Barbearia modelo + um usuário por papel. SENHAS SÓ PARA DESENVOLVIMENTO.
 import Fastify from 'fastify';
 import { config } from '../src/infra/config.js';
-import { migrar } from '../src/infra/migrar.js';
+import { migrar, prepararPapelDaAplicacao } from '../src/infra/migrar.js';
 import banco from '../src/infra/banco.js';
 import { criarBarbearia } from '../src/servicos/barbearias.js';
 import { gerarHashDeSenha } from '../src/seguranca/senha.js';
@@ -10,6 +10,7 @@ import { semearOperacao, temPerfil } from './operacao-exemplo.js';
 
 const SENHA = 'barbertime123';
 await migrar(config.databaseUrlMigracao);
+await prepararPapelDaAplicacao(config.databaseUrlMigracao, config.databaseUrl);
 
 const fastify = Fastify();
 await fastify.register(banco, { databaseUrl: config.databaseUrl });

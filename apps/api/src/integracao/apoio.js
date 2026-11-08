@@ -35,7 +35,11 @@ export async function criarServidor(opcoes = {}) {
 
 /** Cliente como superusuário (faz o papel do super admin nos testes). */
 export async function comoSuperusuario(fn) {
-  const c = new pg.Client({ connectionString: inject('urlMigracao') });
+  // O papel postgres do Supabase traz o próprio search_path: pede `app` (ADR 0017).
+  const c = new pg.Client({
+    connectionString: inject('urlMigracao'),
+    options: '-c search_path=app,public',
+  });
   await c.connect();
   try {
     return await fn(c);

@@ -543,3 +543,11 @@ Se o `rollback` falhar (conexão caída), a exceção do rollback substitui o er
   - As fases F0 a F6 viraram as sprints S0 a S8.
   - Entraram o adaptador de identidade, o schema `app`, o convite com aceite, o SSE no lugar do Realtime no navegador e o limite de requisições no Postgres (sem Redis).
   - A seção "Decisões da entrevista" prevalece sobre as recomendações antigas das seções 2.x.
+- 2026-11-08: **S1 concluída** (stack local e baseline).
+  - **CLI:** `supabase@3.0.0` como devDependency. O `config.toml` tem Realtime, Storage, Edge, Analytics e Vector desligados, `site_url` em `http://localhost:4200` e SMTP do Mailpit exposto na porta 54325.
+  - **Baseline:** `supabase/migrations/20261108120000_baseline.sql`, gerada do schema das migrações JS 0000 a 0007.
+  - **Desvio:** a baseline já nasce no schema `app`, com `app.barbearia_atual()`, privilégios só para o `barbertime_app` e `anon`/`authenticated`/`service_role` revogados. Com isso, parte da S2 foi adiantada. Ficar em `public` publicaria as tabelas pela chave anônima durante a sprint.
+  - **Migrador:** `apps/api/src/infra/migrar.js` passou a aplicar o SQL de `supabase/migrations`. Ele reconhece as versões que o CLI já aplicou (`supabase_migrations`) e as próprias (`public.migracoes_aplicadas`). `prepararPapelDaAplicacao` dá LOGIN e a senha do `.env` ao `barbertime_app`.
+  - **Testes:** o `postgres` do Supabase não é superusuário, mas tem `BYPASSRLS`, e o `search_path` dele vem no próprio papel. Por isso o cliente administrativo dos testes pede `app`.
+  - **Scripts:** `pnpm banco` sobe o Supabase, migra e semeia. `pnpm banco:compose` é a volta atrás para o compose.
+  - **Resultado:** `pnpm verificar:tudo` verde contra o Supabase local (83 testes de integração).

@@ -62,27 +62,27 @@ nvm use
 corepack enable
 pnpm install
 cp .env.example .env        # ajuste as senhas
-pnpm banco                  # sobe postgres, redis e mailpit, migra e cria a barbearia modelo
+pnpm banco                  # sobe o Supabase local, migra e cria a barbearia modelo
 pnpm dev                    # web http://localhost:4200 · api http://localhost:3333
 ```
 
 **Acesso de desenvolvimento** (criado por `pnpm banco`, senha `barbertime123`): `dono@`, `gerente@`, `recepcao@` e `barbeiro@barbertime.dev`, um por papel. Para cadastrar outra barbearia, use `/cadastro`.
 
-O Vite repassa `/api/*` para a API. O Mailpit mostra os e-mails do ambiente em http://localhost:8025. Para rodar também a api e a web em containers: `docker compose --profile apps up`.
+O Vite repassa `/api/*` para a API. O banco é o Supabase local (ADR 0015): Studio em http://127.0.0.1:54323 e e-mails capturados em http://127.0.0.1:54324. As tabelas ficam no schema `app`, que o PostgREST não publica (ADR 0017). A primeira subida baixa as imagens do Supabase e demora alguns minutos. Até a sprint S8 do planejamento 0025, `pnpm banco:compose` sobe o Postgres e o Mailpit antigos do `docker-compose` (ajuste o `.env` conforme os comentários).
 
 ## Comandos
 
-| Comando                                  | O que faz                                                                                  |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `pnpm dev`                               | `nx serve` do `barbertime` e da `api` juntos                                               |
-| `pnpm verificar`                         | lint + testes + build de todos os projetos                                                 |
-| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                                         |
-| `pnpm format`                            | Prettier no workspace                                                                      |
-| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json`                          |
-| `pnpm verificar:tudo`                    | verificar + testes de integração da API (precisa do Postgres no Docker)                    |
-| `pnpm nx run api:migrar` / `api:semear`  | aplica migrações / cria os dados de desenvolvimento (inclui a simulação da Studio Negoboy) |
-| `docker compose up -d` / `down`          | sobe ou para a infraestrutura (`down -v` zera os dados)                                    |
-| `pnpm nx graph`                          | grafo de dependências                                                                      |
+| Comando                                  | O que faz                                                                                                          |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`                               | `nx serve` do `barbertime` e da `api` juntos                                                                       |
+| `pnpm verificar`                         | lint + testes + build de todos os projetos                                                                         |
+| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                                                                 |
+| `pnpm format`                            | Prettier no workspace                                                                                              |
+| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json`                                                  |
+| `pnpm verificar:tudo`                    | verificar + testes de integração da API (precisa do Supabase local de pé)                                          |
+| `pnpm nx run api:migrar` / `api:semear`  | aplica as migrações SQL de `supabase/migrations` e prepara o papel da aplicação / cria os dados de desenvolvimento |
+| `pnpm banco` / `pnpm banco:parar`        | sobe ou para o Supabase local (`pnpm supabase db reset` zera o banco de desenvolvimento)                           |
+| `pnpm nx graph`                          | grafo de dependências                                                                                              |
 
 ## Estrutura
 

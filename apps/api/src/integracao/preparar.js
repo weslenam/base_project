@@ -1,8 +1,9 @@
 // Preparo global dos testes de integração: recria o banco barbertime_teste e aplica
-// as migrações. Precisa do Postgres do Docker (docker compose up -d postgres).
+// as migrações SQL (supabase/migrations). Precisa do Postgres do Supabase local
+// (pnpm supabase start) ou, como volta atrás, do compose.
 import pg from 'pg';
 import { config } from '../infra/config.js';
-import { migrar } from '../infra/migrar.js';
+import { migrar, prepararPapelDaAplicacao } from '../infra/migrar.js';
 
 const BANCO = 'barbertime_teste';
 const trocarBanco = (url, banco) => {
@@ -19,7 +20,7 @@ export default async function ({ provide }) {
     await admin.connect();
   } catch (erro) {
     throw new Error(
-      `Postgres indisponível para os testes de integração (${erro.message}). Rode: docker compose up -d postgres`,
+      `Postgres indisponível para os testes de integração (${erro.message}). Rode: pnpm supabase start`,
     );
   }
   await admin.query(`drop database if exists ${BANCO} with (force)`);
@@ -28,6 +29,7 @@ export default async function ({ provide }) {
 
   const urlMigracao = trocarBanco(config.databaseUrlMigracao, BANCO);
   await migrar(urlMigracao);
+  await prepararPapelDaAplicacao(urlMigracao, config.databaseUrl);
   provide('urlApp', trocarBanco(config.databaseUrl, BANCO));
   provide('urlMigracao', urlMigracao);
 }
