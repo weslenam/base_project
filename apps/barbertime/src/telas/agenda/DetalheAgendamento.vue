@@ -156,7 +156,9 @@ async function removerBloqueio() {
           />
         </template>
         <template v-else-if="agendamento.estado === 'confirmado'">
+          <!-- Sem check-in no balcão não há comanda: atendido só depois de chegar. -->
           <DsAcao
+            v-if="agendamento.status !== 'agendado'"
             icone="check"
             titulo="Marcar atendido"
             descricao="Conclui o atendimento"

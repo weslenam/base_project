@@ -5,6 +5,7 @@ import {
   DsDialogo,
   DsFormulario,
   DsInput,
+  DsSelect,
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
@@ -19,6 +20,7 @@ const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 const form = ref({});
+const contas = ref([]);
 const editando = computed(() => Boolean(props.id));
 
 const regraComissao = (v) =>
@@ -26,11 +28,24 @@ const regraComissao = (v) =>
 
 watch(aberto, async (abriu) => {
   if (!abriu) return;
-  const equipe = await api.barbeiros.listar();
+  const [equipe, lista] = await Promise.all([
+    api.barbeiros.listar(),
+    api.barbeiros.contas().catch(() => []),
+  ]);
+  contas.value = lista.map((u) => ({
+    valor: u.id,
+    rotulo: `${u.nome} (${u.email})`,
+  }));
   const atual = equipe.find((b) => b.id === props.id);
   form.value = atual
     ? { ...atual }
-    : { nome: '', inicio: '09:00', fim: '18:00', comissao: 40 };
+    : {
+        nome: '',
+        inicio: '09:00',
+        fim: '18:00',
+        comissao: 40,
+        usuarioId: null,
+      };
 });
 
 async function salvar() {
@@ -94,6 +109,13 @@ async function excluir() {
         ajuda="Sobre os serviços que ele realiza"
         :regras="[regraComissao]"
         obrigatorio
+      />
+      <DsSelect
+        v-model="form.usuarioId"
+        rotulo="Conta de acesso"
+        :opcoes="contas"
+        ajuda="Com a conta ligada, ele vê a própria agenda ao entrar"
+        limpavel
       />
     </DsFormulario>
     <template #acoes>

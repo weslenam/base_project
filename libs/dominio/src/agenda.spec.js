@@ -3,6 +3,7 @@ import {
   fimDe,
   hojeIso,
   horariosLivres,
+  naGrade,
   ocupaHorario,
   paraHora,
   paraMinutos,
@@ -100,5 +101,16 @@ describe('datas', () => {
   it('hojeIso e diaDaSemana', () => {
     expect(hojeIso(new Date(2026, 10, 7, 23, 59))).toBe('2026-11-07');
     expect(diaDaSemana('2026-11-07')).toBe(6);
+  });
+});
+
+describe('naGrade', () => {
+  it('aceita só horários da grade a partir do início do expediente', () => {
+    expect(naGrade('09:00', '09:00')).toBe(true);
+    expect(naGrade('10:30', '09:00')).toBe(true);
+    expect(naGrade('09:10', '09:00')).toBe(false);
+    expect(naGrade('09:15', '08:45')).toBe(true);
+    expect(naGrade('0a:00', '09:00')).toBe(false);
+    expect(naGrade('09:20', '09:00', 10)).toBe(true);
   });
 });

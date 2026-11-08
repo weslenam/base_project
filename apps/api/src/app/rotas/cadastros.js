@@ -1,7 +1,7 @@
 import { paraMinutos } from '@barbertime/dominio';
 import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
 import { agora } from '../../servicos/agenda.js';
-import { TAM, corpo, escalar, texto } from '../esquemas.js';
+import { TAM, campoHora, corpo, escalar, inteiro, texto } from '../esquemas.js';
 
 // Serviços, produtos e equipe (planejamento 0019). Exclusão lógica: o histórico
 // de agendamentos e comandas continua apontando para o registro.
@@ -77,9 +77,10 @@ export default async function (fastify) {
     ...equipe,
     schema: corpo({
       nome: texto(TAM.nome),
-      inicio: texto(TAM.hora),
-      fim: texto(TAM.hora),
+      inicio: campoHora,
+      fim: campoHora,
       comissao: escalar(),
+      usuarioId: inteiro,
     }),
   };
   const na = (req, fn) => fastify.naBarbearia(req, fn);
@@ -204,6 +205,38 @@ export default async function (fastify) {
     ),
   );
 
+  /** Contas ativas da barbearia que podem ser ligadas a um barbeiro (agenda própria). */
+  async function contasDaBarbearia(c, barbeariaId) {
+    const { rows } = await c.query(
+      `select u.id, u.nome, u.email from vinculos v join usuarios u on u.id = v.usuario_id
+        where v.barbearia_id = $1 and v.ativo order by u.nome`,
+      [barbeariaId],
+    );
+    return rows;
+  }
+  fastify.get('/barbeiros/contas', equipe, (req) =>
+    na(req, (c) => contasDaBarbearia(c, req.contexto.barbeariaId)),
+  );
+
+  /** Conta do barbeiro: precisa ser desta barbearia e não estar em outro barbeiro. */
+  async function contaDoBarbeiro(c, req, id, usuarioId) {
+    if (!usuarioId) return null;
+    const conta = await c.query(
+      'select 1 from vinculos where barbearia_id = $1 and usuario_id = $2 and ativo',
+      [req.contexto.barbeariaId, usuarioId],
+    );
+    if (!conta.rowCount)
+      throw invalido('Essa conta não é de um usuário desta barbearia.');
+    const outro = await c.query(
+      `select nome from barbeiros
+        where usuario_id = $1 and excluido_em is null and id <> coalesce($2::bigint, 0)`,
+      [usuarioId, id],
+    );
+    if (outro.rowCount)
+      throw conflito(`Essa conta já está ligada a ${outro.rows[0].nome}.`);
+    return usuarioId;
+  }
+
   const salvarBarbeiro = (req) =>
     na(req, async (c) => {
       const id = req.params.id ? Number(req.params.id) : null;
@@ -221,20 +254,32 @@ export default async function (fastify) {
       if (!(comissao >= 0 && comissao <= 100))
         throw invalido('A comissão precisa estar entre 0% e 100%.');
       const valores = [nome, d.inicio, d.fim, comissao];
+      // Sem o campo no corpo, a conta ligada continua como está.
+      const mudaConta = Object.hasOwn(d, 'usuarioId');
+      const usuarioId = mudaConta
+        ? await contaDoBarbeiro(
+            c,
+            req,
+            id,
+            d.usuarioId ? Number(d.usuarioId) : null,
+          )
+        : null;
       if (id) {
         await obterAtivo(c, 'barbeiros', id, 'Barbeiro');
         await c.query(
-          'update barbeiros set nome = $2, inicio = $3, fim = $4, comissao = $5 where id = $1',
-          [id, ...valores],
+          `update barbeiros set nome = $2, inicio = $3, fim = $4, comissao = $5,
+             usuario_id = case when $6 then $7::bigint else usuario_id end
+           where id = $1`,
+          [id, ...valores, mudaConta, usuarioId],
         );
         return (await c.query(`${BARBEIRO} where id = $1`, [id])).rows[0];
       }
       const {
         rows: [novo],
       } = await c.query(
-        `insert into barbeiros (barbearia_id, nome, inicio, fim, comissao)
-         values ($1, $2, $3, $4, $5) returning id`,
-        [req.contexto.barbeariaId, ...valores],
+        `insert into barbeiros (barbearia_id, nome, inicio, fim, comissao, usuario_id)
+         values ($1, $2, $3, $4, $5, $6) returning id`,
+        [req.contexto.barbeariaId, ...valores, usuarioId],
       );
       return (await c.query(`${BARBEIRO} where id = $1`, [novo.id])).rows[0];
     });

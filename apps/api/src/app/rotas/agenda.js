@@ -13,8 +13,10 @@ import {
   ocupadosDoDia,
   validarHorario,
 } from '../../servicos/agenda.js';
+import { cancelarComanda } from '../../servicos/caixa.js';
 import {
-  TAM,
+  campoData,
+  campoHora,
   clienteResumido,
   corpo,
   inteiro,
@@ -29,10 +31,8 @@ import {
 /** Ações da agenda atual → status do atendimento. */
 const ACOES = {
   confirmado: { de: ['agendado'], confirmar: true },
-  atendido: {
-    de: ['agendado', 'chegou', 'em_atendimento'],
-    para: 'finalizado',
-  },
+  // Sem check-in não há comanda: "atendido" só depois de chegar (ciclo do domínio).
+  atendido: { de: ['chegou', 'em_atendimento'], para: 'finalizado' },
   faltou: { de: ['agendado'], para: 'no_show' },
   cancelado: { de: ['agendado', 'chegou'], para: 'cancelado' },
 };
@@ -47,7 +47,7 @@ export default async function (fastify) {
 
   fastify.get(
     '/agendamentos',
-    { ...ver, schema: query({ data: texto(TAM.data) }) },
+    { ...ver, schema: query({ data: campoData }) },
     (req) =>
       na(req, async (c) => {
         const data = String(req.query.data ?? agora().data);
@@ -76,7 +76,7 @@ export default async function (fastify) {
     {
       ...ver,
       schema: query({
-        data: texto(TAM.data),
+        data: campoData,
         barbeiroId: inteiro,
         servicoId: inteiro,
       }),
@@ -108,18 +108,25 @@ export default async function (fastify) {
     return bloqueioNaAgenda(k);
   }
 
+  /** Quem só vê a própria agenda não lê item de outro barbeiro. */
+  async function exigirProprio(c, req, barbeiroId) {
+    if (!soOsProprios(req)) return;
+    const dono = await c.query(
+      'select 1 from barbeiros where id = $1 and usuario_id = $2',
+      [barbeiroId, req.contexto.usuarioId],
+    );
+    if (!dono.rowCount) throw proibido('Esse agendamento é de outro barbeiro.');
+  }
+
   fastify.get('/agendamentos/:id', ver, (req) =>
     na(req, async (c) => {
-      if (Number(req.params.id) < 0) return bloqueio(c, req.params.id);
-      const a = await buscarAtendimento(c, req.params.id);
-      if (soOsProprios(req)) {
-        const dono = await c.query(
-          'select 1 from barbeiros where id = $1 and usuario_id = $2',
-          [a.barbeiroId, req.contexto.usuarioId],
-        );
-        if (!dono.rowCount)
-          throw proibido('Esse agendamento é de outro barbeiro.');
+      if (Number(req.params.id) < 0) {
+        const k = await bloqueio(c, req.params.id);
+        await exigirProprio(c, req, k.barbeiroId);
+        return k;
       }
+      const a = await buscarAtendimento(c, req.params.id);
+      await exigirProprio(c, req, a.barbeiroId);
       const {
         rows: [cli],
       } = await c.query('select observacoes from clientes where id = $1', [
@@ -134,8 +141,8 @@ export default async function (fastify) {
     {
       ...gerenciar,
       schema: corpo({
-        data: texto(TAM.data),
-        inicio: texto(TAM.hora),
+        data: campoData,
+        inicio: campoHora,
         barbeiroId: inteiro,
         servicoId: inteiro,
         clienteId: inteiro,
@@ -156,9 +163,9 @@ export default async function (fastify) {
     {
       ...gerenciar,
       schema: corpo({
-        data: texto(TAM.data),
-        inicio: texto(TAM.hora),
-        fim: texto(TAM.hora),
+        data: campoData,
+        inicio: campoHora,
+        fim: campoHora,
         barbeiroId: inteiro,
         motivo: texto(200),
       }),
@@ -213,12 +220,13 @@ export default async function (fastify) {
           ]);
           return { ...k, estado: 'cancelado' };
         }
-        const a = await buscarAtendimento(c, req.params.id);
+        if (!Object.hasOwn(ACOES, estado)) throw negado();
         const acao = ACOES[estado];
+        const a = await buscarAtendimento(c, req.params.id, { travar: true });
         // Como na agenda atual: pendente só confirma ou cancela.
         const pendente = a.status === 'agendado' && !a.confirmadoEm;
         if (
-          !acao?.de.includes(a.status) ||
+          !acao.de.includes(a.status) ||
           (acao.confirmar && a.confirmadoEm) ||
           (pendente && (estado === 'atendido' || estado === 'faltou'))
         )
@@ -235,6 +243,9 @@ export default async function (fastify) {
            where id = $1`,
             [a.id, acao.para],
           );
+          // Como o "desistir" do balcão: a comanda aberta no check-in cai junto.
+          if (acao.para === 'cancelado' && a.comandaEstado === 'aberta')
+            await cancelarComanda(c, a.comandaId);
         }
         return buscarAtendimento(c, a.id);
       }),

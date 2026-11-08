@@ -15,14 +15,25 @@ export async function criarSessao(db, usuarioId, barbeariaId) {
   return token;
 }
 
-/** Sessão válida (renovada) ou null. */
+/**
+ * Sessão válida ou null. Renova a validade só quando já passou da metade do
+ * prazo: assim a maioria das requisições é só leitura, sem escrita por pedido.
+ */
 export async function lerSessao(db, token) {
   if (!token) return null;
+  const meioPrazo = new Date(
+    Date.now() + (config.diasDeSessao * 86_400_000) / 2,
+  );
   const { rows } = await db.query(
-    `update sessoes set expira_em = $2
-      where id_hash = $1 and expira_em > now()
-  returning usuario_id as "usuarioId", barbearia_id as "barbeariaId"`,
-    [hash(token), expiracao()],
+    `with sessao as (
+       select usuario_id, barbearia_id from sessoes
+        where id_hash = $1 and expira_em > now()
+     ), renovada as (
+       update sessoes set expira_em = $2
+        where id_hash = $1 and expira_em > now() and expira_em < $3
+     )
+     select usuario_id as "usuarioId", barbearia_id as "barbeariaId" from sessao`,
+    [hash(token), expiracao(), meioPrazo],
   );
   return rows[0] ?? null;
 }

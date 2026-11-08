@@ -41,6 +41,9 @@ export function sobrepoe(a, b) {
   );
 }
 
+/** Intervalo, em minutos, entre os horários oferecidos na agenda. */
+export const PASSO_DA_GRADE = 30;
+
 /**
  * Horários de início possíveis para um serviço, no passo dado.
  * - expediente: { inicio, fim } do profissional
@@ -53,7 +56,7 @@ export function horariosLivres({
   expediente,
   duracao,
   ocupados = [],
-  passo = 30,
+  passo = PASSO_DA_GRADE,
   aPartirDe,
 }) {
   const resultado = [];
@@ -70,6 +73,12 @@ export function horariosLivres({
     resultado.push({ hora: candidato.inicio, disponivel });
   }
   return resultado;
+}
+
+/** O horário cai na grade de `horariosLivres` (a partir do início do expediente)? */
+export function naGrade(inicio, expedienteInicio, passo = PASSO_DA_GRADE) {
+  const deslocamento = paraMinutos(inicio) - paraMinutos(expedienteInicio);
+  return Number.isInteger(deslocamento) && deslocamento % passo === 0;
 }
 
 // ---- datas (ISO local) ----

@@ -367,6 +367,11 @@ describe('escalada de privilégio: hierarquia fixa (ADR 0010)', () => {
 
 describe('esqueci a senha (planejamento 0023)', () => {
   const tokenDoEmail = (msg) => msg.texto.match(/#t=([\w-]+)/)[1];
+  /** Token e e-mail saem depois da resposta: espera o próximo e-mail chegar. */
+  const esperarNovo = async (antes) => {
+    for (let i = 0; i < 150 && preparo.caixaDeEntrada.length <= antes; i++)
+      await new Promise((r) => setTimeout(r, 20));
+  };
 
   it('mesma resposta exista o e-mail ou não; só a conta real recebe o link', async () => {
     const { email } = await novaBarbearia(preparo);
@@ -382,7 +387,7 @@ describe('esqueci a senha (planejamento 0023)', () => {
     expect(real.statusCode).toBe(200);
     expect(falso.statusCode).toBe(200);
     expect(real.json()).toEqual(falso.json());
-    await new Promise((r) => setTimeout(r, 20)); // envio é assíncrono
+    await esperarNovo(antes);
     const novos = preparo.caixaDeEntrada.slice(antes);
     expect(novos.map((m) => m.para)).toEqual([email]);
     expect(novos[0].texto).toContain('http://app.teste/redefinir-senha#t=');
@@ -396,11 +401,13 @@ describe('esqueci a senha (planejamento 0023)', () => {
         url: '/api/auth/esqueci',
         payload: { email },
       });
+    let antes = preparo.caixaDeEntrada.length;
     await pedir();
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarNovo(antes);
     const antigo = tokenDoEmail(preparo.caixaDeEntrada.at(-1));
+    antes = preparo.caixaDeEntrada.length;
     await pedir();
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarNovo(antes);
     const token = tokenDoEmail(preparo.caixaDeEntrada.at(-1));
     const redefinir = (t, senha = 'senha-nova-123') =>
       preparo.inject({
@@ -429,12 +436,13 @@ describe('esqueci a senha (planejamento 0023)', () => {
 
   it('link expirado ou inventado não funciona', async () => {
     const { email } = await novaBarbearia(preparo);
+    const antes = preparo.caixaDeEntrada.length;
     await preparo.inject({
       method: 'POST',
       url: '/api/auth/esqueci',
       payload: { email },
     });
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarNovo(antes);
     const token = tokenDoEmail(preparo.caixaDeEntrada.at(-1));
     await comoSuperusuario((c) =>
       c.query(

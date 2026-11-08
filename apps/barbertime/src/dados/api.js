@@ -317,7 +317,11 @@ export function criarApi({ agora = () => new Date() } = {}) {
           fim: r.fim,
           servicoNome: r.servicoNome,
           barbeiroNome: r.barbeiroNome,
-          primeiroNome: r.clienteNome.split(' ')[0],
+          // Como a API: o nome digitado, nunca o do cadastro.
+          primeiroNome:
+            String(dados.cliente?.nome ?? '')
+              .trim()
+              .split(/\s+/)[0] || null,
         };
       },
     },
@@ -410,6 +414,10 @@ export function criarApi({ agora = () => new Date() } = {}) {
       async listar() {
         return copia(banco.barbeiros);
       },
+      /** Dados de exemplo não têm contas de usuário. */
+      async contas() {
+        return [];
+      },
       async salvar(dados) {
         const nome = String(dados.nome ?? '').trim();
         if (!nome) throw new ErroDeNegocio('Informe o nome do barbeiro.');
@@ -432,6 +440,7 @@ export function criarApi({ agora = () => new Date() } = {}) {
           inicio: dados.inicio,
           fim: dados.fim,
           comissao,
+          usuarioId: dados.usuarioId ?? null,
         };
         if (dados.id)
           Object.assign(buscar('barbeiros', dados.id, 'Barbeiro'), registro);

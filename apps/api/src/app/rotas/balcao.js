@@ -119,9 +119,12 @@ export default async function (fastify) {
         `select s.id, s.nome, s.duracao, s.preco, count(cm.id)::int as vendas
            from servicos s
            left join comandas cm on cm.estado = 'paga'
+             -- Só os últimos 90 dias: a contagem não cresce com o histórico.
+             and cm.caixa_id in (select id from caixas where data >= $1::date - 90)
              and cm.itens @> jsonb_build_array(jsonb_build_object('tipo', 'servico', 'refId', s.id))
           where s.excluido_em is null
           group by s.id order by vendas desc, s.nome`,
+        [d.data],
       );
       return {
         data: d.data,
@@ -254,7 +257,7 @@ export default async function (fastify) {
   fastify.post('/atendimentos/:id/checkin', operar, (req) =>
     na(req, async (c) => {
       await exigirCaixaAberto(c);
-      const a = await buscarAtendimento(c, req.params.id);
+      const a = await buscarAtendimento(c, req.params.id, { travar: true });
       await transitar(c, a, 'chegou', ', chegou_em = now()');
       await comandaDoAtendimento(c, req.contexto.barbeariaId, a);
       return buscarAtendimento(c, a.id);
@@ -267,7 +270,7 @@ export default async function (fastify) {
     async (req) => {
       const config = await configDoBalcao(req);
       return na(req, async (c) => {
-        const a = await buscarAtendimento(c, req.params.id);
+        const a = await buscarAtendimento(c, req.params.id, { travar: true });
         const barbeiroId = Number(req.body?.barbeiroId ?? a.barbeiroId);
         if (!barbeiroId) throw invalido('Escolha quem vai atender.');
         const barbeiro = await buscarBarbeiro(c, barbeiroId, { travar: true });
@@ -310,6 +313,34 @@ export default async function (fastify) {
               `Isso atropela o agendamento das ${atropela.inicio} (${atropela.nome}) com ${barbeiro.nome}. Escolha outro barbeiro ou aguarde.`,
             );
           horario = `, inicio = '${hora}', fim = '${fim}'`;
+        } else if (barbeiro.id !== a.barbeiroId && a.inicio && a.fim) {
+          // Agendamento passado para outro barbeiro: o horário marcado tem de
+          // estar livre na agenda dele.
+          const {
+            rows: [choque],
+          } = await c.query(
+            `select a.inicio, coalesce(cl.nome, a.cliente_nome, 'cliente') as nome
+               from atendimentos a left join clientes cl on cl.id = a.cliente_id
+              where a.barbeiro_id = $1 and a.data = $2 and a.id <> $3
+                and a.estado in ('agendado', 'chegou', 'em_atendimento')
+                and a.inicio < $5 and a.fim > $4
+              order by a.inicio limit 1`,
+            [barbeiro.id, a.data, a.id, a.inicio, a.fim],
+          );
+          if (choque)
+            throw conflito(
+              `${barbeiro.nome} tem o agendamento das ${choque.inicio} (${choque.nome}) nesse horário. Escolha outro barbeiro.`,
+            );
+          const bloqueio = await c.query(
+            `select 1 from bloqueios
+              where barbeiro_id = $1 and data = $2 and not cancelado
+                and inicio < $4 and fim > $3`,
+            [barbeiro.id, a.data, a.inicio, a.fim],
+          );
+          if (bloqueio.rowCount)
+            throw conflito(
+              `${barbeiro.nome} está com a agenda bloqueada nesse horário. Escolha outro barbeiro.`,
+            );
         }
         await transitar(
           c,
@@ -328,7 +359,7 @@ export default async function (fastify) {
 
   fastify.post('/atendimentos/:id/finalizar', operar, (req) =>
     na(req, async (c) => {
-      const a = await buscarAtendimento(c, req.params.id);
+      const a = await buscarAtendimento(c, req.params.id, { travar: true });
       await transitar(c, a, 'finalizado', ', finalizado_em = now()');
       return buscarAtendimento(c, a.id);
     }),
@@ -336,7 +367,7 @@ export default async function (fastify) {
 
   fastify.post('/atendimentos/:id/desistir', operar, (req) =>
     na(req, async (c) => {
-      const a = await buscarAtendimento(c, req.params.id);
+      const a = await buscarAtendimento(c, req.params.id, { travar: true });
       await transitar(c, a, 'desistiu');
       if (a.comandaId && a.comandaEstado === 'aberta')
         await cancelarComanda(c, a.comandaId);
@@ -346,7 +377,7 @@ export default async function (fastify) {
 
   fastify.post('/atendimentos/:id/no-show', operar, (req) =>
     na(req, async (c) => {
-      const a = await buscarAtendimento(c, req.params.id);
+      const a = await buscarAtendimento(c, req.params.id, { travar: true });
       await transitar(c, a, 'no_show');
       return buscarAtendimento(c, a.id);
     }),

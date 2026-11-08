@@ -36,6 +36,21 @@ export const TAM = Object.freeze({
   codigo: 64,
 });
 
+/**
+ * Data AAAA-MM-DD válida (o formato `date` confere mês e dia, inclusive 31/02)
+ * e hora HH:MM. Vazio passa: a rota dá a mensagem própria ("Escolha o dia").
+ * Fora do formato vira 400 antes de chegar ao banco (ADR 0014).
+ */
+export const campoData = {
+  type: ['string', 'null'],
+  maxLength: TAM.data,
+  anyOf: [{ maxLength: 0 }, { format: 'date' }],
+};
+export const campoHora = {
+  type: ['string', 'null'],
+  pattern: '^(|([01][0-9]|2[0-3]):[0-5][0-9])$',
+};
+
 /** `{ body: { type: 'object', properties } }` (corpo ausente vira `{}` na guarda). */
 export const corpo = (properties) => ({
   body: { type: 'object', properties },

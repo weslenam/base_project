@@ -33,7 +33,11 @@ export function criarApiHttp(base) {
         (await http('GET', `/api/servicos/${id}/futuros`)).total,
     },
     produtos: recurso('/api/produtos'),
-    barbeiros: recurso('/api/barbeiros'),
+    barbeiros: {
+      ...recurso('/api/barbeiros'),
+      /** Contas da barbearia que podem ser ligadas a um barbeiro (agenda própria). */
+      contas: () => http('GET', '/api/barbeiros/contas'),
+    },
     clientes: {
       ...base.clientes,
       ...recurso('/api/clientes'),

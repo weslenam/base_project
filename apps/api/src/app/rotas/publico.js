@@ -3,6 +3,7 @@ import {
   horariosLivres,
   janelaDoAgendamentoOnline,
   mesclarConfigBarbearia,
+  naGrade,
   sobrepoe,
 } from '@barbertime/dominio';
 import { invalido, naoEncontrado } from '../../infra/erros.js';
@@ -15,6 +16,8 @@ import {
 } from '../../servicos/agenda.js';
 import { chaves } from '../../seguranca/limites.js';
 import {
+  campoData,
+  campoHora,
   clienteResumido,
   corpo,
   inteiro,
@@ -74,7 +77,7 @@ export default async function (fastify, { liberada = false } = {}) {
   const horarios = {
     schema: query({
       ...codigo,
-      data: texto(TAM.data),
+      data: campoData,
       barbeiroId: inteiro,
       servicoId: inteiro,
     }),
@@ -91,8 +94,8 @@ export default async function (fastify, { liberada = false } = {}) {
     schema: {
       ...query(codigo),
       ...corpo({
-        data: texto(TAM.data),
-        inicio: texto(TAM.hora),
+        data: campoData,
+        inicio: campoHora,
         barbeiroId: inteiro,
         servicoId: inteiro,
         cliente: clienteResumido,
@@ -192,7 +195,12 @@ export default async function (fastify, { liberada = false } = {}) {
               ini >= (j.aPartirDe ?? j.inicio) &&
               ini >= j.inicio &&
               fim <= j.fim;
-            if (!dentro || !sobrepoe({ inicio: ini, fim }, j))
+            // Só os horários que a página oferece (grade a partir do início).
+            if (
+              !dentro ||
+              !sobrepoe({ inicio: ini, fim }, j) ||
+              !naGrade(ini, j.inicio)
+            )
               throw invalido(
                 'Esse horário não está disponível para agendamento online. Escolha outro.',
               );
@@ -209,7 +217,13 @@ export default async function (fastify, { liberada = false } = {}) {
       fim: r.fim,
       servicoNome: r.servicoNome,
       barbeiroNome: r.barbeiroNome,
-      primeiroNome: r.clienteNome.trim().split(/\s+/)[0],
+      // O nome digitado, nunca o do cadastro: agendar não pode virar um atalho
+      // para o reconhecimento por telefone, que tem limites próprios mais
+      // apertados (o front usa o nome da saudação).
+      primeiroNome:
+        String(cliente?.nome ?? '')
+          .trim()
+          .split(/\s+/)[0] || null,
     };
   });
 }

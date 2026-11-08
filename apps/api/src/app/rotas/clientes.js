@@ -47,7 +47,10 @@ export default async function (fastify) {
   async function obter(c, id) {
     const {
       rows: [cliente],
-    } = await c.query(`${SELECT_CLIENTE} where c.id = $1`, [Number(id)]);
+    } = await c.query(
+      `${SELECT_CLIENTE} where c.id = $1 and c.excluido_em is null`,
+      [Number(id)],
+    );
     if (!cliente) throw naoEncontrado('Cliente não encontrado.');
     return cliente;
   }
@@ -62,7 +65,8 @@ export default async function (fastify) {
         const digitos = busca.replace(/\D/g, '');
         const { rows } = await c.query(
           `${SELECT_CLIENTE}
-          where $1 = '' or c.nome ilike '%' || $1 || '%' or ($2 <> '' and c.telefone like '%' || $2 || '%')
+          where c.excluido_em is null
+            and ($1 = '' or c.nome ilike '%' || $1 || '%' or ($2 <> '' and c.telefone like '%' || $2 || '%'))
           limit 500`,
           [busca, digitos],
         );
@@ -147,7 +151,13 @@ export default async function (fastify) {
         throw conflito(
           `Não é possível excluir "${cliente.nome}": há ${n} agendamento${n > 1 ? 's' : ''} futuro${n > 1 ? 's' : ''}. Cancele ou remarque antes.`,
         );
-      await c.query('delete from clientes where id = $1', [cliente.id]);
+      // Anonimiza (LGPD) e mantém atendimentos e comandas no histórico.
+      await c.query(
+        `update clientes set nome = 'Cliente removido', telefone = null, cpf = null,
+           observacoes = '', excluido_em = now()
+         where id = $1`,
+        [cliente.id],
+      );
     });
     reply.code(204);
   });

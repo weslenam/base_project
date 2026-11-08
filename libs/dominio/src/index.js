@@ -7,6 +7,7 @@ export {
   fimDe,
   sobrepoe,
   horariosLivres,
+  naGrade,
   hojeIso,
   somarDias,
   diaDaSemana,

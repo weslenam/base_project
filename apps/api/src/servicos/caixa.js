@@ -53,12 +53,41 @@ export async function comandasDoCaixa(c, caixaId) {
   return rows.map(completarComanda);
 }
 
-export async function obterComanda(c, id) {
+export async function obterComanda(c, id, { travar = false } = {}) {
   const {
     rows: [cm],
-  } = await c.query(`${SELECT_COMANDA} where cm.id = $1`, [Number(id)]);
+  } = await c.query(
+    `${SELECT_COMANDA} where cm.id = $1${travar ? ' for update of cm' : ''}`,
+    [Number(id)],
+  );
   if (!cm) throw naoEncontrado('Comanda não encontrada.');
   return completarComanda(cm);
+}
+
+/**
+ * Trava a comanda para mudar o estado. Sempre na mesma ordem (atendimento,
+ * depois comanda), como as rotas do balcão, para não haver impasse.
+ */
+async function travarComanda(c, id) {
+  const cm = await obterComanda(c, id);
+  if (cm.atendimentoId)
+    await c.query('select 1 from atendimentos where id = $1 for update', [
+      cm.atendimentoId,
+    ]);
+  return obterComanda(c, cm.id, { travar: true });
+}
+
+/**
+ * Comanda que ficou aberta num caixa de outro dia passa para o caixa de hoje:
+ * o dinheiro entra no fechamento de hoje e o caixa antigo pode ser fechado.
+ */
+async function trazerParaOCaixaDeHoje(c, cm, caixa) {
+  if (cm.caixaId === caixa.id) return cm;
+  await c.query('update comandas set caixa_id = $2 where id = $1', [
+    cm.id,
+    caixa.id,
+  ]);
+  return { ...cm, caixaId: caixa.id };
 }
 
 export async function caixaComResumo(c, caixa) {
@@ -117,9 +146,22 @@ export async function fecharCaixa(c, { dinheiroContado }) {
   return caixaComResumo(c, await caixaDoDia(c));
 }
 
-/** Itens com nome e preço do momento da venda (base da comissão futura). */
+/** Barbeiro ativo desta barbearia (a RLS limita a busca à barbearia). */
+async function exigirBarbeiro(c, id) {
+  const b = await c.query(
+    'select 1 from barbeiros where id = $1 and excluido_em is null',
+    [id],
+  );
+  if (!b.rowCount) throw invalido('Barbeiro não encontrado.');
+}
+
+/**
+ * Itens com nome e preço do catálogo no momento da venda (base da comissão
+ * futura). Nome e preço nunca vêm de quem chama a API.
+ */
 async function normalizarItens(c, itens = [], barbeiroId) {
   const normalizados = [];
+  const conferidos = new Set(barbeiroId ? [barbeiroId] : []);
   for (const i of itens) {
     if (i.tipo === 'pacote' || i.assinaturaId)
       throw invalido(
@@ -129,18 +171,24 @@ async function normalizarItens(c, itens = [], barbeiroId) {
     const {
       rows: [ref],
     } = await c.query(
-      `select id, nome, preco from ${produto ? 'produtos' : 'servicos'} where id = $1`,
+      `select id, nome, preco from ${produto ? 'produtos' : 'servicos'}
+        where id = $1 and excluido_em is null`,
       [Number(i.refId)],
     );
     if (!ref)
       throw invalido(`${produto ? 'Produto' : 'Serviço'} não encontrado.`);
+    const doItem = i.barbeiroId ? Number(i.barbeiroId) : null;
+    if (doItem && !conferidos.has(doItem)) {
+      await exigirBarbeiro(c, doItem);
+      conferidos.add(doItem);
+    }
     normalizados.push({
       tipo: produto ? 'produto' : 'servico',
       refId: ref.id,
-      nome: i.nome ?? ref.nome,
-      preco: Number(i.preco ?? ref.preco),
+      nome: ref.nome,
+      preco: Number(ref.preco),
       quantidade: Math.max(1, Math.round(Number(i.quantidade) || 1)),
-      barbeiroId: i.barbeiroId ?? barbeiroId ?? null,
+      barbeiroId: doItem ?? barbeiroId ?? null,
     });
   }
   return normalizados;
@@ -151,30 +199,45 @@ export async function salvarComanda(c, barbeariaId, dados) {
   const caixa = await exigirCaixaAberto(c);
   const barbeiroId = dados.barbeiroId ? Number(dados.barbeiroId) : null;
   if (barbeiroId) {
-    const b = await c.query(
-      'select 1 from barbeiros where id = $1 and excluido_em is null',
-      [barbeiroId],
-    );
-    if (!b.rowCount) throw invalido('Barbeiro não encontrado.');
+    await exigirBarbeiro(c, barbeiroId);
   } else if (!dados.atendimentoId && !dados.id) {
     throw invalido('Escolha o barbeiro da comanda.');
   }
+  const atendimentoId = dados.atendimentoId
+    ? Number(dados.atendimentoId)
+    : null;
+  if (atendimentoId) {
+    // A RLS só enxerga os atendimentos desta barbearia; a chave estrangeira
+    // não passa pela RLS, então a conferência é aqui.
+    const {
+      rows: [a],
+    } = await c.query('select estado from atendimentos where id = $1', [
+      atendimentoId,
+    ]);
+    if (!a) throw invalido('Atendimento não encontrado.');
+    if (['desistiu', 'no_show', 'cancelado', 'pago'].includes(a.estado))
+      throw invalido('Esse atendimento já foi encerrado.');
+  }
   const itens = await normalizarItens(c, dados.itens, barbeiroId);
   const desconto = Number(dados.desconto || 0);
+  if (!Number.isFinite(desconto))
+    throw invalido('Informe o desconto em reais.');
   if (desconto < 0 || desconto > totalDaComanda({ itens }).subtotal)
     throw invalido('O desconto não pode ser maior que o valor da comanda.');
   const clienteId = dados.clienteId ? Number(dados.clienteId) : null;
   if (clienteId) {
-    const r = await c.query('select 1 from clientes where id = $1', [
-      clienteId,
-    ]);
+    const r = await c.query(
+      'select 1 from clientes where id = $1 and excluido_em is null',
+      [clienteId],
+    );
     if (!r.rowCount) throw invalido('Cliente não encontrado.');
   }
 
   if (dados.id) {
-    const atual = await obterComanda(c, dados.id);
+    const atual = await travarComanda(c, dados.id);
     if (atual.estado !== 'aberta')
       throw conflito('Só dá para alterar comanda em aberto.');
+    await trazerParaOCaixaDeHoje(c, atual, caixa);
     await c.query(
       `update comandas set cliente_id = $2, barbeiro_id = coalesce($3, barbeiro_id),
          itens = $4, desconto = $5, forma = $6 where id = $1`,
@@ -197,7 +260,7 @@ export async function salvarComanda(c, barbeariaId, dados) {
     [
       barbeariaId,
       caixa.id,
-      dados.atendimentoId ?? null,
+      atendimentoId,
       clienteId,
       barbeiroId,
       agora().hora,
@@ -211,9 +274,10 @@ export async function salvarComanda(c, barbeariaId, dados) {
 
 /** Recebe a comanda; o atendimento ligado vira "pago". */
 export async function receberComanda(c, id, { forma } = {}) {
-  await exigirCaixaAberto(c);
-  const cm = await obterComanda(c, id);
+  const caixa = await exigirCaixaAberto(c);
+  const cm = await travarComanda(c, id);
   if (cm.estado !== 'aberta') throw conflito('Essa comanda já foi encerrada.');
+  await trazerParaOCaixaDeHoje(c, cm, caixa);
   const motivo = motivoParaNaoReceber({ ...cm, forma: forma ?? cm.forma });
   if (motivo) throw invalido(motivo);
   await c.query(
@@ -225,7 +289,7 @@ export async function receberComanda(c, id, { forma } = {}) {
       `update atendimentos set estado = 'pago',
          finalizado_em = coalesce(finalizado_em, now()),
          iniciado_em = coalesce(iniciado_em, now())
-       where id = $1 and estado in ('chegou', 'na_fila', 'em_atendimento', 'finalizado')`,
+       where id = $1 and estado in ('agendado', 'chegou', 'na_fila', 'em_atendimento', 'finalizado')`,
       [cm.atendimentoId],
     );
   }
@@ -233,7 +297,7 @@ export async function receberComanda(c, id, { forma } = {}) {
 }
 
 export async function cancelarComanda(c, id) {
-  const cm = await obterComanda(c, id);
+  const cm = await travarComanda(c, id);
   if (cm.estado === 'paga')
     throw conflito('Comanda já recebida não pode ser cancelada.');
   await c.query("update comandas set estado = 'cancelada' where id = $1", [

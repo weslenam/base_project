@@ -42,38 +42,44 @@ export default async function (fastify, { correio, appUrl }) {
       [email],
     );
     if (usuario) {
+      // Fora do caminho da resposta: gravar o token e enviar o e-mail não pode
+      // deixar a resposta de quem tem conta mais lenta (o tempo não revela nada).
       const token = randomBytes(32).toString('base64url');
-      await fastify.emTransacao(async (c) => {
-        await c.query(
-          'delete from redefinicoes_senha where usuario_id = $1 and usada_em is null',
-          [usuario.id],
-        );
-        await c.query(
-          'insert into redefinicoes_senha (id_hash, usuario_id, expira_em) values ($1, $2, $3)',
-          [hash(token), usuario.id, new Date(Date.now() + VALIDADE_MS)],
-        );
-      });
-      // Sem await: o tempo da resposta não depende do envio.
-      Promise.resolve()
-        .then(() =>
-          correio.enviar({
-            para: usuario.email,
-            assunto: 'BarberTime: criar uma senha nova',
-            texto: [
-              `Olá, ${usuario.nome.trim().split(/\s+/)[0]}.`,
-              '',
-              'Recebemos um pedido para criar uma senha nova na sua conta do BarberTime.',
-              `Abra o link abaixo (vale por 1 hora e uma vez só):`,
-              '',
-              `${appUrl}/redefinir-senha#t=${token}`,
-              '',
-              'Se não foi você, ignore este e-mail: sua senha continua a mesma.',
-            ].join('\n'),
-          }),
-        )
-        .catch((erro) =>
-          req.log.error({ err: erro }, 'falha ao enviar e-mail de redefinição'),
-        );
+      setImmediate(() =>
+        fastify
+          .emTransacao(async (c) => {
+            await c.query(
+              'delete from redefinicoes_senha where usuario_id = $1 and usada_em is null',
+              [usuario.id],
+            );
+            await c.query(
+              'insert into redefinicoes_senha (id_hash, usuario_id, expira_em) values ($1, $2, $3)',
+              [hash(token), usuario.id, new Date(Date.now() + VALIDADE_MS)],
+            );
+          })
+          .then(() =>
+            correio.enviar({
+              para: usuario.email,
+              assunto: 'BarberTime: criar uma senha nova',
+              texto: [
+                `Olá, ${usuario.nome.trim().split(/\s+/)[0]}.`,
+                '',
+                'Recebemos um pedido para criar uma senha nova na sua conta do BarberTime.',
+                `Abra o link abaixo (vale por 1 hora e uma vez só):`,
+                '',
+                `${appUrl}/redefinir-senha#t=${token}`,
+                '',
+                'Se não foi você, ignore este e-mail: sua senha continua a mesma.',
+              ].join('\n'),
+            }),
+          )
+          .catch((erro) =>
+            req.log.error(
+              { err: erro },
+              'falha ao preparar a redefinição de senha',
+            ),
+          ),
+      );
     }
     return RESPOSTA_ESQUECI;
   });

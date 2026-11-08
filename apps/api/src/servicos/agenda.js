@@ -72,10 +72,14 @@ export const SELECT_BLOQUEIO = `
          b.nome as "barbeiroNome"
     from bloqueios k join barbeiros b on b.id = k.barbeiro_id`;
 
-export async function buscarAtendimento(c, id) {
+/** `travar`: trava a linha até o fim da transação (transições de estado). */
+export async function buscarAtendimento(c, id, { travar = false } = {}) {
   const {
     rows: [a],
-  } = await c.query(`${SELECT_ATENDIMENTO} where a.id = $1`, [Number(id)]);
+  } = await c.query(
+    `${SELECT_ATENDIMENTO} where a.id = $1${travar ? ' for update of a' : ''}`,
+    [Number(id)],
+  );
   if (!a) throw naoEncontrado('Atendimento não encontrado.');
   return comEstado(a);
 }
@@ -173,9 +177,10 @@ export async function criarAgendamento(
 
   let idCliente = null;
   if (clienteId) {
-    const r = await c.query('select id from clientes where id = $1', [
-      Number(clienteId),
-    ]);
+    const r = await c.query(
+      'select id from clientes where id = $1 and excluido_em is null',
+      [Number(clienteId)],
+    );
     if (!r.rowCount) throw invalido('Cliente não encontrado.');
     idCliente = r.rows[0].id;
   } else if (cliente) {

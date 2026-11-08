@@ -207,7 +207,8 @@ function recomecar() {
           class="reservado"
         >
           <p class="ds-corpo-lg">
-            {{ confirmado.primeiroNome }}, seu horário é
+            {{ confirmado.primeiroNome ?? reconhecido?.primeiroNome }}, seu
+            horário é
             <strong>{{ formatarDiaCurto(confirmado.data) }}</strong> às
             <strong class="ds-hora">{{ confirmado.inicio }}</strong
             >, com {{ confirmado.barbeiroNome }} ({{ confirmado.servicoNome }}).
