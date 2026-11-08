@@ -305,7 +305,7 @@ O tempo de subida no CI é maior que o de um Postgres de serviço. Isso é aceit
 
 Cada fase tem o próprio commit e passa por verificar, revisar e segurança.
 
-- [ ] **F0. Entrevista e ADRs.** Rodar a skill `grill-me` com as questões abaixo, registrar as respostas em _Esclarecimentos_, escrever os ADRs (seção 2.15) e mudar o status para Aprovado.
+- [x] **F0. Entrevista e ADRs.** Rodar a skill `grill-me` com as questões abaixo, registrar as respostas em _Esclarecimentos_, escrever os ADRs (seção 2.15) e mudar o status para Aprovado.
   - _Pronto:_ decisões registradas.
   - _Rollback:_ n/a.
 - [ ] **F1. Stack local e baseline.**
