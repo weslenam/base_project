@@ -13,6 +13,8 @@ import rotasCadastros from './rotas/cadastros.js';
 import rotasClientes from './rotas/clientes.js';
 import rotasAgenda from './rotas/agenda.js';
 import rotasPublico from './rotas/publico.js';
+import rotasCaixa from './rotas/caixa.js';
+import rotasBalcao from './rotas/balcao.js';
 
 /**
  * Aplicação Fastify. Toda rota fica sob /api. Erros esperados saem como
@@ -50,6 +52,8 @@ export async function app(fastify, opts = {}) {
       api.register(rotasCadastros);
       api.register(rotasClientes);
       api.register(rotasAgenda);
+      api.register(rotasCaixa);
+      api.register(rotasBalcao);
       api.register(rotasPublico, {
         liberada: opts.paginaPublicaLiberada ?? config.paginaPublicaLiberada,
       });

@@ -72,17 +72,17 @@ O Vite repassa `/api/*` para a API. O Mailpit mostra os e-mails do ambiente em h
 
 ## Comandos
 
-| Comando                                  | O que faz                                                               |
-| ---------------------------------------- | ----------------------------------------------------------------------- |
-| `pnpm dev`                               | `nx serve` do `barbertime` e da `api` juntos                            |
-| `pnpm verificar`                         | lint + testes + build de todos os projetos                              |
-| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                      |
-| `pnpm format`                            | Prettier no workspace                                                   |
-| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json`       |
-| `pnpm verificar:tudo`                    | verificar + testes de integração da API (precisa do Postgres no Docker) |
-| `pnpm nx run api:migrar` / `api:semear`  | aplica migrações / cria os dados de desenvolvimento                     |
-| `docker compose up -d` / `down`          | sobe ou para a infraestrutura (`down -v` zera os dados)                 |
-| `pnpm nx graph`                          | grafo de dependências                                                   |
+| Comando                                  | O que faz                                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm dev`                               | `nx serve` do `barbertime` e da `api` juntos                                               |
+| `pnpm verificar`                         | lint + testes + build de todos os projetos                                                 |
+| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                                         |
+| `pnpm format`                            | Prettier no workspace                                                                      |
+| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json`                          |
+| `pnpm verificar:tudo`                    | verificar + testes de integração da API (precisa do Postgres no Docker)                    |
+| `pnpm nx run api:migrar` / `api:semear`  | aplica migrações / cria os dados de desenvolvimento (inclui a simulação da Studio Negoboy) |
+| `docker compose up -d` / `down`          | sobe ou para a infraestrutura (`down -v` zera os dados)                                    |
+| `pnpm nx graph`                          | grafo de dependências                                                                      |
 
 ## Estrutura
 
@@ -125,24 +125,27 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
   - serviços, produtos, equipe, clientes e agenda;
   - página pública.
 
-  Caixa, comandas, fidelidade e pacotes ainda usam os dados de exemplo (partes 2 e 3).
+  - balcão, caixa e comandas (planejamento 0020).
+
+  Fidelidade e pacotes ainda usam os dados de exemplo (parte 3).
 
 ## Telas
 
-| Rota                    | Tela                                                                                                                                                                                                        |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/agenda`               | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar)                                           |
-| `/clientes`             | Busca por nome ou telefone; cadastro em duas colunas com abas Resumo (serviços, produtos, total gasto, ticket médio, último serviço, fidelidade e pacotes), Comandas (5 por vez, "Ver mais") e Agendamentos |
-| `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                                                                   |
-| `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`), em etapas: serviço → barbeiro → dia → horário → dados                                                                                   |
-| `/pacotes`              | Pacotes de serviços: por quantidade ou livres, mensais ou de compra única, com intervalo mínimo e/ou máximo por semana (módulo Pacotes)                                                                     |
-| `/fidelidade`           | Cartão de selos e/ou cashback (módulo Fidelidade)                                                                                                                                                           |
-| `/configuracoes`        | Administração (Dono): dados da barbearia, endereço público, horário de funcionamento e regras do agendamento online                                                                                         |
-| `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar, definir senha provisória                                                                                                   |
-| `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                                                                   |
-| `/modulos`              | Módulos inclusos e serviços adicionais                                                                                                                                                                      |
-| `/perfil`               | Meu perfil (todo usuário): nome, trocar senha e trocar de barbearia; abre pelo nome no cabeçalho                                                                                                            |
-| `/entrar` · `/cadastro` | Login e cadastro self-service da barbearia                                                                                                                                                                  |
+| Rota                    | Tela                                                                                                                                                                                                                  |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/balcao`               | **Balcão** (planejamento 0020): Agora (barbeiros livre/ocupado/pausa) · Fila e chegadas (com espera prevista) · Próximos (check-in); **+ Avulso** em 3 toques; encaixe que não atropela agendados; finalizar → cobrar |
+| `/agenda`               | Agenda do dia: colunas por barbeiro, navegação de dias, novo agendamento, bloqueio de horário e detalhes (confirmar presença, marcar atendido ou falta, cancelar)                                                     |
+| `/clientes`             | Busca por nome ou telefone; cadastro em duas colunas com abas Resumo (serviços, produtos, total gasto, ticket médio, último serviço, fidelidade e pacotes), Comandas (5 por vez, "Ver mais") e Agendamentos           |
+| `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                                                                             |
+| `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`), em etapas: serviço → barbeiro → dia → horário → dados                                                                                             |
+| `/pacotes`              | Pacotes de serviços: por quantidade ou livres, mensais ou de compra única, com intervalo mínimo e/ou máximo por semana (módulo Pacotes)                                                                               |
+| `/fidelidade`           | Cartão de selos e/ou cashback (módulo Fidelidade)                                                                                                                                                                     |
+| `/configuracoes`        | Administração (Dono): dados da barbearia, endereço público, horário de funcionamento e regras do agendamento online                                                                                                   |
+| `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar, definir senha provisória                                                                                                             |
+| `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                                                                             |
+| `/modulos`              | Módulos inclusos e serviços adicionais                                                                                                                                                                                |
+| `/perfil`               | Meu perfil (todo usuário): nome, trocar senha e trocar de barbearia; abre pelo nome no cabeçalho                                                                                                                      |
+| `/entrar` · `/cadastro` | Login e cadastro self-service da barbearia                                                                                                                                                                            |
 
 **Cliente no balcão (comanda e novo agendamento):** um campo aceita nome ou telefone. Com letras, busca pelo nome; com números, pelo telefone (os últimos 4 dígitos já bastam). Quem começa com o nome ou termina com os dígitos aparece primeiro. Se nada for encontrado, dá para cadastrar ali mesmo, com o que foi digitado já preenchido. O botão "Procurar na lista" abre todos os clientes com atendimentos, última visita e faltas. Na comanda, deixar sem cliente grava como **cliente avulso**: entra no caixa e na comissão do barbeiro, mas não vai para o histórico de ninguém. O agendamento sempre exige cliente.
 

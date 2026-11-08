@@ -1,6 +1,6 @@
 # Planejamento 0020: Balcão: atendimento rápido (avulso + agendado), fila e operação pelo barbeiro
 
-- **Status:** Aprovado: só a fase 1 agora
+- **Status:** Fase 1 concluída: aguardando o teste do usuário para decidir as próximas fases
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam
 - **Relacionado:** especificação [docs/atendimento/balcao.md](../atendimento/balcao.md); planejamentos 0009, 0010, 0012, 0015 e 0019; ADRs 0010, 0011 e 0013
@@ -84,6 +84,41 @@ A promoção de horário vazio, o Pix sem maquininha e o modo offline entram em 
 - O `checkout-sem-maquininha.md` não está no projeto. Como fecho? → **"Fase 1 com formas manuais"**. O Pix na tela entra na fase 4, quando o arquivo existir.
 - Ordem das fases? → **"Só a fase 1 agora"**: implementar o núcleo e parar para o usuário testar antes de decidir o resto.
 
+## Como ficou a fase 1
+
+- **Banco:**
+  - `agendamentos` virou `atendimentos`, com o ciclo de vida da especificação; os dados existentes foram convertidos.
+  - Novas tabelas `bloqueios`, `caixas` e `comandas` (itens congelados em JSON), mais `barbeiros.em_pausa`.
+- **Domínio** (`libs/dominio/src/balcao.js`): `podeTransitar`, `ordenarFila`, `situacaoDosBarbeiros` e `sugerirEncaixe`, este último simulando a fila que já espera antes do avulso novo.
+- **API:**
+  - `GET /api/balcao` (painel) e `GET /api/balcao/encaixe`;
+  - `POST /api/balcao/avulsos`;
+  - `POST /api/atendimentos/:id/{checkin,iniciar,finalizar,desistir,no-show}`;
+  - `POST /api/barbeiros/:id/pausa`;
+  - caixa e comandas em `/api/caixa` e `/api/comandas`;
+  - resumo e comandas do cliente pelo banco.
+- **Front:** tela **Balcão** (`/balcao`, primeiro item do menu) e o diálogo **Avulso**. O caixa, as comandas e o cadastro do cliente passam a usar a API. O `DsEscolha` ganhou opções com detalhe e desabilitadas.
+- **Semente de simulação:** `pnpm nx run api:semear` cria, na Studio Negoboy:
+  - catálogo, equipe (o barbeiro NegoBoy ligado à conta do dono) e clientes;
+  - 3 semanas de histórico pago;
+  - agenda de hoje e de amanhã;
+  - caixa de hoje aberto.
+
+  Só roda se a barbearia ainda não tiver serviços.
+
+### Decisões tomadas na execução
+
+- **Ordem da fila:**
+  1. agendado no horário;
+  2. agendado atrasado: perde o horário reservado, mas fica à frente dos avulsos, lendo "vira prioridade no próximo encaixe";
+  3. avulsos por chegada.
+- **A agenda atual não foi reescrita.** A API traduz o status para o vocabulário que ela usa (`estadoNaAgenda`) e os bloqueios vêm com **id negativo**. A unificação visual fica para a fase 2.
+- **Avulso sem telefone** fica como "Cliente balcão", sem cadastro. **Com telefone**, reaproveita o cliente pelo número ou cria um cadastro para completar depois.
+- **Iniciar um avulso** é recusado (409) se atropelar um agendado do barbeiro, considerando a folga.
+- **Permissões:** o balcão usa `agenda.gerenciar` ou `caixa.operar`. As permissões do próprio barbeiro ficam para a fase 2.
+- **Atualização:** o painel recarrega a cada 15 s. SSE fica para a fase 2.
+- **Pacotes e fidelidade** no caixa pela API: recusados com mensagem até a parte 3 do 0019.
+
 ## Critérios de pronto (fase 1)
 
 - Registrar um avulso em até 3 toques e em menos de 10 s.
@@ -96,3 +131,4 @@ A promoção de horário vazio, o Pix sem maquininha e o modo offline entram em 
 - 2026-11-07: rascunho criado a partir do pedido de operação pelo barbeiro.
 - 2026-11-07: reescrito a partir da especificação `docs/atendimento/balcao.md`. A parte 2 do 0019 (caixa e comandas) foi absorvida pela fase 1.
 - 2026-11-07: aprovado pelo usuário (só a fase 1; fechamento com formas manuais).
+- 2026-11-07: fase 1 implementada (ver _Como ficou a fase 1_). O usuário pediu dados para simular a Studio Negoboy ("implemente dados para a barbearia negoboy, serviços clientes, equipe, produtos e etc para eu poder simular").

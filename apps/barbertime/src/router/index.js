@@ -17,6 +17,15 @@ import {
 export const rotas = [
   { path: '/', redirect: '/agenda' },
   {
+    // Balcão (planejamento 0020): avulso + agendado, fila e encaixe.
+    path: '/balcao',
+    component: () => import('../telas/balcao/BalcaoView.vue'),
+    meta: {
+      permissoes: ['agenda.gerenciar', 'caixa.operar'],
+      menu: { titulo: 'Balcão', icone: 'fila' },
+    },
+  },
+  {
     path: '/agenda',
     component: () => import('../telas/agenda/AgendaView.vue'),
     meta: {

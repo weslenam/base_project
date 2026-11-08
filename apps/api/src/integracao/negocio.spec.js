@@ -263,7 +263,7 @@ describe('página pública', () => {
     });
     const agenda = (await dono.get(`/api/agendamentos?data=${dia}`)).corpo;
     expect(agenda[0]).toMatchObject({
-      origem: 'publico',
+      canal: 'publico',
       clienteNome: 'Carlos Novo',
     });
   });

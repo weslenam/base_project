@@ -1,0 +1,180 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  clicar,
+  clicarContendo,
+  esperar,
+  montarApp,
+  simularApi,
+  texto,
+} from '../testes/apoio.js';
+
+// Planejamento 0020 (fase 1): tela do Balcão com a API simulada.
+
+let app;
+afterEach(() => {
+  app?.unmount();
+  document.body.innerHTML = '';
+  vi.unstubAllGlobals();
+});
+
+const PAINEL = (extra = {}) => ({
+  data: '2026-11-07',
+  agora: '14:00',
+  config: { folgaMinutos: 5, toleranciaMinutos: 10, exigirTelefone: false },
+  caixaAberto: true,
+  barbeiros: [
+    {
+      id: 1,
+      nome: 'João',
+      estado: 'ocupado',
+      restanteMin: 20,
+      atual: {
+        id: 50,
+        clienteNome: 'Carlos',
+        servicoNome: 'Corte',
+        comandaId: 7,
+      },
+      proximo: { id: 60, inicio: '15:00', clienteNome: 'Ana' },
+    },
+    {
+      id: 2,
+      nome: 'Léo',
+      estado: 'livre',
+      restanteMin: 0,
+      atual: null,
+      proximo: null,
+    },
+  ],
+  fila: [
+    {
+      id: 70,
+      estado: 'na_fila',
+      clienteNome: 'Cliente balcão',
+      servicoNome: 'Barba',
+      barbeiroId: null,
+      chegouAs: '13:55',
+      podeAgora: true,
+      esperaMin: 0,
+      barbeiroSugeridoId: 2,
+    },
+  ],
+  proximos: [
+    {
+      id: 60,
+      inicio: '15:00',
+      clienteNome: 'Ana',
+      servicoNome: 'Corte',
+      barbeiroNome: 'João',
+    },
+  ],
+  atrasados: [],
+  aCobrar: [],
+  servicos: [
+    { id: 1, nome: 'Corte', duracao: 30, preco: 45, vendas: 9 },
+    { id: 2, nome: 'Barba', duracao: 20, preco: 30, vendas: 4 },
+  ],
+  ...extra,
+});
+
+describe('balcão', () => {
+  it('mostra Agora, Fila e Próximos', async () => {
+    simularApi({ 'GET /api/balcao': PAINEL() });
+    app = await montarApp('/balcao');
+    await esperar(() =>
+      expect(texto()).toContain('Pode começar agora com Léo'),
+    );
+    const agora = document.querySelector(
+      'section[aria-label="Agora"]',
+    ).textContent;
+    expect(agora).toMatch(/João.*Ocupado · 20 min/);
+    expect(agora).toContain('Próximo: 15:00 Ana');
+    expect(
+      document.querySelector('section[aria-label="Próximos"]').textContent,
+    ).toContain('Ana');
+  });
+
+  it('iniciar usa o barbeiro sugerido; check-in chama a API', async () => {
+    const chamadas = simularApi({
+      'GET /api/balcao': PAINEL(),
+      'POST /api/atendimentos/70/iniciar': {
+        id: 70,
+        clienteNome: 'Cliente balcão',
+        barbeiroNome: 'Léo',
+      },
+      'POST /api/atendimentos/60/checkin': { id: 60, clienteNome: 'Ana' },
+    });
+    app = await montarApp('/balcao');
+    await clicar('Iniciar');
+    await esperar(() => expect(texto()).toContain('começou com Léo'));
+    expect(chamadas.find((c) => c.url.endsWith('/iniciar')).corpo).toEqual({
+      barbeiroId: 2,
+    });
+    await clicar('Check-in');
+    await esperar(() =>
+      expect(
+        chamadas.some((c) => c.url === '/api/atendimentos/60/checkin'),
+      ).toBe(true),
+    );
+  });
+
+  it('avulso em 3 toques: serviço, primeiro livre, pular', async () => {
+    const chamadas = simularApi({
+      'GET /api/balcao': PAINEL(),
+      'GET /api/balcao/encaixe?servicoId=2': {
+        porBarbeiro: [
+          {
+            barbeiroId: 1,
+            barbeiroNome: 'João',
+            estado: 'ocupado',
+            podeAgora: false,
+            inicioPrevisto: '14:20',
+            esperaMin: 20,
+          },
+          {
+            barbeiroId: 2,
+            barbeiroNome: 'Léo',
+            estado: 'livre',
+            podeAgora: true,
+            inicioPrevisto: '14:00',
+            esperaMin: 0,
+          },
+        ],
+        primeiroLivre: { barbeiroId: 2, barbeiroNome: 'Léo', esperaMin: 0 },
+      },
+      'POST /api/balcao/avulsos': {
+        id: 71,
+        clienteNome: 'Cliente balcão',
+        servicoNome: 'Barba',
+      },
+    });
+    app = await montarApp('/balcao');
+    await esperar(() => expect(texto()).toContain('Fila e chegadas'));
+    await clicarContendo('Avulso');
+    await clicarContendo('20 min · R$'); // 1: Barba
+    await esperar(() => expect(texto()).toContain('~20 min'));
+    expect(texto()).toContain('Léo · agora'); // 2: primeiro livre já escolhido
+    await clicarContendo('Pular'); // 3
+    await esperar(() =>
+      expect(texto()).toContain('Cliente balcão entrou na fila (Barba)'),
+    );
+    expect(chamadas.find((c) => c.metodo === 'POST').corpo).toEqual({
+      servicoId: 2,
+      barbeiroId: null,
+      telefone: null,
+      nome: null,
+    });
+  });
+
+  it('caixa fechado: pede para abrir antes do avulso', async () => {
+    const chamadas = simularApi({
+      'GET /api/balcao': PAINEL({ caixaAberto: false }),
+      'POST /api/caixa/abrir': { aberto: true },
+    });
+    app = await montarApp('/balcao');
+    await esperar(() => expect(texto()).toContain('abra o caixa de hoje'));
+    await clicar('Abrir caixa');
+    await esperar(() =>
+      expect(chamadas.some((c) => c.url === '/api/caixa/abrir')).toBe(true),
+    );
+  });
+});

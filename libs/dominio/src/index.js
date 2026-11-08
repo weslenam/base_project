@@ -60,3 +60,13 @@ export {
   momentoNoFuso,
   janelaDoAgendamentoOnline,
 } from './barbearia.js';
+export {
+  ESTADOS_DE_ATENDIMENTO,
+  BALCAO_PADRAO,
+  podeTransitar,
+  estadoNaAgenda,
+  atrasado,
+  ordenarFila,
+  situacaoDosBarbeiros,
+  sugerirEncaixe,
+} from './balcao.js';

@@ -130,7 +130,7 @@ export default async function (fastify, { liberada = false } = {}) {
           barbeiroId,
           servicoId,
           cliente: { nome: cliente?.nome, telefone: cliente?.telefone },
-          origem: 'publico',
+          canal: 'publico',
         },
         {
           validarJanela: ({ barbeiro, data: dia, inicio: ini, fim }) => {

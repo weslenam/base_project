@@ -42,4 +42,21 @@ export function testarDsEscolha(DsEscolha, montar) {
       w.findAll('button').every((b) => b.attributes('disabled') !== undefined),
     ).toBe(true);
   });
+
+  it('opção com detalhe mostra a segunda linha; opção desabilitada sozinha', () => {
+    const w = montar(DsEscolha, {
+      props: {
+        rotulo: 'Barbeiro',
+        grande: true,
+        opcoes: [
+          { valor: 1, rotulo: 'João', detalhe: 'Agora' },
+          { valor: 2, rotulo: 'Léo', detalhe: 'Em pausa', desabilitado: true },
+        ],
+      },
+    });
+    const [joao, leo] = w.findAll('button');
+    expect(joao.text()).toContain('Agora');
+    expect(joao.attributes('disabled')).toBeUndefined();
+    expect(leo.attributes('disabled')).toBeDefined();
+  });
 }

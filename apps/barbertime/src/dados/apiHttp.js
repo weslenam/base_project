@@ -3,7 +3,7 @@ import { http } from './http.js';
 /**
  * Camada de dados pela API real (planejamento 0019). Mesma interface da versão
  * em memória (api.js): as telas não sabem qual está em uso.
- * `base` cobre o que ainda não migrou para o banco (partes 2 e 3 do 0019).
+ * `base` cobre o que ainda não migrou para o banco (fidelidade e pacotes).
  */
 const q = (params) => {
   const s = new URLSearchParams(
@@ -34,8 +34,14 @@ export function criarApiHttp(base) {
     produtos: recurso('/api/produtos'),
     barbeiros: recurso('/api/barbeiros'),
     clientes: {
-      ...base.clientes, // resumo e comandas: parte 2
+      ...base.clientes,
       ...recurso('/api/clientes'),
+      resumo: (id) => http('GET', `/api/clientes/${id}/resumo`),
+      comandas: (id, { limite = 5, deslocamento = 0 } = {}) =>
+        http(
+          'GET',
+          `/api/clientes/${id}/comandas${q({ limite, deslocamento })}`,
+        ),
       listar: ({ busca = '' } = {}) =>
         http('GET', `/api/clientes${q({ busca })}`),
       obter: (id) => http('GET', `/api/clientes/${id}`),
@@ -49,6 +55,24 @@ export function criarApiHttp(base) {
       bloquear: (d) => http('POST', '/api/agendamentos/bloqueios', d),
       alterarEstado: (id, estado) =>
         http('PUT', `/api/agendamentos/${id}/estado`, { estado }),
+    },
+    // Caixa e comandas (planejamento 0020, fase 1). Pacotes e fidelidade: parte 3 do 0019.
+    caixa: {
+      obterDoDia: () => http('GET', '/api/caixa'),
+      abrir: (d) => http('POST', '/api/caixa/abrir', d),
+      fechar: (d) => http('POST', '/api/caixa/fechar', d),
+    },
+    comandas: {
+      listarDoDia: () => http('GET', '/api/comandas'),
+      obter: (id) => http('GET', `/api/comandas/${id}`),
+      salvar: (d) =>
+        d.id
+          ? http('PUT', `/api/comandas/${d.id}`, d)
+          : http('POST', '/api/comandas', d),
+      receber: (id, d = {}) => http('POST', `/api/comandas/${id}/receber`, d),
+      cancelar: (id) => http('POST', `/api/comandas/${id}/cancelar`),
+      abrirDoAgendamento: (id) =>
+        http('POST', `/api/comandas/do-atendimento/${id}`),
     },
     /** Página pública: sem sessão; `codigo` é o ?c= do modo "só com o link". */
     publico: {

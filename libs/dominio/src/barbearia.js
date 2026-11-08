@@ -1,5 +1,6 @@
 // Configurações da barbearia (planejamento 0017, ADR 0012): dados do negócio,
 // não preferências de exibição. Catálogo fechado, usado pela API e pelo front.
+import { BALCAO_PADRAO } from './balcao.js';
 
 /** 0 = domingo ... 6 = sábado (igual a Date#getDay). */
 export const DIAS_DA_SEMANA = Object.freeze([
@@ -27,6 +28,8 @@ export const CONFIG_BARBEARIA_PADRAO = Object.freeze({
   },
   /** publica | com_link (exige o token do link) | desativada (ADR 0013). Começa desativada. */
   paginaPublica: { modo: 'desativada' },
+  /** Balcão (planejamento 0020): folga entre atendimentos, tolerância de atraso. */
+  balcao: { ...BALCAO_PADRAO },
 });
 
 export const MODOS_DA_PAGINA_PUBLICA = Object.freeze([
@@ -134,6 +137,7 @@ export function mesclarConfigBarbearia(gravada = {}) {
     })),
     agendamento: { ...p.agendamento, ...(g.agendamento ?? {}) },
     paginaPublica: { ...p.paginaPublica, ...(g.paginaPublica ?? {}) },
+    balcao: { ...p.balcao, ...(g.balcao ?? {}) },
   };
 }
 
@@ -143,6 +147,7 @@ export function validarConfigBarbearia({
   funcionamento,
   agendamento,
   paginaPublica,
+  balcao,
 } = {}) {
   if (!contato || !Array.isArray(funcionamento) || !agendamento) {
     return 'Configuração incompleta.';
@@ -181,6 +186,14 @@ export function validarConfigBarbearia({
   const modo = paginaPublica?.modo;
   if (modo && !MODOS_DA_PAGINA_PUBLICA.some((m) => m.valor === modo)) {
     return 'Modo da página pública inválido.';
+  }
+
+  if (balcao) {
+    const { folgaMinutos: f, toleranciaMinutos: t } = balcao;
+    if (!(Number.isInteger(f) && f >= 0 && f <= 60))
+      return 'A folga entre atendimentos precisa ficar entre 0 e 60 minutos.';
+    if (!(Number.isInteger(t) && t >= 0 && t <= 60))
+      return 'A tolerância de atraso precisa ficar entre 0 e 60 minutos.';
   }
 
   const rotulos = {

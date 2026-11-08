@@ -1,4 +1,4 @@
-import { ocupaHorario, paraMinutos } from '@barbertime/dominio';
+import { paraMinutos } from '@barbertime/dominio';
 import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
 import { agora } from '../../servicos/agenda.js';
 
@@ -10,10 +10,11 @@ const plural = (n, s) => `${n} ${s}${n > 1 ? 's' : ''}`;
 /** Agendamentos futuros (não cancelados nem bloqueios) que usam o registro. */
 async function futurosCom(c, coluna, id) {
   const { rows } = await c.query(
-    `select estado from agendamentos where ${coluna} = $1 and data >= $2 and estado <> 'bloqueado'`,
+    `select count(*)::int as n from atendimentos
+      where ${coluna} = $1 and data >= $2 and estado in ('agendado', 'chegou', 'na_fila', 'em_atendimento')`,
     [id, agora().data],
   );
-  return rows.filter((a) => ocupaHorario(a.estado)).length;
+  return rows[0].n;
 }
 
 async function negarSeEmUso(c, coluna, id, nome) {
@@ -49,7 +50,7 @@ async function obterAtivo(c, tabela, id, rotulo) {
 const SERVICO = 'select id, nome, duracao, preco from servicos';
 const PRODUTO = 'select id, nome, preco, comissao from produtos';
 const BARBEIRO =
-  'select id, nome, inicio, fim, comissao, usuario_id as "usuarioId" from barbeiros';
+  'select id, nome, inicio, fim, comissao, usuario_id as "usuarioId", em_pausa as "emPausa" from barbeiros';
 
 export default async function (fastify) {
   const logado = { preHandler: fastify.autenticado };
@@ -220,7 +221,7 @@ export default async function (fastify) {
       await negarSeEmUso(c, 'barbeiro_id', b.id, b.nome);
       // Bloqueios futuros do barbeiro saem junto.
       await c.query(
-        "update agendamentos set estado = 'cancelado' where barbeiro_id = $1 and estado = 'bloqueado' and data >= $2",
+        'update bloqueios set cancelado = true where barbeiro_id = $1 and data >= $2',
         [b.id, agora().data],
       );
       await c.query('update barbeiros set excluido_em = now() where id = $1', [

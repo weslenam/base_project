@@ -6,6 +6,7 @@ import { migrar } from '../src/infra/migrar.js';
 import banco from '../src/infra/banco.js';
 import { criarBarbearia } from '../src/servicos/barbearias.js';
 import { gerarHashDeSenha } from '../src/seguranca/senha.js';
+import { semearOperacao, temPerfil } from './operacao-exemplo.js';
 
 const SENHA = 'barbertime123';
 await migrar(config.databaseUrlMigracao);
@@ -114,5 +115,30 @@ await fastify.comBarbearia(modelo.id, async (c) => {
     'Operação de exemplo criada (serviços, produtos, equipe e clientes).',
   );
 });
+
+// Barbearias cadastradas pelo app que têm perfil de simulação (ex.: Studio Negoboy).
+const { rows: cadastradas } = await fastify.db.query(
+  'select id, slug from barbearias order by id',
+);
+for (const b of cadastradas.filter((x) => temPerfil(x.slug))) {
+  const feito = await fastify.comBarbearia(b.id, async (c) => {
+    const {
+      rows: [dono],
+    } = await c.query(
+      `select v.usuario_id as id from vinculos v join papeis p on p.id = v.papel_id
+        where p.chave = 'dono' and v.ativo order by v.id limit 1`,
+    );
+    return semearOperacao(c, {
+      barbeariaId: b.id,
+      slug: b.slug,
+      donoUsuarioId: dono?.id ?? null,
+    });
+  });
+  console.log(
+    feito
+      ? `Operação de simulação criada para ${b.slug}.`
+      : `${b.slug} já tem serviços; simulação não aplicada.`,
+  );
+}
 
 await fastify.close();

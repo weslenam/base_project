@@ -1,5 +1,5 @@
 import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
-import { SELECT_AGENDAMENTO, agora } from '../../servicos/agenda.js';
+import { SELECT_ATENDIMENTO, agora, comEstado } from '../../servicos/agenda.js';
 
 // Clientes da barbearia (planejamento 0019).
 
@@ -11,9 +11,9 @@ const formatarTelefone = (t) =>
 /** Cliente com o resumo de atendimentos (contagens e última visita). */
 const SELECT_CLIENTE = `
   select c.id, c.nome, c.telefone, c.cpf, c.observacoes,
-         (select count(*)::int from agendamentos a where a.cliente_id = c.id and a.estado = 'atendido') as atendimentos,
-         (select count(*)::int from agendamentos a where a.cliente_id = c.id and a.estado = 'faltou') as faltas,
-         (select max(a.data) from agendamentos a where a.cliente_id = c.id and a.estado = 'atendido') as "ultimaVisita"
+         (select count(*)::int from atendimentos a where a.cliente_id = c.id and a.estado in ('finalizado', 'pago')) as atendimentos,
+         (select count(*)::int from atendimentos a where a.cliente_id = c.id and a.estado = 'no_show') as faltas,
+         (select max(a.data) from atendimentos a where a.cliente_id = c.id and a.estado in ('finalizado', 'pago')) as "ultimaVisita"
     from clientes c`;
 
 export default async function (fastify) {
@@ -66,10 +66,10 @@ export default async function (fastify) {
       await obter(c, req.params.id);
       return (
         await c.query(
-          `${SELECT_AGENDAMENTO} where a.cliente_id = $1 order by a.data desc, a.inicio desc`,
+          `${SELECT_ATENDIMENTO} where a.cliente_id = $1 order by a.data desc, a.inicio desc nulls last`,
           [Number(req.params.id)],
         )
-      ).rows;
+      ).rows.map(comEstado);
     }),
   );
 
@@ -126,7 +126,7 @@ export default async function (fastify) {
     await na(req, async (c) => {
       const cliente = await obter(c, req.params.id);
       const { rows } = await c.query(
-        "select count(*)::int as n from agendamentos where cliente_id = $1 and data >= $2 and estado in ('pendente', 'confirmado')",
+        "select count(*)::int as n from atendimentos where cliente_id = $1 and data >= $2 and estado in ('agendado', 'chegou', 'na_fila', 'em_atendimento')",
         [cliente.id, agora().data],
       );
       const n = rows[0].n;
