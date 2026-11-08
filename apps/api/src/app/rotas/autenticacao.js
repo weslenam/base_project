@@ -1,19 +1,5 @@
-import {
-  conferirSenha,
-  gerarHashDeSenha,
-  hashFalso,
-  SENHA_MINIMA,
-} from '../../seguranca/senha.js';
 import { chaves } from '../../seguranca/limites.js';
 import { corpo, inteiro, TAM, texto } from '../esquemas.js';
-import {
-  COOKIE,
-  criarSessao,
-  encerrarOutrasSessoes,
-  encerrarSessao,
-  opcoesDoCookie,
-  trocarBarbeariaDaSessao,
-} from '../../seguranca/sessao.js';
 import { invalido, naoAutenticado, proibido } from '../../infra/erros.js';
 import { criarBarbearia } from '../../servicos/barbearias.js';
 import { BARBEARIA_SUSPENSA } from '../../seguranca/autenticacao.js';
@@ -47,8 +33,8 @@ async function dadosDaSessao(fastify, req) {
 }
 
 export default async function (fastify) {
-  // Gera o hash falso já na subida: nem o primeiro login fica mais lento.
-  await hashFalso();
+  // Sessão, senha e credenciais ficam na identidade (ADR 0016, planejamento 0025 S3).
+  const identidade = fastify.identidade;
 
   /**
    * Entrar: e-mail e senha. Abre na barbearia pedida ou na primeira do usuário.
@@ -67,24 +53,14 @@ export default async function (fastify) {
   };
   fastify.post('/auth/entrar', entrar, async (req, reply) => {
     const { email, senha, barbeariaId } = req.body ?? {};
-    const {
-      rows: [usuario],
-    } = await fastify.db.query(
-      'select id, senha_hash from usuarios where lower(email) = lower($1)',
-      [String(email ?? '')],
-    );
-    // Mesma resposta e o MESMO TEMPO para e-mail inexistente e senha errada:
-    // sem usuário, confere contra um hash falso de mesmo custo (ADR 0014).
-    const confere = await conferirSenha(
-      senha,
-      usuario?.senha_hash ?? (await hashFalso()),
-    );
-    if (!usuario || !confere) {
+    // Mesma resposta e o mesmo tempo para e-mail inexistente e senha errada (ADR 0014).
+    const usuarioId = await identidade.conferirCredenciais(email, senha);
+    if (!usuarioId) {
       throw naoAutenticado('E-mail ou senha incorretos.');
     }
     const { rows: barbearias } = await fastify.db.query(
       'select barbearia_id as id from barbearias_do_usuario($1)',
-      [usuario.id],
+      [usuarioId],
     );
     if (!barbearias.length) {
       // A função só lista barbearias não suspensas (planejamento 0028).
@@ -92,7 +68,7 @@ export default async function (fastify) {
         rows: [{ suspensa }],
       } = await fastify.db.query(
         'select usuario_em_barbearia_suspensa($1) as suspensa',
-        [usuario.id],
+        [usuarioId],
       );
       throw proibido(
         suspensa
@@ -103,15 +79,12 @@ export default async function (fastify) {
     const escolhida =
       barbearias.find((b) => b.id === Number(barbeariaId)) ?? barbearias[0];
 
-    const token = await criarSessao(fastify.db, usuario.id, escolhida.id);
-    reply.setCookie(COOKIE, token, opcoesDoCookie());
-    req.sessao = { usuarioId: usuario.id, barbeariaId: escolhida.id, token };
+    req.sessao = await identidade.abrirSessao(reply, usuarioId, escolhida.id);
     return dadosDaSessao(fastify, req);
   });
 
   fastify.post('/auth/sair', async (req, reply) => {
-    await encerrarSessao(fastify.db, req.sessao?.token);
-    reply.clearCookie(COOKIE, { path: '/' });
+    await identidade.sair(req, reply);
     return { ok: true };
   });
 
@@ -130,7 +103,7 @@ export default async function (fastify) {
         [req.sessao.usuarioId, id],
       );
       if (!rows.length) throw proibido('Você não tem acesso a essa barbearia.');
-      await trocarBarbeariaDaSessao(fastify.db, req.sessao.token, id);
+      await identidade.trocarBarbearia(req.sessao, id);
       req.sessao.barbeariaId = id;
       req.contexto = null;
       return dadosDaSessao(fastify, req);
@@ -169,32 +142,10 @@ export default async function (fastify) {
   fastify.put('/auth/senha', trocarSenha, async (req) => {
     await fastify.autenticado(req);
     const { senhaAtual, novaSenha } = req.body ?? {};
-    const { usuarioId } = req.contexto;
-    const {
-      rows: [usuario],
-    } = await fastify.db.query(
-      'select senha_hash from usuarios where id = $1',
-      [usuarioId],
-    );
-    if (!(await conferirSenha(String(senhaAtual ?? ''), usuario.senha_hash))) {
-      throw invalido('A senha atual não confere.');
-    }
-    if (String(novaSenha ?? '').length < SENHA_MINIMA) {
-      throw invalido(
-        `A nova senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`,
-      );
-    }
-    if (novaSenha === senhaAtual) {
-      throw invalido('A nova senha precisa ser diferente da atual.');
-    }
-    await fastify.db.query(
-      'update usuarios set senha_hash = $2 where id = $1',
-      [usuarioId, await gerarHashDeSenha(novaSenha)],
-    );
-    const encerradas = await encerrarOutrasSessoes(
-      fastify.db,
-      usuarioId,
-      req.sessao.token,
+    const encerradas = await identidade.trocarSenha(
+      req.sessao,
+      senhaAtual,
+      novaSenha,
     );
     return { ok: true, sessoesEncerradas: encerradas };
   });
@@ -220,9 +171,7 @@ export default async function (fastify) {
       fastify,
       req.body ?? {},
     );
-    const token = await criarSessao(fastify.db, usuarioId, barbearia.id);
-    reply.setCookie(COOKIE, token, opcoesDoCookie());
-    req.sessao = { usuarioId, barbeariaId: barbearia.id, token };
+    req.sessao = await identidade.abrirSessao(reply, usuarioId, barbearia.id);
     reply.code(201);
     return dadosDaSessao(fastify, req);
   });

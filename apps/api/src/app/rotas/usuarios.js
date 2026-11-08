@@ -5,7 +5,6 @@ import {
   naoEncontrado,
   proibido,
 } from '../../infra/erros.js';
-import { gerarHashDeSenha } from '../../seguranca/senha.js';
 import { validarNovoUsuario } from '../../servicos/barbearias.js';
 import { TAM, corpo, inteiro, logico, texto } from '../esquemas.js';
 
@@ -75,12 +74,13 @@ export default async function (fastify) {
         );
         if (!usuario) {
           validarNovoUsuario({ nome, email, senha });
-          ({
-            rows: [usuario],
-          } = await c.query(
-            'insert into usuarios (nome, email, senha_hash) values ($1, $2, $3) returning id',
-            [nome.trim(), email.trim(), await gerarHashDeSenha(senha)],
-          ));
+          usuario = {
+            id: await fastify.identidade.criarConta(c, {
+              nome: nome.trim(),
+              email: email.trim(),
+              senha,
+            }),
+          };
         }
         const ja = await c.query(
           'select 1 from vinculos where usuario_id = $1',

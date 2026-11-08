@@ -2,7 +2,6 @@ import fp from 'fastify-plugin';
 import cookie from '@fastify/cookie';
 import { permissoesDoPapel, permissoesEfetivas } from '@barbertime/dominio';
 import { naoAutenticado, proibido } from '../infra/erros.js';
-import { COOKIE, lerSessao } from './sessao.js';
 
 export const BARBEARIA_SUSPENSA =
   'Esta barbearia está suspensa. Fale com o suporte do BarberTime.';
@@ -21,10 +20,9 @@ export default fp(async function autenticacao(fastify) {
   fastify.decorateRequest('sessao', null);
   fastify.decorateRequest('contexto', null);
 
+  // A sessão vem da identidade (ADR 0016), seja qual for a implementação.
   fastify.addHook('onRequest', async (req) => {
-    const token = req.cookies[COOKIE];
-    const sessao = token ? await lerSessao(fastify.db, token) : null;
-    req.sessao = sessao ? { ...sessao, token } : null;
+    req.sessao = await fastify.identidade.lerSessao(req);
   });
 
   async function carregarContexto(req) {

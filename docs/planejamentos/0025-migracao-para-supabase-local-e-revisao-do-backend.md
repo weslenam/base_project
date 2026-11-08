@@ -1,6 +1,6 @@
 # Planejamento 0025: Migração para o Supabase local e revisão do backend
 
-- **Status:** Em andamento (S1 e S2 concluídas; próxima: S3)
+- **Status:** Em andamento (S1 a S3 concluídas; próxima: S4)
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0001, 0002, 0006, 0009, 0010, 0011, 0013 e 0014; planejamentos 0013, 0019, 0020, 0022, 0023 e 0024
@@ -322,6 +322,7 @@ Cada fase tem o próprio commit e passa por verificar, revisar e segurança.
   - Corrigir junto os achados N3 e N4, que tocam schema e validação.
   - _Pronto:_ pgTAP e integração verdes; `curl` com a anon key em `/rest/v1/<tabela>` devolve 404 ou vazio.
   - _Rollback:_ reverter a migração (dev: `supabase db reset` no commit anterior).
+- [x] **S3. Adaptador de identidade** (`apps/api/src/identidade/`, `AUTH=propria`), sem mudar comportamento.
 - [ ] **F3. Autenticação pelo GoTrue** (se aprovada).
   - `usuarios.auth_id`, validação do JWT na API, BFF com cookie `HttpOnly`, convite por e-mail, esqueci e redefinir pelo GoTrue, modelos de e-mail em pt-BR e semente pela Admin API.
   - Saem `sessao.js`, `senha.js`, `rotas/senha.js` e as tabelas `sessoes` e `redefinicoes_senha`.
@@ -558,3 +559,17 @@ Se o `rollback` falhar (conexão caída), a exceção do rollback substitui o er
   - **Teste manual:** a chave anônima recebe 406 ou 404 em `/rest/v1`.
   - **RLS nas tabelas globais** (`barbearias`, `usuarios`, `sessoes`, `redefinicoes_senha`) **foi adiada para a S4.** O login e a página pública as leem antes de existir barbearia no contexto, e a S4 refaz a identidade (as duas últimas tabelas saem com `AUTH=supabase`).
   - **Resultado:** `verificar:tudo` verde (87 testes de integração).
+- 2026-11-08: **S3 concluída** (pedido "os dois": PR e S3).
+  - **Módulo `apps/api/src/identidade/`:**
+    - `index.js`: plugin que escolhe a implementação por `AUTH` (padrão `propria`). Um valor desconhecido impede a API de subir.
+    - `propria.js`: a sessão opaca, o scrypt e o "esqueci a senha" que estavam nas rotas.
+  - **Contrato:** `lerSessao`, `abrirSessao`, `trocarBarbearia`, `sair`, `conferirCredenciais`, `criarConta`, `trocarSenha`, `pedirRedefinicao`, `redefinirSenha` e `encerrarSessoesDaBarbearia`. Testado em `identidade.spec.js`.
+  - **Passam a usar o adaptador:**
+    - as rotas de autenticação e de senha;
+    - o plugin `autenticacao` (leitura da sessão);
+    - a criação de conta no cadastro e na inclusão de usuário;
+    - a suspensão pelo Business Center;
+    - a semente.
+  - `sessao.js` e `senha.js` ficam como peças internas da `propria`. Os operadores do Business Center continuam com identidade própria (ADR 0018).
+  - **Convite com aceite** (operações `convidar` e `aceitar`): fica para a S5, como previsto. Hoje a inclusão de usuário usa `criarConta`.
+  - **Resultado:** `verificar:tudo` verde, com os 98 testes de integração sem alteração.

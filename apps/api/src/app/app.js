@@ -3,6 +3,7 @@ import sensible from './plugins/sensible.js';
 import banco from '../infra/banco.js';
 import { config } from '../infra/config.js';
 import autenticacao from '../seguranca/autenticacao.js';
+import identidade from '../identidade/index.js';
 import entrada, { mensagemDeErro } from '../seguranca/entrada.js';
 import limites from '../seguranca/limites.js';
 import rotasSaude from './rotas/saude.js';
@@ -38,6 +39,11 @@ export async function app(fastify, opts = {}) {
   fastify.register(banco, {
     databaseUrl: opts.databaseUrl ?? config.databaseUrl,
   });
+  fastify.register(identidade, {
+    auth: opts.auth,
+    correio: opts.correio ?? criarCorreioSmtp(config.smtpUrl, config.remetente),
+    appUrl: opts.appUrl ?? config.appUrl,
+  });
   fastify.register(autenticacao);
 
   fastify.setErrorHandler((erro, req, reply) => {
@@ -55,11 +61,7 @@ export async function app(fastify, opts = {}) {
     async (api) => {
       api.register(rotasSaude);
       api.register(rotasAutenticacao);
-      api.register(rotasSenha, {
-        correio:
-          opts.correio ?? criarCorreioSmtp(config.smtpUrl, config.remetente),
-        appUrl: opts.appUrl ?? config.appUrl,
-      });
+      api.register(rotasSenha);
       api.register(rotasUsuarios);
       api.register(rotasPapeis);
       api.register(rotasModulos);

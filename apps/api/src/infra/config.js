@@ -21,6 +21,11 @@ export const config = {
    * PAGINA_PUBLICA=liberada.
    */
   paginaPublicaLiberada: process.env.PAGINA_PUBLICA === 'liberada',
+  /**
+   * Implementação da identidade (ADR 0016): "propria" (sessão e senha nossas,
+   * padrão) ou, a partir da S4 do planejamento 0025, "supabase" (GoTrue).
+   */
+  auth: process.env.AUTH ?? 'propria',
   /** Validade da sessão em dias. */
   diasDeSessao: 30,
   /**

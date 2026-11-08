@@ -5,7 +5,7 @@ import { config } from '../src/infra/config.js';
 import { migrar, prepararPapelDaAplicacao } from '../src/infra/migrar.js';
 import banco from '../src/infra/banco.js';
 import { criarBarbearia } from '../src/servicos/barbearias.js';
-import { gerarHashDeSenha } from '../src/seguranca/senha.js';
+import identidade from '../src/identidade/index.js';
 import { semearOperacao, temPerfil } from './operacao-exemplo.js';
 import { criarOperador } from '../src/servicos/operadores.js';
 import { momentoNoFuso } from '@barbertime/dominio';
@@ -17,6 +17,11 @@ await prepararPapelDaAplicacao(config.databaseUrlMigracao, config.databaseUrl);
 
 const fastify = Fastify();
 await fastify.register(banco, { databaseUrl: config.databaseUrl });
+// Contas pela identidade (ADR 0016). A semente não envia e-mail.
+await fastify.register(identidade, {
+  correio: { enviar: async () => undefined },
+  appUrl: config.appUrl,
+});
 await fastify.ready();
 
 const existe = await fastify.db.query(
@@ -45,15 +50,14 @@ if (existe.rowCount) {
       ['recepcao', 'Renata Recepção'],
       ['barbeiro', 'Marcos Barbeiro'],
     ]) {
-      const {
-        rows: [u],
-      } = await c.query(
-        'insert into usuarios (nome, email, senha_hash) values ($1, $2, $3) returning id',
-        [nome, `${chave}@barbertime.dev`, await gerarHashDeSenha(SENHA)],
-      );
+      const usuarioId = await fastify.identidade.criarConta(c, {
+        nome,
+        email: `${chave}@barbertime.dev`,
+        senha: SENHA,
+      });
       await c.query(
         'insert into vinculos (barbearia_id, usuario_id, papel_id) values ($1, $2, $3)',
-        [barbearia.id, u.id, papeis[chave]],
+        [barbearia.id, usuarioId, papeis[chave]],
       );
     }
     // Comissões (incluso) e, como se a contratação já estivesse confirmada,

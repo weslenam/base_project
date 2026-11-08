@@ -1,6 +1,6 @@
 import { PAPEIS_PADRAO } from '@barbertime/dominio';
 import { conflito, invalido } from '../infra/erros.js';
-import { gerarHashDeSenha, SENHA_MINIMA } from '../seguranca/senha.js';
+import { SENHA_MINIMA } from '../seguranca/senha.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -65,20 +65,20 @@ export async function criarBarbearia(fastify, { nome, slug, dono }) {
       papeis[p.chave] = rows[0].id;
     }
 
-    const {
-      rows: [usuario],
-    } = await c.query(
-      'insert into usuarios (nome, email, senha_hash) values ($1, $2, $3) returning id',
-      [dono.nome.trim(), dono.email.trim(), await gerarHashDeSenha(dono.senha)],
-    );
+    // A conta nasce na identidade (ADR 0016); vínculo e papel ficam conosco.
+    const usuarioId = await fastify.identidade.criarConta(c, {
+      nome: dono.nome.trim(),
+      email: dono.email.trim(),
+      senha: dono.senha,
+    });
     await c.query(
       'insert into vinculos (barbearia_id, usuario_id, papel_id) values ($1, $2, $3)',
-      [barbearia.id, usuario.id, papeis.dono],
+      [barbearia.id, usuarioId, papeis.dono],
     );
     await c.query(
       "insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, 'agendamento_online', 'ativo')",
       [barbearia.id],
     );
-    return { barbearia, usuarioId: usuario.id, papeis };
+    return { barbearia, usuarioId, papeis };
   });
 }

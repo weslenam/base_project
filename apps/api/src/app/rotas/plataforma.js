@@ -427,7 +427,7 @@ async function rotas(fastify) {
           [id, motivo],
         );
         // Quem está dentro sai na hora.
-        await c.query('delete from sessoes where barbearia_id = $1', [id]);
+        await fastify.identidade.encerrarSessoesDaBarbearia(c, id);
         await auditar(c, req, 'suspender', { barbeariaId: id, motivo });
       });
       return exigirBarbearia(fastify.db, id);
