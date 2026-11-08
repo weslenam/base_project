@@ -1,10 +1,10 @@
 # Planejamento 0026: Correções da revisão do PR #3 e do backend
 
-- **Status:** Em andamento
+- **Status:** Concluído
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** PR #3; planejamento 0025 (achados N3 a N11); ADRs 0010, 0013 e 0014; planejamentos 0020 e 0023
-- **Commits:** ainda não commitado
+- **Commits:** 579a71a (correções); fechamento do documento no commit seguinte
 
 ## Solicitação de origem
 
@@ -63,7 +63,7 @@ Corrigir na branch do PR #3 os 10 achados da code review e os achados N3 a N11 d
 **Fechamento**
 
 - [x] 20. `pnpm verificar:tudo` verde.
-- [ ] 21. `/code-review` e `security-review` sem achados abertos; marcar os itens no PR #3.
+- [x] 21. `/code-review` e `security-review` sem achados abertos; marcar os itens no PR #3.
 
 ## Critérios de pronto
 
@@ -90,3 +90,4 @@ Corrigir na branch do PR #3 os 10 achados da code review e os achados N3 a N11 d
   - **Testes do "esqueci a senha":** passaram a esperar o e-mail chegar, sem tempo fixo.
   - **Grade:** a constante `PASSO_DA_GRADE` é compartilhada por `horariosLivres` e `naGrade`.
 - 2026-11-08: `pnpm verificar:tudo` verde: 70 testes de integração (16 novos em `correcoes.spec.js`), mais o teste de domínio de `naGrade`. O hook de `commit -a` foi conferido com 11 comandos de exemplo.
+- 2026-11-08: `/code-review` e `security-review` sem achados abertos. Push feito com a aprovação do Weslen ("pode fazer sim"). Checklist do PR #3 marcado.

@@ -27,4 +27,4 @@
 | [0023](0023-hierarquia-fixa-de-papeis-e-esqueci-a-senha.md)       | Hierarquia fixa de papéis e "esqueci a senha"                                 | Concluído                        | 2026-11-08 |
 | [0024](0024-meta-seguranca-pre-producao.md)                       | Meta de segurança para pré-produção                                           | Rascunho (meta)                  | 2026-11-08 |
 | [0025](0025-migracao-para-supabase-local-e-revisao-do-backend.md) | Migração para o Supabase local e revisão do backend                           | Rascunho (aguardando entrevista) | 2026-11-08 |
-| [0026](0026-correcoes-da-revisao-do-pr-3-e-do-backend.md)         | Correções da revisão do PR #3 e do backend                                    | Em andamento                     | 2026-11-08 |
+| [0026](0026-correcoes-da-revisao-do-pr-3-e-do-backend.md)         | Correções da revisão do PR #3 e do backend                                    | Concluído                        | 2026-11-08 |
