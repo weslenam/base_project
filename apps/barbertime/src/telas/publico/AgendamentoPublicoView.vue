@@ -47,19 +47,39 @@ const erroDados = ref('');
 
 const PASSOS = ['Serviço', 'Barbeiro', 'Dia', 'Horário', 'Seus dados'];
 const passos = PASSOS.map((rotulo) => ({ rotulo }));
-const dias = Array.from({ length: 7 }, (_, i) => somarDias(hojeIso(), i));
-const rotuloDia = (iso) => {
-  const i = dias.indexOf(iso);
-  return i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : formatarDiaCurto(iso);
-};
+// Slug e, no modo "só com o link", o código ?c= (planejamento 0019, ADR 0013).
+const slug = route.params.slug;
+const codigo = route.query.c ?? null;
+const hoje = ref(hojeIso());
+
+/** Próximos 7 dias em que a barbearia abre, dentro do limite de dias à frente. */
+const dias = computed(() => {
+  const b = barbearia.value;
+  if (!b) return [];
+  const lista = [];
+  const limite = b.agendamento?.diasAFrente ?? 30;
+  for (let i = 0; i <= limite && lista.length < 7; i++) {
+    const iso = somarDias(hoje.value, i);
+    const semana = new Date(`${iso}T12:00:00Z`).getUTCDay();
+    const dia = b.funcionamento?.find((d) => d.dia === semana);
+    if (!dia || dia.aberto) lista.push(iso);
+  }
+  return lista;
+});
+const rotuloDia = (iso) =>
+  iso === hoje.value
+    ? 'Hoje'
+    : iso === somarDias(hoje.value, 1)
+      ? 'Amanhã'
+      : formatarDiaCurto(iso);
 
 onMounted(async () => {
   try {
-    barbearia.value = await api.barbearia.obterPorSlug(route.params.slug);
-    [servicos.value, barbeiros.value] = await Promise.all([
-      api.servicos.listar(),
-      api.barbeiros.listar(),
-    ]);
+    const pagina = await api.publico.carregar(slug, codigo);
+    barbearia.value = pagina.barbearia;
+    servicos.value = pagina.servicos;
+    barbeiros.value = pagina.barbeiros;
+    hoje.value = pagina.hoje ?? hoje.value;
   } catch (erro) {
     if (erro instanceof ErroDeNegocio) naoEncontrada.value = true;
     else throw erro;
@@ -71,7 +91,7 @@ async function carregarHorarios() {
   horarios.value =
     servico && barbeiro && dia
       ? (
-          await api.agendamentos.horariosLivres({
+          await api.publico.horarios(slug, codigo, {
             data: dia,
             barbeiroId: barbeiro.id,
             servicoId: servico.id,
@@ -112,7 +132,7 @@ watch(telefone, async (valor) => {
     reconhecido.value = undefined;
     return;
   }
-  const r = await api.clientes.reconhecer(valor);
+  const r = await api.publico.reconhecer(slug, codigo, valor);
   if (esta === consulta) reconhecido.value = r;
 });
 
@@ -137,7 +157,7 @@ async function confirmar() {
   enviando.value = true;
   try {
     const { servico, barbeiro, dia, hora } = escolha.value;
-    confirmado.value = await api.agendamentos.criar({
+    confirmado.value = await api.publico.agendar(slug, codigo, {
       data: dia,
       inicio: hora,
       servicoId: servico.id,
@@ -175,7 +195,9 @@ function recomecar() {
 
       <template v-else-if="barbearia">
         <header class="marca">
-          <p class="ds-rotulo">{{ barbearia.cidade }}</p>
+          <p v-if="barbearia.contato?.endereco" class="ds-rotulo">
+            {{ barbearia.contato.endereco }}
+          </p>
           <h1 class="marca__nome">{{ barbearia.nome }}</h1>
         </header>
 
@@ -185,7 +207,7 @@ function recomecar() {
           class="reservado"
         >
           <p class="ds-corpo-lg">
-            {{ confirmado.clienteNome.split(' ')[0] }}, seu horário é
+            {{ confirmado.primeiroNome }}, seu horário é
             <strong>{{ formatarDiaCurto(confirmado.data) }}</strong> às
             <strong class="ds-hora">{{ confirmado.inicio }}</strong
             >, com {{ confirmado.barbeiroNome }} ({{ confirmado.servicoNome }}).

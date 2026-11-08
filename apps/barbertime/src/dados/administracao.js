@@ -13,6 +13,8 @@ export const administracao = {
   barbearia: {
     obter: () => http('GET', '/api/barbearia'),
     salvar: (dados) => http('PUT', '/api/barbearia', dados),
+    /** Novo código do link "só com o link": o antigo deixa de funcionar. */
+    novoCodigo: () => http('POST', '/api/barbearia/token'),
   },
   papeis: {
     listar: () => http('GET', '/api/papeis'),

@@ -21,13 +21,7 @@ describe('layout e rotas', () => {
   it('/ abre a agenda, com o menu do app', async () => {
     app = await montarApp('/');
     await esperar(() => expect(texto()).toContain('Zé Carlos'));
-    for (const t of [
-      'Clientes',
-      'Equipe',
-      'Serviços',
-      'Produtos',
-      'Página pública',
-    ]) {
+    for (const t of ['Clientes', 'Equipe', 'Serviços', 'Produtos']) {
       expect(texto()).toContain(t);
     }
   });

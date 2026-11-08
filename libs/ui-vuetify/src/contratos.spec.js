@@ -27,6 +27,7 @@ import {
   testarDsEscolha,
   testarDsCaixaDeSelecao,
   testarDsPassos,
+  testarDsQrCode,
 } from '@barbertime/ui-contrato';
 import {
   instalarUi,
@@ -58,6 +59,7 @@ import {
   DsEscolha,
   DsCaixaDeSelecao,
   DsPassos,
+  DsQrCode,
 } from './index.js';
 import { montar } from './testes/montar.js';
 
@@ -98,3 +100,4 @@ describe('Vuetify: DsEscolha', () => testarDsEscolha(DsEscolha, montar));
 describe('Vuetify: DsCaixaDeSelecao', () =>
   testarDsCaixaDeSelecao(DsCaixaDeSelecao, montar));
 describe('Vuetify: DsPassos', () => testarDsPassos(DsPassos, montar));
+describe('Vuetify: DsQrCode', () => testarDsQrCode(DsQrCode, montar));

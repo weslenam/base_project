@@ -15,9 +15,11 @@ const semMenu = computed(() =>
 );
 
 // Menu montado das rotas: só o que o papel permite e o módulo libera.
+// O link da página pública fica em Configurações > Página pública (planejamento
+// 0019): no modo "só com o link" ele exige o código, que a sessão não conhece.
 const itensMenu = computed(() => {
   if (!sessao.value) return [];
-  const itens = rotas
+  return rotas
     .filter((r) => r.meta?.menu && rotaPermitida(r.meta))
     .map((r) => ({
       titulo: r.meta.menu.titulo,
@@ -25,17 +27,6 @@ const itensMenu = computed(() => {
       icone: r.meta.menu.icone,
       grupo: r.meta.menu.grupo,
     }));
-  if (
-    sessao.value.modulosAtivos?.includes('agendamento_online') &&
-    sessao.value.barbearia
-  ) {
-    itens.splice(1, 0, {
-      titulo: 'Página pública',
-      rota: `/agendar/${sessao.value.barbearia.slug}`,
-      icone: 'barbearia',
-    });
-  }
-  return itens;
 });
 
 async function aoSair() {

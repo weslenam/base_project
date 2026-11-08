@@ -273,3 +273,54 @@ describe('senha provisória em Usuários', () => {
     expect(campo('Nova senha provisória')).toBeFalsy();
   });
 });
+
+describe('página pública nas configurações', () => {
+  const comModo = (modo) => {
+    const b = BARBEARIA();
+    b.configuracoes.paginaPublica.modo = modo;
+    b.tokenPublico = 'abc123';
+    return b;
+  };
+  const link = () =>
+    document.querySelector('[aria-label="Compartilhar a página"] output')
+      ?.textContent;
+
+  it('pública: link pelo endereço, com QR code', async () => {
+    simularApi({ 'GET /api/barbearia': comModo('publica') });
+    app = await montarApp('/configuracoes');
+    await clicar('Página pública');
+    await esperar(() => expect(link()).toMatch(/\/agendar\/barbearia-modelo$/));
+    await esperar(() =>
+      expect(
+        document.querySelector('img[alt="QR code do link de agendamento"]'),
+      ).toBeTruthy(),
+    );
+  });
+
+  it('só com o link: o link leva o código e dá para gerar outro', async () => {
+    const chamadas = simularApi({
+      'GET /api/barbearia': comModo('com_link'),
+      'POST /api/barbearia/token': {
+        ...comModo('com_link'),
+        tokenPublico: 'novo999',
+      },
+    });
+    app = await montarApp('/configuracoes');
+    await clicar('Página pública');
+    await esperar(() => expect(link()).toMatch(/\?c=abc123$/));
+    await clicar('Gerar código novo');
+    await clicar('Gerar código novo', { ultimo: true });
+    await esperar(() => expect(link()).toMatch(/\?c=novo999$/));
+    expect(chamadas.some((c) => c.url === '/api/barbearia/token')).toBe(true);
+  });
+
+  it('desativada: sem link para compartilhar', async () => {
+    simularApi({ 'GET /api/barbearia': comModo('desativada') });
+    app = await montarApp('/configuracoes');
+    await clicar('Página pública');
+    await esperar(() =>
+      expect(texto()).toContain('Ninguém agenda pela internet'),
+    );
+    expect(link()).toBeUndefined();
+  });
+});

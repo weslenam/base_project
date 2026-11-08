@@ -25,7 +25,90 @@ export const CONFIG_BARBEARIA_PADRAO = Object.freeze({
     diasAFrente: 30,
     cancelamentoAteHoras: 2,
   },
+  /** publica | com_link (exige o token do link) | desativada (ADR 0013) */
+  paginaPublica: { modo: 'publica' },
 });
+
+export const MODOS_DA_PAGINA_PUBLICA = Object.freeze([
+  {
+    valor: 'publica',
+    rotulo: 'Pública',
+    descricao:
+      'Qualquer pessoa com o endereço agenda. Bom para Instagram e Google.',
+  },
+  {
+    valor: 'com_link',
+    rotulo: 'Só com o link',
+    descricao:
+      'O endereço leva um código. Quem não tem o link não encontra a página. Dá para trocar o código e invalidar o link antigo.',
+  },
+  {
+    valor: 'desativada',
+    rotulo: 'Desativada',
+    descricao: 'Ninguém agenda pela internet; só a recepção marca.',
+  },
+]);
+
+/** Data (AAAA-MM-DD) e hora (HH:MM) de um instante no fuso da barbearia. */
+export function momentoNoFuso(
+  instante = new Date(),
+  fuso = 'America/Sao_Paulo',
+) {
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: fuso,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(instante)
+      .map((p) => [p.type, p.value]),
+  );
+  return {
+    data: `${partes.year}-${partes.month}-${partes.day}`,
+    hora: `${partes.hour}:${partes.minute}`,
+  };
+}
+
+const minutos = (h) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+const hhmm = (m) =>
+  `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+/**
+ * Janela em que o cliente pode marcar pela página pública num dia, ou null:
+ * dia fechado, dia passado, além do limite de dias à frente. Junta o horário da
+ * barbearia, o expediente do barbeiro e a antecedência mínima.
+ * Devolve { inicio, fim, aPartirDe? } para usar em horariosLivres.
+ */
+export function janelaDoAgendamentoOnline({ config, barbeiro, data, agora }) {
+  const c = mesclarConfigBarbearia(config);
+  if (data < agora.data) return null;
+  const limite = new Date(`${agora.data}T12:00:00Z`);
+  limite.setUTCDate(limite.getUTCDate() + c.agendamento.diasAFrente);
+  if (data > limite.toISOString().slice(0, 10)) return null;
+  const dia = c.funcionamento.find(
+    (d) => d.dia === new Date(`${data}T12:00:00Z`).getUTCDay(),
+  );
+  if (!dia?.aberto) return null;
+  const inicio = hhmm(Math.max(minutos(dia.abre), minutos(barbeiro.inicio)));
+  const fim = hhmm(Math.min(minutos(dia.fecha), minutos(barbeiro.fim)));
+  if (inicio >= fim) return null;
+  // Antecedência: conta a partir de agora; pode cair num dia seguinte.
+  const antecede =
+    minutos(agora.hora) + c.agendamento.antecedenciaMinimaHoras * 60;
+  const diasDepois = Math.round(
+    (new Date(`${data}T12:00:00Z`) - new Date(`${agora.data}T12:00:00Z`)) /
+      86_400_000,
+  );
+  const aPartirDeMin = antecede - diasDepois * 1440;
+  if (aPartirDeMin >= minutos(fim)) return null;
+  return aPartirDeMin > minutos(inicio)
+    ? { inicio, fim, aPartirDe: hhmm(aPartirDeMin) }
+    : { inicio, fim };
+}
 
 export const LIMITES_DO_AGENDAMENTO = Object.freeze({
   antecedenciaMinimaHoras: { min: 0, max: 72 },
@@ -50,6 +133,7 @@ export function mesclarConfigBarbearia(gravada = {}) {
       ...((g.funcionamento ?? []).find((d) => d?.dia === padrao.dia) ?? {}),
     })),
     agendamento: { ...p.agendamento, ...(g.agendamento ?? {}) },
+    paginaPublica: { ...p.paginaPublica, ...(g.paginaPublica ?? {}) },
   };
 }
 
@@ -58,6 +142,7 @@ export function validarConfigBarbearia({
   contato,
   funcionamento,
   agendamento,
+  paginaPublica,
 } = {}) {
   if (!contato || !Array.isArray(funcionamento) || !agendamento) {
     return 'Configuração incompleta.';
@@ -91,6 +176,11 @@ export function validarConfigBarbearia({
   }
   if (!funcionamento.some((d) => d.aberto)) {
     return 'A barbearia precisa abrir em pelo menos um dia.';
+  }
+
+  const modo = paginaPublica?.modo;
+  if (modo && !MODOS_DA_PAGINA_PUBLICA.some((m) => m.valor === modo)) {
+    return 'Modo da página pública inválido.';
   }
 
   const rotulos = {

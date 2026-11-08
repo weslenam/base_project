@@ -7,23 +7,27 @@ import {
   DsFormulario,
   DsInput,
   DsInputTelefone,
+  DsEscolha,
   DsPagina,
+  DsQrCode,
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
 import {
   DIAS_DA_SEMANA,
   LIMITES_DO_AGENDAMENTO,
+  MODOS_DA_PAGINA_PUBLICA,
   validarConfigBarbearia,
 } from '@barbertime/dominio';
 import { administracao } from '../../dados/administracao.js';
 import { ErroDeNegocio } from '../../dados/erros.js';
 import { useAcao } from '../../dados/useAcao.js';
-import { carregarSessao } from '../../sessao/sessao.js';
+import { carregarSessao, useSessao } from '../../sessao/sessao.js';
 
 // Configurações da barbearia (planejamento 0017, ADR 0012): dados do negócio,
 // editados pelo Dono. Uma aba por assunto, para a página não rolar.
-const { advertir } = useDialogo();
+const { advertir, confirmar } = useDialogo();
+const { moduloAtivo } = useSessao();
 const notificar = useNotificacao();
 const executar = useAcao();
 
@@ -32,6 +36,7 @@ const abas = [
   { valor: 'dados', rotulo: 'Dados da barbearia' },
   { valor: 'funcionamento', rotulo: 'Funcionamento' },
   { valor: 'agendamento', rotulo: 'Agendamento online' },
+  { valor: 'pagina', rotulo: 'Página pública' },
 ];
 
 const form = ref(null);
@@ -44,11 +49,68 @@ onMounted(async () => {
   if (!dados) return;
   form.value = copiar(dados);
   slugSalvo.value = dados.slug;
+  modoSalvo.value = dados.configuracoes.paginaPublica.modo;
 });
 
 const link = computed(() =>
   form.value ? `${location.origin}/agendar/${form.value.slug || '...'}` : '',
 );
+
+// ---- Página pública (planejamento 0019, ADR 0013) ----
+const modo = computed(() => form.value?.configuracoes.paginaPublica.modo);
+const modoSalvo = ref('');
+const descricaoDoModo = computed(
+  () => MODOS_DA_PAGINA_PUBLICA.find((m) => m.valor === modo.value)?.descricao,
+);
+/** Link com o endereço e o modo SALVOS (o que o cliente vai abrir). */
+const linkPublico = computed(() => {
+  if (!form.value) return '';
+  const base = `${location.origin}/agendar/${slugSalvo.value}`;
+  return modoSalvo.value === 'com_link'
+    ? `${base}?c=${form.value.tokenPublico}`
+    : base;
+});
+const alteracaoPendente = computed(
+  () =>
+    form.value &&
+    (modo.value !== modoSalvo.value || form.value.slug !== slugSalvo.value),
+);
+const textoWhatsapp = computed(
+  () => `Agende seu horário na ${form.value?.nome}: ${linkPublico.value}`,
+);
+
+async function copiarLink() {
+  try {
+    await navigator.clipboard.writeText(linkPublico.value);
+    notificar.sucesso('Link copiado.');
+  } catch {
+    notificar.aviso('Não deu para copiar. Selecione o link e copie.');
+  }
+}
+
+function abrirPagina() {
+  window.open(linkPublico.value, '_blank', 'noopener');
+}
+
+function enviarWhatsapp() {
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(textoWhatsapp.value)}`,
+    '_blank',
+    'noopener',
+  );
+}
+
+async function novoCodigo() {
+  const ok = await confirmar(
+    'Gerar um código novo? Quem tiver o link atual não vai mais conseguir agendar; mande o link novo para os seus clientes.',
+    { textoOk: 'Gerar código novo', textoCancelar: 'Manter o atual' },
+  );
+  if (!ok) return;
+  const r = await executar(() => administracao.barbearia.novoCodigo());
+  if (!r) return;
+  form.value.tokenPublico = r.tokenPublico;
+  notificar.sucesso('Código novo gerado. O link antigo deixou de funcionar.');
+}
 
 /** Horário do primeiro dia aberto vai para os outros dias abertos. */
 function repetirHorario() {
@@ -111,6 +173,7 @@ async function salvar() {
   if (!salvo) return;
   form.value = copiar(salvo);
   slugSalvo.value = salvo.slug;
+  modoSalvo.value = salvo.configuracoes.paginaPublica.modo;
   await carregarSessao(); // nome e endereço no cabeçalho e no menu
   notificar.sucesso('Configurações salvas.');
 }
@@ -206,6 +269,74 @@ async function salvar() {
             />
           </div>
         </template>
+        <template #pagina>
+          <div class="pagina">
+            <div class="pagina__modo">
+              <DsEscolha
+                v-model="form.configuracoes.paginaPublica.modo"
+                :opcoes="MODOS_DA_PAGINA_PUBLICA"
+                rotulo="Quem pode agendar pela internet"
+              />
+              <p class="ds-corpo-sm ds-suave">{{ descricaoDoModo }}</p>
+              <p
+                v-if="!moduloAtivo('agendamento_online')"
+                class="ds-corpo-sm aviso"
+              >
+                O módulo Agendamento online está desativado: a página não abre
+                para ninguém. Ative em Módulos.
+              </p>
+              <p v-if="alteracaoPendente" class="ds-corpo-sm aviso">
+                Salve para o link abaixo passar a valer.
+              </p>
+            </div>
+            <section
+              v-if="modoSalvo !== 'desativada'"
+              class="compartilhar"
+              aria-label="Compartilhar a página"
+            >
+              <div class="compartilhar__link">
+                <span class="ds-rotulo">Link para os clientes</span>
+                <output class="ds-valor link">{{ linkPublico }}</output>
+                <div class="compartilhar__acoes">
+                  <DsBotao
+                    variante="secundario"
+                    tamanho="sm"
+                    @click="copiarLink"
+                  >
+                    Copiar link
+                  </DsBotao>
+                  <DsBotao
+                    variante="secundario"
+                    tamanho="sm"
+                    @click="enviarWhatsapp"
+                  >
+                    Enviar no WhatsApp
+                  </DsBotao>
+                  <DsBotao
+                    variante="fantasma"
+                    tamanho="sm"
+                    @click="abrirPagina"
+                  >
+                    Abrir a página
+                  </DsBotao>
+                  <DsBotao
+                    v-if="modoSalvo === 'com_link'"
+                    variante="fantasma"
+                    tamanho="sm"
+                    @click="novoCodigo"
+                  >
+                    Gerar código novo
+                  </DsBotao>
+                </div>
+              </div>
+              <DsQrCode
+                :valor="linkPublico"
+                rotulo="QR code do link de agendamento"
+                :tamanho="148"
+              />
+            </section>
+          </div>
+        </template>
       </DsAbas>
     </DsFormulario>
   </DsPagina>
@@ -247,6 +378,45 @@ async function salvar() {
 }
 .dia__fechado {
   grid-column: span 2;
+}
+.pagina {
+  display: grid;
+  gap: var(--esp-4);
+}
+.pagina__modo {
+  display: grid;
+  gap: var(--esp-2);
+}
+.pagina__modo p {
+  margin: 0;
+}
+.aviso {
+  color: var(--cobre);
+  font-weight: 600;
+}
+.compartilhar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-4);
+  padding: var(--esp-4);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-md);
+  background: var(--placa-funda);
+}
+.compartilhar__link {
+  display: grid;
+  flex: 1 1 18rem;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+.link {
+  overflow-wrap: anywhere;
+}
+.compartilhar__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
 }
 @media (max-width: 40rem) {
   .dia {

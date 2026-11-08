@@ -24,6 +24,7 @@ export { default as DsAbas } from './componentes/DsAbas.vue';
 export { default as DsEscolha } from './componentes/DsEscolha.vue';
 export { default as DsCaixaDeSelecao } from './componentes/DsCaixaDeSelecao.vue';
 export { default as DsPassos } from './componentes/DsPassos.vue';
+export { default as DsQrCode } from './componentes/DsQrCode.vue';
 export { default as DsFormulario } from './componentes/DsFormulario.vue';
 export { default as DsTextarea } from './componentes/DsTextarea.vue';
 export { NOMES_DE_ICONES } from './icones.js';

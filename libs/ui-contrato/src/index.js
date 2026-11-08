@@ -31,3 +31,4 @@ export { testarDsAbas } from './DsAbas.contrato.js';
 export { testarDsEscolha } from './DsEscolha.contrato.js';
 export { testarDsCaixaDeSelecao } from './DsCaixaDeSelecao.contrato.js';
 export { testarDsPassos } from './DsPassos.contrato.js';
+export { testarDsQrCode } from './DsQrCode.contrato.js';

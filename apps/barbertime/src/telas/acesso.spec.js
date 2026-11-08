@@ -85,7 +85,6 @@ describe('menu e telas pelo papel', () => {
     expect(menu()).toEqual(
       expect.arrayContaining([
         'Agenda',
-        'Página pública',
         'Caixa',
         'Clientes',
         'Módulos',
@@ -97,6 +96,7 @@ describe('menu e telas pelo papel', () => {
       'Produtos',
       'Usuários',
       'Papéis e permissões',
+      'Configurações',
     ]) {
       expect(menu()).not.toContain(item);
     }

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONFIG_BARBEARIA_PADRAO,
+  janelaDoAgendamentoOnline,
   mesclarConfigBarbearia,
+  momentoNoFuso,
   validarConfigBarbearia,
 } from './barbearia.js';
 
@@ -80,5 +82,45 @@ describe('configurações da barbearia', () => {
     c.agendamento.diasAFrente = 30;
     c.agendamento.antecedenciaMinimaHoras = 1.5;
     expect(validarConfigBarbearia(c)).toContain('antecedência mínima');
+  });
+});
+
+describe('janela do agendamento online', () => {
+  const barbeiro = { inicio: '09:00', fim: '20:00' };
+  const config = mesclarConfigBarbearia({});
+  // 2026-11-07 é sábado (fecha 17:00); 2026-11-08, domingo (fechado).
+  const agora = { data: '2026-11-07', hora: '10:15' };
+  const janela = (data, extra = {}) =>
+    janelaDoAgendamentoOnline({ config, barbeiro, data, agora, ...extra });
+
+  it('junta o horário da barbearia com o expediente do barbeiro', () => {
+    expect(janela('2026-11-09')).toEqual({ inicio: '09:00', fim: '19:00' });
+    expect(janela('2026-11-14')).toEqual({ inicio: '09:00', fim: '17:00' });
+  });
+
+  it('dia fechado, dia passado e além do limite não têm janela', () => {
+    expect(janela('2026-11-08')).toBeNull();
+    expect(janela('2026-11-06')).toBeNull();
+    expect(janela('2026-12-08')).toBeNull(); // 31 dias à frente
+  });
+
+  it('hoje respeita a antecedência mínima (2h)', () => {
+    expect(janela('2026-11-07')).toEqual({
+      inicio: '09:00',
+      fim: '17:00',
+      aPartirDe: '12:15',
+    });
+    expect(
+      janela('2026-11-07', { agora: { data: '2026-11-07', hora: '15:30' } }),
+    ).toBeNull();
+  });
+});
+
+describe('momento no fuso da barbearia', () => {
+  it('converte o instante UTC para o horário de São Paulo', () => {
+    expect(momentoNoFuso(new Date('2026-11-08T01:30:00Z'))).toEqual({
+      data: '2026-11-07',
+      hora: '22:30',
+    });
   });
 });

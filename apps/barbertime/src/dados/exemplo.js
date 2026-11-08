@@ -96,7 +96,16 @@ export function criarDadosDeExemplo(hoje) {
       id: 1,
       slug: 'barbearia-modelo',
       nome: 'Barbearia do Zé',
-      cidade: 'São Paulo',
+      // Aberta todos os dias, para os testes não dependerem do dia da semana.
+      configuracoes: {
+        contato: { endereco: 'Rua Augusta, 1200 · São Paulo' },
+        funcionamento: [0, 1, 2, 3, 4, 5, 6].map((dia) => ({
+          dia,
+          aberto: true,
+          abre: '08:00',
+          fecha: '21:00',
+        })),
+      },
     },
     barbeiros: [
       { id: 1, nome: 'Zé Carlos', inicio: '09:00', fim: '19:00', comissao: 40 },

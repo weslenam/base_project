@@ -62,4 +62,57 @@ if (existe.rowCount) {
   });
   console.log(`Semente aplicada. Entre com dono@barbertime.dev / ${SENHA}.`);
 }
+// Operação de exemplo (planejamento 0019): serviços, produtos, equipe e clientes,
+// só se a barbearia modelo ainda não tiver nenhum serviço.
+const {
+  rows: [modelo],
+} = await fastify.db.query(
+  "select id from barbearias where slug = 'barbearia-modelo'",
+);
+await fastify.comBarbearia(modelo.id, async (c) => {
+  const ja = await c.query('select 1 from servicos limit 1');
+  if (ja.rowCount) return;
+  const inserir = (sql, linhas) =>
+    Promise.all(linhas.map((l) => c.query(sql, [modelo.id, ...l])));
+  await inserir(
+    'insert into servicos (barbearia_id, nome, duracao, preco) values ($1, $2, $3, $4)',
+    [
+      ['Corte', 30, 45],
+      ['Barba', 20, 30],
+      ['Corte + barba', 50, 70],
+      ['Pigmentação', 40, 60],
+    ],
+  );
+  await inserir(
+    'insert into produtos (barbearia_id, nome, preco, comissao) values ($1, $2, $3, $4)',
+    [
+      ['Pomada modeladora', 39.9, 10],
+      ['Óleo para barba', 34.9, 10],
+    ],
+  );
+  const { rows: marcos } = await c.query(
+    "select id from usuarios where email = 'barbeiro@barbertime.dev'",
+  );
+  await inserir(
+    'insert into barbeiros (barbearia_id, nome, inicio, fim, comissao, usuario_id) values ($1, $2, $3, $4, $5, $6)',
+    [
+      ['Zé Carlos', '09:00', '19:00', 40, null],
+      ['Marcos', '10:00', '20:00', 45, marcos[0]?.id ?? null],
+      ['Léo', '09:00', '17:00', 40, null],
+    ],
+  );
+  await inserir(
+    'insert into clientes (barbearia_id, nome, telefone, observacoes) values ($1, $2, $3, $4)',
+    [
+      ['Rafael Souza', '11987654321', 'Prefere máquina 2 nas laterais.'],
+      ['Bruno Lima', '11976543210', ''],
+      ['Diego Alves', '11965432109', ''],
+      ['Thiago Costa', '11954321098', ''],
+    ],
+  );
+  console.log(
+    'Operação de exemplo criada (serviços, produtos, equipe e clientes).',
+  );
+});
+
 await fastify.close();

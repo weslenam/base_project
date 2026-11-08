@@ -19,10 +19,13 @@ import {
   paraHora,
   paraMinutos,
   sobrepoe,
+  janelaDoAgendamentoOnline,
+  mesclarConfigBarbearia,
 } from '@barbertime/dominio';
 import { formatarTelefone, somenteDigitos } from '@barbertime/ui-utils';
 import { ErroDeNegocio } from './erros.js';
 import { criarDadosDeExemplo } from './exemplo.js';
+import { criarApiHttp } from './apiHttp.js';
 
 /**
  * Camada de dados do app. Mesma forma que a API HTTP terá: funções assíncronas
@@ -252,6 +255,70 @@ export function criarApi({ agora = () => new Date() } = {}) {
         if (banco.barbearia.slug !== slug)
           throw new ErroDeNegocio('Barbearia não encontrada.');
         return copia(banco.barbearia);
+      },
+    },
+
+    /**
+     * Página pública (planejamento 0019): a mesma forma da API /api/publico.
+     * Aqui só existe a barbearia de exemplo e o código do link é ignorado.
+     */
+    publico: {
+      async carregar(slug) {
+        if (banco.barbearia.slug !== slug)
+          throw new ErroDeNegocio('Barbearia não encontrada.');
+        const config = mesclarConfigBarbearia(banco.barbearia.configuracoes);
+        return copia({
+          barbearia: {
+            nome: banco.barbearia.nome,
+            slug,
+            contato: config.contato,
+            funcionamento: config.funcionamento,
+            agendamento: config.agendamento,
+          },
+          servicos: banco.servicos,
+          barbeiros: banco.barbeiros.map(({ id, nome, inicio, fim }) => ({
+            id,
+            nome,
+            inicio,
+            fim,
+          })),
+          hoje: hoje(),
+        });
+      },
+      async horarios(slug, _codigo, { data, barbeiroId, servicoId }) {
+        await api.publico.carregar(slug);
+        const barbeiro = buscar('barbeiros', barbeiroId, 'Barbeiro');
+        const servico = buscar('servicos', servicoId, 'Serviço');
+        const janela = janelaDoAgendamentoOnline({
+          config: banco.barbearia.configuracoes,
+          barbeiro,
+          data,
+          agora: { data: hoje(), hora: horaAgora() },
+        });
+        if (!janela) return [];
+        return horariosLivres({
+          expediente: janela,
+          duracao: servico.duracao,
+          ocupados: ocupadosDoDia(data, barbeiro.id),
+          aPartirDe: janela.aPartirDe,
+        });
+      },
+      async reconhecer(slug, _codigo, telefone) {
+        await api.publico.carregar(slug);
+        return api.clientes.reconhecer(telefone);
+      },
+      async agendar(slug, _codigo, dados) {
+        await api.publico.carregar(slug);
+        const r = await api.agendamentos.criar(dados);
+        return {
+          id: r.id,
+          data: r.data,
+          inicio: r.inicio,
+          fim: r.fim,
+          servicoNome: r.servicoNome,
+          barbeiroNome: r.barbeiroNome,
+          primeiroNome: r.clienteNome.split(' ')[0],
+        };
       },
     },
 
@@ -951,5 +1018,10 @@ export function criarApi({ agora = () => new Date() } = {}) {
   return api;
 }
 
-/** Instância única do app. */
-export const api = criarApi();
+/**
+ * Instância única do app (planejamento 0019): API real em `pnpm dev` e produção;
+ * dados de exemplo em memória nos testes do front e com VITE_DADOS=exemplo.
+ */
+const usarExemplo =
+  import.meta.env.MODE === 'test' || import.meta.env.VITE_DADOS === 'exemplo';
+export const api = usarExemplo ? criarApi() : criarApiHttp(criarApi());

@@ -54,6 +54,9 @@ export {
   CONFIG_BARBEARIA_PADRAO,
   LIMITES_DO_AGENDAMENTO,
   SLUG,
+  MODOS_DA_PAGINA_PUBLICA,
   mesclarConfigBarbearia,
   validarConfigBarbearia,
+  momentoNoFuso,
+  janelaDoAgendamentoOnline,
 } from './barbearia.js';

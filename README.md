@@ -119,7 +119,13 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 - **Login** por sessão em cookie (ADR 0009). Cada usuário tem um **papel** em cada barbearia: Dono, Gerente, Recepção, Barbeiro ou papéis criados pelo dono com permissões do catálogo (ADR 0010). O menu mostra só o que o papel permite, e a API recusa o resto (403).
 - **Isolamento por barbearia** com RLS no PostgreSQL (ADR 0001), coberto por teste de integração.
 - **Módulos** (ADR 0011): inclusos no plano (agendamento online, comissões, lembretes) a barbearia ativa; **serviços adicionais** (pagamento online/gateway, WhatsApp, NFS-e, **fidelidade** e **pacotes**) são solicitados e ativados depois da contratação. A semente de desenvolvimento já ativa fidelidade e pacotes.
-- **Já na API real:** login, cadastro da barbearia, usuários, papéis e módulos. As demais telas ainda usam os dados de exemplo (próxima fase do planejamento 0013).
+- **Já na API real** (planejamento 0019):
+  - login, cadastro da barbearia, usuários, papéis e módulos;
+  - configurações;
+  - serviços, produtos, equipe, clientes e agenda;
+  - página pública.
+
+  Caixa, comandas, fidelidade e pacotes ainda usam os dados de exemplo (partes 2 e 3).
 
 ## Telas
 
@@ -142,7 +148,12 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 **Fidelidade e pacotes no balcão:** o cadastro do cliente mostra os selos, o cashback e os pacotes com saldo por serviço, além de "Vender pacote". O pacote vendido abre uma comanda no caixa e passa a valer quando ela é paga. Na comanda, ao escolher um serviço coberto pelo pacote do cliente, "Usar o pacote" já vem marcado: o serviço sai por R$ 0 e o uso fica registrado, respeitando a quantidade, a vigência e os limites. Receber uma comanda paga com cliente identificado credita o selo e o cashback configurados.
 
-**Dados de exemplo:** até a API de negócio existir, as telas usam `src/dados/api.js`, em memória (Barbearia do Zé, 3 barbeiros, 4 serviços, 4 produtos, 8 clientes, caixa do dia aberto com 3 comandas). Recarregar a página volta ao exemplo. As recusas de negócio (horário ocupado, telefone repetido, exclusão em uso) chegam como `ErroDeNegocio` e aparecem no diálogo de negação.
+**Camada de dados:** as telas usam `api` de `src/dados/api.js`, que tem duas implementações com a mesma interface:
+
+- **`pnpm dev` e produção:** a API real (`src/dados/apiHttp.js`). O que ainda não migrou cai na versão em memória.
+- **Testes do front, ou com `VITE_DADOS=exemplo`:** os dados de exemplo em memória (Barbearia do Zé, 3 barbeiros, 4 serviços, 4 produtos, 8 clientes, caixa do dia com 3 comandas).
+
+As recusas de negócio (horário ocupado, telefone repetido, exclusão em uso) chegam como `ErroDeNegocio` e aparecem no diálogo de negação.
 
 ## Kit de UI (`@barbertime/ui`)
 

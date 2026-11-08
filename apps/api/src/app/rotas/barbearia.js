@@ -6,13 +6,15 @@ import {
 import { conflito, invalido } from '../../infra/erros.js';
 
 const LER =
-  'select id, nome, slug, configuracoes from barbearias where id = $1';
+  'select id, nome, slug, configuracoes, token_publico from barbearias where id = $1';
 
 const formatar = (b) => ({
   id: b.id,
   nome: b.nome,
   slug: b.slug,
   configuracoes: mesclarConfigBarbearia(b.configuracoes),
+  /** Código do link da página no modo "só com o link" (ADR 0013). */
+  tokenPublico: b.token_publico,
 });
 
 /** Configurações da barbearia atual (planejamento 0017, ADR 0012). */
@@ -47,8 +49,18 @@ export default async function (fastify) {
 
     const { rows } = await fastify.db.query(
       `update barbearias set nome = $2, slug = $3, configuracoes = $4
-        where id = $1 returning id, nome, slug, configuracoes`,
+        where id = $1 returning id, nome, slug, configuracoes, token_publico`,
       [id, nome.trim(), slug, config],
+    );
+    return formatar(rows[0]);
+  });
+
+  /** Gera um código novo: o link antigo ("só com o link") deixa de funcionar. */
+  fastify.post('/barbearia/token', acesso, async (req) => {
+    const { rows } = await fastify.db.query(
+      `update barbearias set token_publico = replace(gen_random_uuid()::text, '-', '')
+        where id = $1 returning id, nome, slug, configuracoes, token_publico`,
+      [req.contexto.barbeariaId],
     );
     return formatar(rows[0]);
   });

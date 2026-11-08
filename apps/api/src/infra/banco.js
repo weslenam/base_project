@@ -3,6 +3,9 @@ import pg from 'pg';
 
 // bigint (id) chega como string no pg; ids cabem em Number com folga.
 pg.types.setTypeParser(20, (v) => Number(v));
+// date chega como 'AAAA-MM-DD' (sem fuso, como no domínio) e numeric como Number.
+pg.types.setTypeParser(1082, (v) => v);
+pg.types.setTypeParser(1700, (v) => Number(v));
 
 /**
  * Executa fn(cliente) numa transação com app.barbearia_id definido: as políticas

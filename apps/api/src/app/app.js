@@ -9,6 +9,10 @@ import rotasPapeis from './rotas/papeis.js';
 import rotasModulos from './rotas/modulos.js';
 import rotasPagamentos from './rotas/pagamentos.js';
 import rotasBarbearia from './rotas/barbearia.js';
+import rotasCadastros from './rotas/cadastros.js';
+import rotasClientes from './rotas/clientes.js';
+import rotasAgenda from './rotas/agenda.js';
+import rotasPublico from './rotas/publico.js';
 
 /**
  * Aplicação Fastify. Toda rota fica sob /api. Erros esperados saem como
@@ -40,6 +44,10 @@ export async function app(fastify, opts = {}) {
       api.register(rotasPapeis);
       api.register(rotasModulos);
       api.register(rotasBarbearia);
+      api.register(rotasCadastros);
+      api.register(rotasClientes);
+      api.register(rotasAgenda);
+      api.register(rotasPublico);
       api.register(rotasPagamentos, opts.pagamentos ?? {});
     },
     { prefix: '/api' },
