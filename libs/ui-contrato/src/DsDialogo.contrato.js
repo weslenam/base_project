@@ -40,4 +40,26 @@ export function testarDsDialogo(DsDialogo, montar) {
       expect(w.emitted('update:modelValue')?.at(-1)).toEqual([false]),
     );
   });
+
+  it('expõe o tamanho (data-largura): sm compacto, lg/xl quase tela cheia', async () => {
+    montar(DsDialogo, {
+      props: { modelValue: true, titulo: 'Comanda', largura: 'xl' },
+      slots: { default: 'Itens' },
+    });
+    await esperar(() =>
+      expect(
+        document.querySelector('[data-largura="xl"]')?.textContent,
+      ).toContain('Itens'),
+    );
+  });
+
+  it('sem largura, o diálogo é médio', async () => {
+    montar(DsDialogo, {
+      props: { modelValue: true, titulo: 'Novo' },
+      slots: { default: 'Corpo' },
+    });
+    await esperar(() =>
+      expect(document.querySelector('[data-largura="md"]')).toBeTruthy(),
+    );
+  });
 }

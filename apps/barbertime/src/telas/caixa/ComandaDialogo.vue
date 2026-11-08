@@ -458,7 +458,7 @@ async function cancelar() {
   gap: var(--esp-2);
 }
 .painel__lista {
-  max-height: 40vh;
+  max-height: 50vh;
   overflow-y: auto;
 }
 .painel__total {

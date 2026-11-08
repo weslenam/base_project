@@ -27,7 +27,10 @@ defineProps({
 .ds-pagina {
   display: grid;
   gap: var(--esp-4);
-  max-width: 80rem;
+  /* Ocupa a largura disponível (planejamento 0018): agenda e caixa usam tudo;
+     formulários limitam a própria largura. */
+  width: 100%;
+  box-sizing: border-box;
   padding: var(--esp-6) var(--esp-4);
 }
 .ds-pagina__cabecalho {

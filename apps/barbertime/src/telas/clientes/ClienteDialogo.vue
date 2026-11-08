@@ -342,7 +342,7 @@ async function excluir() {
 .rolavel {
   display: grid;
   gap: var(--esp-2);
-  max-height: 42vh;
+  max-height: 55vh;
   overflow-y: auto;
   padding-right: var(--esp-1);
 }

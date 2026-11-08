@@ -12,7 +12,11 @@ const aberto = defineModel({ type: Boolean, default: false });
 
 defineProps({
   titulo: { type: String, default: '' },
-  /** sm | md | lg | xl */
+  /**
+   * sm: compacto (confirmações e formulários curtos)
+   * md: compacto no desktop; quase tela cheia em tablet e celular (até 80rem)
+   * lg | xl: quase tela cheia em qualquer tela
+   */
   largura: {
     type: String,
     default: 'md',
@@ -23,17 +27,15 @@ defineProps({
   /** Não fecha ao clicar fora ou apertar Esc. */
   persistente: Boolean,
 });
-
-const LARGURAS = { sm: 400, md: 600, lg: 900, xl: 1200 };
 </script>
 
 <template>
   <VDialog
     v-model="aberto"
-    :max-width="LARGURAS[largura]"
+    :content-class="['ds-dialogo-caixa', `ds-dialogo-caixa--${largura}`]"
     :persistent="persistente"
   >
-    <VCard class="ds-dialogo">
+    <VCard class="ds-dialogo" :data-largura="largura">
       <div v-if="titulo || fechavel" class="ds-dialogo__topo">
         <VCardTitle v-if="titulo" class="ds-dialogo__titulo">{{
           titulo
@@ -48,7 +50,7 @@ const LARGURAS = { sm: 400, md: 600, lg: 900, xl: 1200 };
           <DsIcone nome="fechar" tamanho="lg" />
         </button>
       </div>
-      <VCardText>
+      <VCardText class="ds-dialogo__corpo">
         <slot />
       </VCardText>
       <VCardActions v-if="$slots.acoes" class="ds-dialogo__acoes">
@@ -57,6 +59,61 @@ const LARGURAS = { sm: 400, md: 600, lg: 900, xl: 1200 };
     </VCard>
   </VDialog>
 </template>
+
+<!--
+  Tamanho da caixa do diálogo (planejamento 0018). Sem "scoped": o Vuetify
+  teleporta a caixa para o <body>. O "quase" da tela cheia é a margem em volta.
+-->
+<style>
+.v-dialog > .v-overlay__content.ds-dialogo-caixa {
+  --ds-dialogo-margem: clamp(12px, 2vw, 32px);
+  margin: var(--ds-dialogo-margem);
+  width: calc(100% - 2 * var(--ds-dialogo-margem));
+  max-height: calc(100% - 2 * var(--ds-dialogo-margem));
+}
+.v-dialog > .v-overlay__content.ds-dialogo-caixa--sm {
+  max-width: min(400px, calc(100% - 2 * var(--ds-dialogo-margem)));
+}
+.v-dialog > .v-overlay__content.ds-dialogo-caixa--md {
+  max-width: min(600px, calc(100% - 2 * var(--ds-dialogo-margem)));
+}
+.v-dialog > .v-overlay__content.ds-dialogo-caixa--lg,
+.v-dialog > .v-overlay__content.ds-dialogo-caixa--xl {
+  max-width: calc(100% - 2 * var(--ds-dialogo-margem));
+  height: calc(100% - 2 * var(--ds-dialogo-margem));
+}
+/* Tablet e celular: o médio também vira quase tela cheia. */
+@media (max-width: 80rem) {
+  .v-dialog > .v-overlay__content.ds-dialogo-caixa--md {
+    max-width: calc(100% - 2 * var(--ds-dialogo-margem));
+    height: calc(100% - 2 * var(--ds-dialogo-margem));
+  }
+}
+/* Título e ações fixos; só o corpo rola, e só se não couber. */
+.ds-dialogo-caixa > .ds-dialogo {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+.ds-dialogo-caixa--lg > .ds-dialogo,
+.ds-dialogo-caixa--xl > .ds-dialogo {
+  height: 100%;
+}
+@media (max-width: 80rem) {
+  .ds-dialogo-caixa--md > .ds-dialogo {
+    height: 100%;
+  }
+}
+.ds-dialogo-caixa > .ds-dialogo > .ds-dialogo__corpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.ds-dialogo-caixa > .ds-dialogo > .ds-dialogo__topo,
+.ds-dialogo-caixa > .ds-dialogo > .ds-dialogo__acoes {
+  flex: 0 0 auto;
+}
+</style>
 
 <style scoped>
 .ds-dialogo {
@@ -97,6 +154,7 @@ const LARGURAS = { sm: 400, md: 600, lg: 900, xl: 1200 };
 }
 .ds-dialogo__acoes {
   flex-wrap: wrap;
+  border-top: 1px solid var(--linha);
   justify-content: flex-end;
   gap: var(--esp-2);
   padding: var(--esp-2) var(--esp-6) var(--esp-4);
