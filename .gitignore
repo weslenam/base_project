@@ -14,3 +14,7 @@ vitest.config.*.timestamp*
 !.env.example
 .DS_Store
 .vitest
+
+# graphify (planejamento 0021): grafo derivado do código, regenerado localmente
+graphify-out/
+.claude/*.graphify-bak

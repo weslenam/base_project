@@ -22,3 +22,4 @@
 | [0018](0018-tablet-e-dialogos-quase-tela-cheia.md)    | Responsividade em tablet e diálogos quase em tela cheia                       | Concluído        | 2026-11-07 |
 | [0019](0019-pagina-publica-e-negocio-no-banco.md)     | Página pública publicável e operação da barbearia no banco                    | Em andamento     | 2026-11-07 |
 | [0020](0020-operacao-pelo-barbeiro-encaixe-e-fila.md) | Balcão: atendimento rápido (avulso + agendado), fila e operação pelo barbeiro | Fase 1 concluída | 2026-11-07 |
+| [0021](0021-graphify-e-ordem-de-trabalho.md)          | Graphify e ordem de trabalho garantida por hooks                              | Concluído        | 2026-11-08 |

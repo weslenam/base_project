@@ -214,3 +214,25 @@ Vitrine em `/componentes` no app, só no modo de desenvolvimento (`pnpm dev`) e 
 ## Configuração dos agentes de IA
 
 `.claude/`, `.agents/`, `.cursor/`, `.github/`, `.opencode/`, `.codex/` e `.gemini/` trazem skills e instruções (Nx, design system, planejamento) para os assistentes de código.
+
+### Fluxo de trabalho e Graphify (Claude Code)
+
+A ordem obrigatória está em `.claude/rules/fluxo-de-trabalho.md`: grafo → planejamento → skills da área → implementar com testes → verificar → revisar → fechar. Hooks em `.claude/hooks/` a garantem (planejamento 0021):
+
+| Hook                             | O que faz                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------- |
+| `UserPromptSubmit`               | Injeta a ordem de trabalho em todo pedido                                          |
+| `PreToolUse` Bash/Grep/Read/Glob | Lembra de consultar o grafo antes de buscar em arquivos                            |
+| `PreToolUse` Edit/Write          | **Nega** editar `.vue`/`libs/ui-*` sem a skill `design-system` carregada na sessão |
+| `Stop`                           | Atualiza o grafo (`graphify update .`) quando houve mudança de código              |
+
+Instalar o Graphify (uma vez por máquina; extração local, sem LLM):
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh     # se ainda não tiver o uv
+~/.local/bin/uv tool install graphifyy==0.9.96
+~/.local/bin/graphify install                       # skill /graphify no Claude Code
+~/.local/bin/graphify extract . --code-only         # gera graphify-out/ (fora do git)
+```
+
+Consultas: `graphify query "como o balcão calcula o encaixe"`, `graphify affected "totalDaComanda"`, `graphify path "BalcaoView.vue" "sugerirEncaixe()"`.

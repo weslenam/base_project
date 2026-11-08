@@ -31,3 +31,16 @@
 ## Planejamento e documentação
 
 - Todo planejamento vira documento em `docs/planejamentos/`, com a citação literal da solicitação que o originou. Siga a skill `planejamento-documentado` **antes** de implementar e mantenha o documento atualizado até concluir.
+
+## Fluxo de trabalho (obrigatório)
+
+- Siga a ordem de `.claude/rules/fluxo-de-trabalho.md`: grafo → planejamento → skills da área → implementar com testes → verificar → revisar → fechar. Hooks em `.claude/hooks/` garantem parte dela (injetam o fluxo, lembram do grafo, **bloqueiam UI sem a skill `design-system`**, atualizam o grafo).
+
+## graphify
+
+O projeto tem um grafo de conhecimento do código em `graphify-out/` (gerado localmente, fora do git). Planejamento 0021.
+
+- Com `graphify-out/graph.json` presente, rode `graphify query "<pergunta>"` antes do primeiro grep, busca ou leitura de código, e repita esta regra em todo prompt de subagente que explore código. Leia arquivos só nas linhas que o grafo ou uma leitura anterior apontaram. Use `graphify path "<A>" "<B>"` para relações, `graphify explain "<conceito>"` para conceitos e `graphify affected "<símbolo>"` para impacto de mudança.
+- Leia `graphify-out/GRAPH_REPORT.md` só para revisão ampla de arquitetura.
+- Sem `graphify` no PATH, use `~/.local/bin/graphify`. Sem o grafo (clone novo): `graphify extract . --code-only` (local, sem LLM).
+- O hook `Stop` roda `graphify update .` quando há mudança de código; depois de refatoração que apaga código, `graphify update . --force`.
