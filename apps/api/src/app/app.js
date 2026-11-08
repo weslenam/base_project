@@ -20,6 +20,7 @@ import rotasCaixa from './rotas/caixa.js';
 import rotasBalcao from './rotas/balcao.js';
 import rotasEstoque from './rotas/estoque.js';
 import rotasSenha from './rotas/senha.js';
+import rotasPlataforma from './rotas/plataforma.js';
 import { criarCorreioSmtp } from '../infra/correio.js';
 
 /**
@@ -76,6 +77,8 @@ export async function app(fastify, opts = {}) {
         liberada: opts.paginaPublicaLiberada ?? config.paginaPublicaLiberada,
       });
       api.register(rotasPagamentos, opts.pagamentos ?? {});
+      // Business Center (planejamento 0028): identidade de operador, escopo próprio.
+      api.register(rotasPlataforma, { prefix: '/plataforma' });
     },
     { prefix: '/api' },
   );

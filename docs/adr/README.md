@@ -19,6 +19,7 @@ Decisões arquiteturais duradouras. O trabalho do dia a dia fica em `docs/planej
 | [0015](0015-supabase-local-como-plataforma-de-banco.md)          | Supabase local como plataforma de banco, migrações e e-mail             | Aceito                |
 | [0016](0016-identidade-atras-de-adaptador.md)                    | Identidade atrás de um adaptador, com Supabase Auth e BFF na API        | Aceito                |
 | [0017](0017-schema-app-e-postgrest-fechado.md)                   | Schema `app` não exposto e PostgREST fechado ao front                   | Aceito                |
+| [0018](0018-business-center-e-operadores-da-plataforma.md)       | Business Center e operadores da plataforma (2FA, RLS, auditoria)        | Aceito                |
 
 **Números 0004 e 0005:** livres. Os ADRs 0006 e 0007 mantêm os números do protótipo Agenda porque as regras e skills do repositório os citam assim. Eles foram **reconstruídos** a partir dessas regras, já que o texto original não veio junto. O próximo ADR novo é o 0018 (reservados 0018 e 0019 para o planejamento 0027).
 

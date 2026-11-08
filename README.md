@@ -63,10 +63,12 @@ corepack enable
 pnpm install
 cp .env.example .env        # ajuste as senhas
 pnpm banco                  # sobe o Supabase local, migra e cria a barbearia modelo
-pnpm dev                    # web http://localhost:4200 · api http://localhost:3333
+pnpm dev                    # web :4200 · Business Center :4300 · api :3333
 ```
 
 **Acesso de desenvolvimento** (criado por `pnpm banco`, senha `barbertime123`): `dono@`, `gerente@`, `recepcao@` e `barbeiro@barbertime.dev`, um por papel. Para cadastrar outra barbearia, use `/cadastro`.
+
+**Business Center** (http://localhost:4300, planejamento 0028): `operador@barbertime.dev`, senha `barbertime-operador`. O código de 6 dígitos sai do app autenticador cadastrado com o segredo de desenvolvimento `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP`. Esse segredo fixo é só de desenvolvimento e a semente não o cria em produção. Operadores reais são criados por `pnpm nx run api:operador -- criar --nome "Nome" --email e@dominio`.
 
 O Vite repassa `/api/*` para a API. O banco é o Supabase local (ADR 0015): Studio em http://127.0.0.1:54323 e e-mails capturados em http://127.0.0.1:54324. As tabelas ficam no schema `app`, que o PostgREST não publica (ADR 0017). A primeira subida baixa as imagens do Supabase e demora alguns minutos. Até a sprint S8 do planejamento 0025, `pnpm banco:compose` sobe o Postgres e o Mailpit antigos do `docker-compose` (ajuste o `.env` conforme os comentários).
 
@@ -74,7 +76,7 @@ O Vite repassa `/api/*` para a API. O banco é o Supabase local (ADR 0015): Stud
 
 | Comando                                  | O que faz                                                                                                          |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `pnpm dev`                               | `nx serve` do `barbertime` e da `api` juntos                                                                       |
+| `pnpm dev`                               | `nx serve` do `barbertime`, do `business-center` e da `api` juntos                                                 |
 | `pnpm verificar`                         | lint + testes + build de todos os projetos                                                                         |
 | `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                                                                 |
 | `pnpm format`                            | Prettier no workspace                                                                                              |
@@ -91,6 +93,7 @@ apps/
   barbertime/   → app Vue 3 + Vite + Vue Router (porta 4200)
     src/telas/  → telas do MVP (agenda, caixa, clientes, equipe, serviços, produtos, agendamento público)
     src/dados/  → camada de dados: hoje em memória com exemplos; amanhã, chamadas à API
+  business-center/ → BarberTime Business Center: painel da equipe da plataforma (porta 4300, ADR 0018)
   api/          → Fastify, rotas sob /api (porta 3333), roda direto no Node
 libs/
   dominio/      → regras de negócio puras compartilhadas por app e API (horários, caixa e comanda)
@@ -118,6 +121,11 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 
 - **Login** por sessão em cookie (ADR 0009). Cada usuário tem um **papel** em cada barbearia: Dono, Gerente, Recepção, Barbeiro ou papéis criados pelo dono com permissões do catálogo (ADR 0010). O menu mostra só o que o papel permite, e a API recusa o resto (403).
 - **Isolamento por barbearia** com RLS no PostgreSQL (ADR 0001), coberto por teste de integração.
+- **Business Center** (ADR 0018), app separado da equipe BarberTime:
+  - lista das barbearias com o selo de atividade;
+  - painel do mês, só com números (nenhum dado de cliente);
+  - confirmação de módulos, suspensão e transferência do Dono, sempre com motivo e registro na auditoria;
+  - operadores com conta própria e código do app autenticador obrigatório.
 - **Módulos** (ADR 0011): inclusos no plano (agendamento online, comissões, lembretes) a barbearia ativa; **serviços adicionais** (pagamento online/gateway, WhatsApp, NFS-e, **fidelidade** e **pacotes**) são solicitados e ativados depois da contratação. A semente de desenvolvimento já ativa fidelidade e pacotes.
 - **Já na API real** (planejamento 0019):
   - login, cadastro da barbearia, usuários, papéis e módulos;

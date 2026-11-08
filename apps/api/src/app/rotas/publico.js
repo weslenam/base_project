@@ -47,7 +47,7 @@ export default async function (fastify, { liberada = false } = {}) {
     const {
       rows: [b],
     } = await fastify.db.query(
-      'select id, nome, slug, configuracoes, token_publico from barbearias where slug = $1',
+      'select id, nome, slug, configuracoes, token_publico from barbearias where slug = $1 and suspensa_em is null',
       [String(req.params.slug)],
     );
     if (!b) throw naoEncontrado(NAO_ENCONTRADA);

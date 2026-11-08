@@ -24,6 +24,12 @@
           "cwd": "apps/api"
         }
       },
+      "operador": {
+        "command": "node scripts/operador.js",
+        "options": {
+          "cwd": "apps/api"
+        }
+      },
       "integracao": {
         "command": "vitest run -c vitest.integracao.config.js",
         "options": {

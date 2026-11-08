@@ -29,3 +29,4 @@
 | [0025](0025-migracao-para-supabase-local-e-revisao-do-backend.md) | Migração para o Supabase local e revisão do backend                           | Aprovado (sprints S1–S8) | 2026-11-08 |
 | [0026](0026-correcoes-da-revisao-do-pr-3-e-do-backend.md)         | Correções da revisão do PR #3 e do backend                                    | Concluído                | 2026-11-08 |
 | [0027](0027-estoque-compras-e-financeiro.md)                      | Estoque, compras e financeiro (contas a pagar e a receber)                    | Em andamento (parte 1)   | 2026-11-08 |
+| [0028](0028-barbertime-business-center.md)                        | BarberTime Business Center (administração da plataforma)                      | Concluído                | 2026-11-08 |

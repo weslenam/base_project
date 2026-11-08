@@ -16,6 +16,7 @@ import {
 } from '../../seguranca/sessao.js';
 import { invalido, naoAutenticado, proibido } from '../../infra/erros.js';
 import { criarBarbearia } from '../../servicos/barbearias.js';
+import { BARBEARIA_SUSPENSA } from '../../seguranca/autenticacao.js';
 
 async function dadosDaSessao(fastify, req) {
   await fastify.autenticado(req);
@@ -85,8 +86,20 @@ export default async function (fastify) {
       'select barbearia_id as id from barbearias_do_usuario($1)',
       [usuario.id],
     );
-    if (!barbearias.length)
-      throw proibido('Seu acesso não está ativo em nenhuma barbearia.');
+    if (!barbearias.length) {
+      // A função só lista barbearias não suspensas (planejamento 0028).
+      const {
+        rows: [{ suspensa }],
+      } = await fastify.db.query(
+        'select usuario_em_barbearia_suspensa($1) as suspensa',
+        [usuario.id],
+      );
+      throw proibido(
+        suspensa
+          ? BARBEARIA_SUSPENSA
+          : 'Seu acesso não está ativo em nenhuma barbearia.',
+      );
+    }
     const escolhida =
       barbearias.find((b) => b.id === Number(barbeariaId)) ?? barbearias[0];
 

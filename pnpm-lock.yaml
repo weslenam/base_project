@@ -330,6 +330,21 @@ importers:
         specifier: workspace:*
         version: link:../../libs/ui-vuetify
 
+  apps/business-center:
+    dependencies:
+      '@barbertime/dominio':
+        specifier: workspace:*
+        version: link:../../libs/dominio
+      '@barbertime/ui-tokens':
+        specifier: workspace:*
+        version: link:../../libs/ui-tokens
+      '@barbertime/ui-utils':
+        specifier: workspace:*
+        version: link:../../libs/ui-utils
+      '@barbertime/ui-vuetify':
+        specifier: workspace:*
+        version: link:../../libs/ui-vuetify
+
   libs/dominio: {}
 
   libs/ui-contrato: {}

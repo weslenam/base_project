@@ -4,6 +4,9 @@ import { permissoesDoPapel, permissoesEfetivas } from '@barbertime/dominio';
 import { naoAutenticado, proibido } from '../infra/erros.js';
 import { COOKIE, lerSessao } from './sessao.js';
 
+export const BARBEARIA_SUSPENSA =
+  'Esta barbearia está suspensa. Fale com o suporte do BarberTime.';
+
 /**
  * Sessão e autorização (ADRs 0009, 0010, 0011).
  *  - fastify.autenticado: exige sessão e carrega o contexto da barbearia
@@ -29,6 +32,12 @@ export default fp(async function autenticacao(fastify) {
     if (!req.sessao) throw naoAutenticado();
     const { usuarioId, barbeariaId } = req.sessao;
     if (!barbeariaId) throw proibido('Escolha uma barbearia para continuar.');
+    // Barbearia suspensa pelo Business Center (planejamento 0028): ninguém entra.
+    const { rows: suspensa } = await fastify.db.query(
+      'select 1 from barbearias where id = $1 and suspensa_em is not null',
+      [barbeariaId],
+    );
+    if (suspensa.length) throw proibido(BARBEARIA_SUSPENSA);
     const contexto = await fastify.comBarbearia(barbeariaId, async (c) => {
       const { rows } = await c.query(
         `select p.id as "papelId", p.nome as "papelNome", p.chave

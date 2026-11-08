@@ -5,7 +5,16 @@ import { comoSuperusuario } from './apoio.js';
 // Estes testes travam regressão quando uma migração nova esquecer RLS ou privilégio.
 
 /** Tabelas globais (sem barbearia): acesso só pela API. RLS nelas vem na S4. */
-const GLOBAIS = ['barbearias', 'usuarios', 'sessoes', 'redefinicoes_senha'];
+const GLOBAIS = [
+  'barbearias',
+  'usuarios',
+  'sessoes',
+  'redefinicoes_senha',
+  // Business Center (planejamento 0028): identidade e auditoria da plataforma.
+  'operadores',
+  'sessoes_operador',
+  'auditoria_plataforma',
+];
 
 const consultar = (sql, params) =>
   comoSuperusuario(async (c) => (await c.query(sql, params)).rows);

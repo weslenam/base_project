@@ -7,6 +7,7 @@ import banco from '../src/infra/banco.js';
 import { criarBarbearia } from '../src/servicos/barbearias.js';
 import { gerarHashDeSenha } from '../src/seguranca/senha.js';
 import { semearOperacao, temPerfil } from './operacao-exemplo.js';
+import { criarOperador } from '../src/servicos/operadores.js';
 
 const SENHA = 'barbertime123';
 await migrar(config.databaseUrlMigracao);
@@ -141,5 +142,24 @@ for (const b of cadastradas.filter((x) => temPerfil(x.slug))) {
       : `${b.slug} já tem serviços; simulação não aplicada.`,
   );
 }
+
+// Operador do Business Center (planejamento 0028). SEGREDO TOTP FIXO, SÓ DEV:
+// cadastre no app autenticador ou gere o código com o segredo abaixo.
+const SEGREDO_OPERADOR_DEV = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+const operador = await fastify.db.query(
+  "select 1 from operadores where email = 'operador@barbertime.dev'",
+);
+if (!operador.rowCount && !config.producao) {
+  await criarOperador(fastify.db, {
+    nome: 'Operador BarberTime',
+    email: 'operador@barbertime.dev',
+    senha: 'barbertime-operador',
+    segredo: SEGREDO_OPERADOR_DEV,
+  });
+}
+if (!config.producao)
+  console.log(
+    `Business Center: operador@barbertime.dev / barbertime-operador, TOTP ${SEGREDO_OPERADOR_DEV}.`,
+  );
 
 await fastify.close();

@@ -87,3 +87,13 @@ export {
   motivoParcelasInvalidas,
   documentoValido,
 } from './estoque.js';
+export {
+  SELOS_DE_ATIVIDADE,
+  DIAS_PARA_PARADA,
+  DIAS_DE_NOVA,
+  seloDeAtividade,
+  ticketMedio,
+  variacao,
+  ACOES_DE_MODULO_DA_PLATAFORMA,
+  transicaoPelaPlataforma,
+} from './plataforma.js';

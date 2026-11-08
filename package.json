@@ -9,7 +9,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "nx run-many -t serve -p barbertime api",
+    "dev": "nx run-many -t serve -p barbertime business-center api",
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",
