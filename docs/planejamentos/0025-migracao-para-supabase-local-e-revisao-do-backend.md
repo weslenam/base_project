@@ -1,6 +1,6 @@
 # Planejamento 0025: Migração para o Supabase local e revisão do backend
 
-- **Status:** Rascunho, aguardando entrevista (grill-me)
+- **Status:** Aprovado (entrevista feita), aguardando a sprint S1
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0001, 0002, 0006, 0009, 0010, 0011, 0013 e 0014; planejamentos 0013, 0019, 0020, 0022, 0023 e 0024
@@ -11,7 +11,26 @@
 > use outro agente para planejar uma migração total do projeto para o supabase local e revisar o backend... e estenda a revisão para verificar se estão sendo utilizado o desgin sistem em cima de quasar ou vuetify
 
 - **Quando:** 2026-11-08 · **Origem:** Conversa com o assistente (pedido repassado a um subagente).
-- **Esclarecimentos:** nenhum ainda. As decisões em aberto estão na seção "Questões em aberto para a entrevista (grill-me)".
+- **Esclarecimentos** (entrevista `grill-me`, 2026-11-08):
+  - O que é "total"? → "Infra + Auth, front pela API".
+  - A API Node continua? → "Sim, PostgREST fechado".
+  - Onde ficam os tokens do Auth? → "Na API, em cookie HttpOnly" (BFF).
+  - Produção no Supabase hospedado? → "Ainda não decidido".
+  - Como evitar ficar preso ao Auth do Supabase? → "Auth atrás de um adaptador".
+  - Schema? → "Schema `app` não exposto".
+  - Barbearia ativa? → "Cookie validado pela API".
+  - Convite de funcionário? → "Link por e-mail com aceite" (resolve N1 e N2).
+  - Testes de integração? → "Banco separado no mesmo Postgres".
+  - CI? → "Postgres de serviço + migrações".
+  - O que fica de fora? → "tudo migrar para o supabase pode estruturar para ser feita em sprints". Entram Realtime, Fidelidade e Pacotes no banco, estoque e financeiro.
+  - Ordem dos achados e exclusão de cliente: já decididas no planejamento 0026. Os achados foram corrigidos antes, e excluir um cliente o anonimiza.
+
+### Solicitações relacionadas
+
+> com relação ao supabase foi feito? (2026-11-08)
+
+> vamos planejar o supabase enquanto um agente implementa o estoque (2026-11-08)
+
 - **Divisão do pedido:** a verificação do design system (Quasar ou Vuetify) ficou com outro agente e não está neste documento. Aqui ficam o plano de migração e a revisão do backend.
 
 ## Objetivo
@@ -32,6 +51,50 @@
 - **Itens sobre o Supabase marcados com [confirmar]** vêm de conhecimento geral do Supabase CLI e precisam ser checados na versão instalada (`supabase --version`, `supabase/config.toml` gerado) antes de virar tarefa. O CLI ainda não está instalado nesta máquina.
 
 ---
+
+## Decisões da entrevista (prevalecem sobre o restante do documento)
+
+Onde as seções 2.x recomendam algo diferente, vale esta lista.
+
+1. **Escopo:**
+   - **Muda:** Postgres, migrações SQL do CLI, e-mail local (Mailpit/Inbucket do stack), Studio e Auth (GoTrue).
+   - **Não muda:** o front continua falando só com a API Node, sem supabase-js no navegador.
+   - **PostgREST:** fechado (tabelas fora dos schemas expostos).
+2. **Auth atrás de um adaptador.** A API ganha o módulo `identidade`, com estas operações:
+   - entrar, sair e renovar;
+   - convidar e aceitar convite;
+   - pedir redefinição de senha, redefinir e trocar senha;
+   - encerrar outras sessões.
+
+   Há duas implementações: `propria` (a sessão atual) e `supabase` (GoTrue). A escolha é pela variável `AUTH`. Como a produção ainda não está decidida, a sessão própria continua viável até que se decida. Usuários, vínculos e papéis ficam nas nossas tabelas, ligados ao Auth por `usuarios.auth_id`.
+
+3. **Tokens só na API (BFF):** o access token e o refresh token ficam em cookies `HttpOnly` e `SameSite=Lax`, e o navegador nunca vê token.
+4. **Schema `app` não exposto.** `public` fica vazio, reservado a uma RPC pública futura e explícita.
+5. **Barbearia ativa por cookie validado pela API**, como hoje: a API confere o vínculo e define o contexto da RLS por transação. Como o PostgREST está fechado, `app.barbearia_atual()` lê só o GUC `app.barbearia_id`. A leitura de claims do JWT fica para o dia em que houver acesso direto.
+6. **Convite por link de e-mail com aceite.** Quem já tem conta entra e aceita. Quem não tem cria a senha. Só depois do aceite existe o vínculo. Resolve N1 e N2, e a rota de convite ganha limite próprio (ADR 0014).
+7. **Testes** num banco `barbertime_teste` separado, no Postgres do stack, recriado a cada execução. A identidade nos testes usa a implementação `propria`, mais um conjunto pequeno de testes contra o GoTrue local.
+8. **CI** (quando existir) com um Postgres de serviço e as mesmas migrações SQL. `supabase start` fica só no desenvolvimento local.
+9. **Tudo migra.** Estoque e financeiro (planejamento 0027), Fidelidade e Pacotes no banco e Realtime na fila do balcão entram, divididos em sprints.
+   - **Redis:** não faz parte do stack do Supabase. O limite de requisições passa a guardar o estado no Postgres (tabela de contadores com expiração), e o Redis sai do compose (sprint S8).
+10. **Realtime com o PostgREST fechado:** o navegador não recebe JWT. A atualização ao vivo da fila vai por SSE (Server-Sent Events) da API, alimentada pelo Realtime do Supabase no servidor ou por `LISTEN/NOTIFY`. A escolha fica para a sprint S7.
+
+## Sprints
+
+Cada sprint tem o próprio commit (e PR, se for o caso) e passa por `pnpm verificar:tudo`, `/code-review` e `security-review`.
+
+| Sprint | Entrega                                                                                                                                                                                                                                                                                                                                                    | Pronto quando                                                                                                                       | Volta atrás                                        |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **S0** | Entrevista (feita) e ADRs 0015 a 0017 (ver 2.15)                                                                                                                                                                                                                                                                                                           | Decisões registradas e ADRs aceitos                                                                                                 | n/a                                                |
+| **S1** | **Stack local e baseline.** CLI fixado no `package.json`, `supabase init`, `config.toml` (portas, `[api] schemas` sem `app`, serviços desligados). Migração baseline do schema atual, já com estoque e compras. Papel `barbertime_app`, semente e `preparar.js` com `barbertime_teste`. A API segue com a sessão própria e aponta para o Postgres do stack | `verificar:tudo` verde contra o Supabase local; login, balcão, caixa e estoque funcionando no navegador; o Studio mostra as tabelas | O compose continua até a S8; basta voltar o `.env` |
+| **S2** | **Isolamento.** Tabelas no schema `app`, `app.barbearia_atual()`, políticas reescritas, RLS nas tabelas globais (`barbearias`, `usuarios`), privilégios mínimos do `barbertime_app`. pgTAP de isolamento e teste "anon não lê nada" pelo `/rest/v1`                                                                                                        | pgTAP e integração verdes; `curl` com a anon key não lê nenhuma tabela                                                              | Reverter a migração                                |
+| **S3** | **Adaptador de identidade.** Interface `identidade` com a implementação `propria`, extraída do código atual (`sessao.js`, `senha.js`, `rotas/senha.js`), sem mudar o comportamento                                                                                                                                                                         | Todos os testes de `seguranca`, `configuracoes` e `administracao` verdes sem alteração                                              | `git revert`                                       |
+| **S4** | **Implementação `supabase` (GoTrue).** `usuarios.auth_id`, login, renovação e saída por BFF com cookies `HttpOnly`, validação do JWT (JWKS), esqueci e redefinir pelo GoTrue, troca de senha com encerramento das outras sessões, modelos de e-mail em pt-BR e semente pela Admin API. Flag `AUTH=propria\|supabase`                                       | Mesmos testes verdes com `AUTH=supabase`; e-mail de recuperação no Mailpit local; rebaixar um papel vale na requisição seguinte     | `AUTH=propria`                                     |
+| **S5** | **Convite com aceite e cadastro.** Convite por e-mail (Admin API no servidor), tela de aceite, vínculo só após o aceite, limite próprio na rota de convite, resposta igual para e-mail existente ou não. Cadastro self-service com confirmação de e-mail. Resolve N1 e N2                                                                                  | Testes dos cenários N1 e N2 verdes                                                                                                  | `git revert`                                       |
+| **S6** | **Fidelidade e Pacotes no banco** (hoje só nos dados de exemplo): tabelas com RLS, API e camada de dados do front                                                                                                                                                                                                                                          | Fluxos de fidelidade e pacotes verdes contra o banco                                                                                | `git revert`                                       |
+| **S7** | **Atualização ao vivo da fila do balcão** por SSE da API (decisão 10). A tela do balcão atualiza sem recarregar                                                                                                                                                                                                                                            | Duas telas abertas se atualizam em até 2 s; reconexão automática                                                                    | Desligar o SSE (a tela volta a recarregar)         |
+| **S8** | **Limpeza.** Limite de requisições com estado no Postgres. Sai o Redis, o Postgres e o Mailpit do compose, `docker/postgres/init.sql`, `node-pg-migrate`, `apps/api/migracoes/` e `infra/migrar.js`. README, ADRs e skill de segurança atualizados. Revisar N12 a N16                                                                                      | `verificar:tudo` verde só com `supabase start`                                                                                      | `git revert`                                       |
+
+O financeiro (parte 2 do 0027) pode entrar antes ou depois da S1. Se vier depois, já nasce no schema `app`.
 
 ## 1. Estado atual do backend
 
@@ -288,7 +351,9 @@ Cada fase tem o próprio commit e passa por verificar, revisar e segurança.
 ### 2.15 ADRs novos ou a substituir
 
 - **ADR 0015 (novo):** "Supabase local como plataforma de banco, migrações e e-mail". Substitui partes do 0002 (serviços do compose) e do 0009 (`node-pg-migrate`, papel criado por `init.sql`).
-- **ADR 0016 (novo, se a F3 for aprovada):** "Identidade pelo Supabase Auth com BFF na API". Substitui as seções "Sessão opaca" e "Senhas com scrypt" do 0009 e o item "Recuperação de senha" do 0014.
+- **ADR 0016 (novo):** "Identidade atrás de um adaptador, com Supabase Auth e BFF na API". Substitui as seções "Sessão opaca" e "Senhas com scrypt" do 0009 e o item "Recuperação de senha" do 0014.
+- **ADR 0017 (novo):** "Schema `app` não exposto e PostgREST fechado ao front".
+- **Numeração:** os ADRs que o planejamento 0027 previa como 0015 e 0016 (estoque por movimentos e movimentos de caixa) passam a ser 0018 e 0019.
 - **ADR 0001 e 0009 (revisar):** o contexto da barbearia passa a vir de `app.barbearia_atual()` (claims do JWT, com o GUC como compatibilidade).
 - **ADR 0010 (revisar):** o convite passa a ser por e-mail; some a senha inicial definida por quem convida.
 - **ADR 0014 (revisar):** limites de Auth no GoTrue mais os da API; CORS continua fechado (o BFF mantém a mesma origem).
@@ -441,7 +506,7 @@ Se o `rollback` falhar (conexão caída), a exceção do rollback substitui o er
 
 ---
 
-## Questões em aberto para a entrevista (grill-me)
+## Questões em aberto para a entrevista (grill-me) — respondidas em 2026-11-08 (ver Esclarecimentos)
 
 1. **O que é "total"?** Só a infraestrutura (banco, migrações, e-mail) ou também o Auth? E o front passa a falar com o Supabase (supabase-js, PostgREST, Realtime)?
 2. **A API Node continua?** A recomendação é sim, como a única porta de escrita e de regras. Aceita que o PostgREST fique fechado ao front nesta migração?
@@ -474,3 +539,7 @@ Se o `rollback` falhar (conexão caída), a exceção do rollback substitui o er
 ## Registro de mudanças
 
 - 2026-11-08: rascunho criado pelo subagente, com o levantamento, o plano em fases, a revisão do backend (N1-N16) e as questões para a entrevista.
+- 2026-11-08: entrevista feita.
+  - As fases F0 a F6 viraram as sprints S0 a S8.
+  - Entraram o adaptador de identidade, o schema `app`, o convite com aceite, o SSE no lugar do Realtime no navegador e o limite de requisições no Postgres (sem Redis).
+  - A seção "Decisões da entrevista" prevalece sobre as recomendações antigas das seções 2.x.

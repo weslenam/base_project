@@ -36,6 +36,20 @@ export const MODULOS = Object.freeze([
     tipo: 'adicional',
   },
   {
+    chave: 'estoque',
+    nome: 'Estoque e compras',
+    descricao:
+      'Saldo de produtos de revenda e consumíveis, ficha técnica por serviço, inventário, fornecedores e registro de compras com parcelas.',
+    tipo: 'adicional',
+  },
+  {
+    chave: 'financeiro',
+    nome: 'Financeiro',
+    descricao:
+      'Contas a pagar e a receber, recorrências, categorias e previsão do fluxo de caixa.',
+    tipo: 'adicional',
+  },
+  {
     chave: 'pagamentos_online',
     nome: 'Pagamento online',
     descricao:

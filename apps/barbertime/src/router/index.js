@@ -91,6 +91,34 @@ export const rotas = [
       menu: { titulo: 'Fidelidade', icone: 'check', grupo: 'Cadastros' },
     },
   },
+  // Estoque e compras (planejamento 0027, parte 1): só com o módulo "estoque".
+  {
+    path: '/estoque',
+    component: () => import('../telas/estoque/EstoqueView.vue'),
+    meta: {
+      permissoes: ['estoque.ver'],
+      modulo: 'estoque',
+      menu: { titulo: 'Estoque', icone: 'produto', grupo: 'Estoque' },
+    },
+  },
+  {
+    path: '/compras',
+    component: () => import('../telas/estoque/ComprasView.vue'),
+    meta: {
+      permissoes: ['estoque.ver'],
+      modulo: 'estoque',
+      menu: { titulo: 'Compras', icone: 'dinheiro', grupo: 'Estoque' },
+    },
+  },
+  {
+    path: '/fornecedores',
+    component: () => import('../telas/estoque/FornecedoresView.vue'),
+    meta: {
+      permissoes: ['estoque.ver'],
+      modulo: 'estoque',
+      menu: { titulo: 'Fornecedores', icone: 'barbearia', grupo: 'Estoque' },
+    },
+  },
   {
     path: '/configuracoes',
     component: () => import('../telas/administracao/ConfiguracoesView.vue'),

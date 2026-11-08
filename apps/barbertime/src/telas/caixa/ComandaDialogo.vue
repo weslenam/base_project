@@ -78,7 +78,11 @@ watch(aberto, async (abriu) => {
     api.produtos.listar(),
   ]);
   barbeiros.value = b;
-  catalogo.value = { servico: servicos, produto: produtos };
+  // Consumível é de uso interno e não entra na comanda (planejamento 0027).
+  catalogo.value = {
+    servico: servicos,
+    produto: produtos.filter((p) => p.tipo !== 'consumivel'),
+  };
   comanda.value = props.id
     ? await api.comandas.obter(props.id)
     : {

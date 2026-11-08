@@ -75,3 +75,15 @@ export {
   situacaoDosBarbeiros,
   sugerirEncaixe,
 } from './balcao.js';
+export {
+  TIPOS_DE_PRODUTO,
+  UNIDADES,
+  arredondarQuantidade,
+  sugestaoDeCompra,
+  baixasDaComanda,
+  ajusteDeInventario,
+  totalDaCompra,
+  dividirParcelas,
+  motivoParcelasInvalidas,
+  documentoValido,
+} from './estoque.js';

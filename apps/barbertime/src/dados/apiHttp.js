@@ -33,6 +33,28 @@ export function criarApiHttp(base) {
         (await http('GET', `/api/servicos/${id}/futuros`)).total,
     },
     produtos: recurso('/api/produtos'),
+    // Estoque e compras (planejamento 0027, parte 1): só com o módulo "estoque".
+    estoque: {
+      /** { produtos, comprar } */
+      obter: () => http('GET', '/api/estoque'),
+      movimentos: ({ produtoId, limite } = {}) =>
+        http('GET', `/api/estoque/movimentos${q({ produtoId, limite })}`),
+      consumir: (d) => http('POST', '/api/estoque/consumo', d),
+      /** itens: [{ produtoId, contado }] → { ajustes } */
+      inventario: (itens) => http('POST', '/api/estoque/inventario', { itens }),
+    },
+    fichas: {
+      obter: (servicoId) => http('GET', `/api/servicos/${servicoId}/ficha`),
+      salvar: (servicoId, itens) =>
+        http('PUT', `/api/servicos/${servicoId}/ficha`, { itens }),
+    },
+    fornecedores: recurso('/api/fornecedores'),
+    compras: {
+      listar: () => http('GET', '/api/compras'),
+      obter: (id) => http('GET', `/api/compras/${id}`),
+      registrar: (d) => http('POST', '/api/compras', d),
+      cancelar: (id) => http('POST', `/api/compras/${id}/cancelar`),
+    },
     barbeiros: {
       ...recurso('/api/barbeiros'),
       /** Contas da barbearia que podem ser ligadas a um barbeiro (agenda própria). */

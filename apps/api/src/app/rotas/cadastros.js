@@ -1,4 +1,9 @@
-import { paraMinutos } from '@barbertime/dominio';
+import {
+  TIPOS_DE_PRODUTO,
+  UNIDADES,
+  arredondarQuantidade,
+  paraMinutos,
+} from '@barbertime/dominio';
 import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
 import { agora } from '../../servicos/agenda.js';
 import { TAM, campoHora, corpo, escalar, inteiro, texto } from '../esquemas.js';
@@ -49,7 +54,8 @@ async function obterAtivo(c, tabela, id, rotulo) {
 }
 
 const SERVICO = 'select id, nome, duracao, preco from servicos';
-const PRODUTO = 'select id, nome, preco, comissao from produtos';
+const PRODUTO = `select id, nome, preco, comissao, tipo, unidade,
+  estoque_minimo as "estoqueMinimo", ultimo_custo as "ultimoCusto", saldo from produtos`;
 const BARBEIRO =
   'select id, nome, inicio, fim, comissao, usuario_id as "usuarioId", em_pausa as "emPausa" from barbeiros';
 
@@ -71,6 +77,9 @@ export default async function (fastify) {
       nome: texto(TAM.nome),
       preco: escalar(),
       comissao: escalar(),
+      tipo: texto(20),
+      unidade: texto(5),
+      estoqueMinimo: escalar(),
     }),
   };
   const barbeiro = {
@@ -150,7 +159,16 @@ export default async function (fastify) {
         await c.query(
           `${PRODUTO} where excluido_em is null order by nome collate "C"`,
         )
-      ).rows.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+      ).rows
+        // Custo e saldo só para quem vê o estoque (planejamento 0027).
+        .map((p) => {
+          if (req.contexto.permissoes.includes('estoque.ver')) return p;
+          const { ultimoCusto, saldo, ...resto } = p;
+          void ultimoCusto;
+          void saldo;
+          return resto;
+        })
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
     ),
   );
 
@@ -160,27 +178,58 @@ export default async function (fastify) {
       const d = req.body ?? {};
       const nome = String(d.nome ?? '').trim();
       if (!nome) throw invalido('Informe o nome do produto.');
-      if (!(Number(d.preco) > 0))
+      // Planejamento 0027: consumível (uso interno) não tem preço nem comissão.
+      const tipo = d.tipo ?? 'revenda';
+      if (!TIPOS_DE_PRODUTO.includes(tipo))
+        throw invalido('Escolha se o produto é de revenda ou consumível.');
+      const revenda = tipo === 'revenda';
+      if (revenda && !(Number(d.preco) > 0))
         throw invalido('Informe o preço de venda do produto.');
-      const comissao = Number(d.comissao ?? 0);
+      const comissao = revenda ? Number(d.comissao ?? 0) : 0;
       if (!(comissao >= 0 && comissao <= 100))
         throw invalido('A comissão precisa estar entre 0% e 100%.');
+      const unidade = d.unidade ?? 'un';
+      if (!UNIDADES.includes(unidade)) throw invalido('Unidade inválida.');
+      const minimo = Number(d.estoqueMinimo ?? 0);
+      if (!(minimo >= 0))
+        throw invalido('O estoque mínimo não pode ser negativo.');
       await nomeRepetido(c, 'produtos', nome, id, 'um produto');
+      const valores = [
+        nome,
+        revenda ? Number(d.preco) : null,
+        comissao,
+        tipo,
+        unidade,
+        arredondarQuantidade(minimo),
+      ];
       if (id) {
-        await obterAtivo(c, 'produtos', id, 'Produto');
+        const atual = await obterAtivo(c, 'produtos', id, 'Produto');
+        if (atual.tipo === 'revenda' && tipo === 'consumivel') {
+          const aberta = await c.query(
+            `select 1 from comandas where estado = 'aberta'
+               and itens @> jsonb_build_array(jsonb_build_object('tipo', 'produto', 'refId', $1::bigint))`,
+            [id],
+          );
+          if (aberta.rowCount)
+            throw conflito(
+              'Esse produto está numa comanda em aberto. Receba ou tire da comanda antes de virar consumível.',
+            );
+        }
         await c.query(
-          'update produtos set nome = $2, preco = $3, comissao = $4 where id = $1',
-          [id, nome, Number(d.preco), comissao],
+          `update produtos set nome = $2, preco = $3, comissao = $4, tipo = $5,
+             unidade = $6, estoque_minimo = $7 where id = $1`,
+          [id, ...valores],
         );
         return (await c.query(`${PRODUTO} where id = $1`, [id])).rows[0];
       }
-      return (
-        await c.query(
-          `insert into produtos (barbearia_id, nome, preco, comissao) values ($1, $2, $3, $4)
-           returning id, nome, preco, comissao`,
-          [req.contexto.barbeariaId, nome, Number(d.preco), comissao],
-        )
-      ).rows[0];
+      const {
+        rows: [novo],
+      } = await c.query(
+        `insert into produtos (barbearia_id, nome, preco, comissao, tipo, unidade, estoque_minimo)
+         values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+        [req.contexto.barbeariaId, ...valores],
+      );
+      return (await c.query(`${PRODUTO} where id = $1`, [novo.id])).rows[0];
     });
   fastify.post('/produtos', produto, salvarProduto);
   fastify.put('/produtos/:id', produto, salvarProduto);

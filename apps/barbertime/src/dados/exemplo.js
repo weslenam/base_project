@@ -118,12 +118,35 @@ export function criarDadosDeExemplo(hoje) {
       { id: 3, nome: 'Corte + barba', duracao: 50, preco: 70 },
       { id: 4, nome: 'Pigmentação', duracao: 40, preco: 60 },
     ],
+    // Campos de estoque (planejamento 0027): saldo só muda por movimento.
     produtos: [
-      { id: 1, nome: 'Pomada modeladora', preco: 39.9, comissao: 10 },
-      { id: 2, nome: 'Óleo para barba', preco: 34.9, comissao: 10 },
-      { id: 3, nome: 'Shampoo anticaspa', preco: 29.9, comissao: 8 },
-      { id: 4, nome: 'Cera em pó', preco: 44.9, comissao: 10 },
+      ['Pomada modeladora', 39.9, 10, 6, 3, 18.5],
+      ['Óleo para barba', 34.9, 10, 1, 2, 15],
+      ['Shampoo anticaspa', 29.9, 8, 4, 2, 12],
+      ['Cera em pó', 44.9, 10, 0, 0, null],
+    ].map(([nome, preco, comissao, saldo, estoqueMinimo, ultimoCusto], i) => ({
+      id: i + 1,
+      nome,
+      preco,
+      comissao,
+      tipo: 'revenda',
+      unidade: 'un',
+      estoqueMinimo,
+      ultimoCusto,
+      saldo,
+    })),
+    fornecedores: [
+      {
+        id: 1,
+        nome: 'Distribuidora Navalha',
+        documento: '11222333000181',
+        telefone: '1133334444',
+        observacoes: '',
+      },
     ],
+    compras: [],
+    movimentosEstoque: [],
+    fichas: [],
     clientes: [
       {
         id: 1,

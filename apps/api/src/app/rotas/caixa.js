@@ -86,7 +86,13 @@ export default async function (fastify) {
   fastify.post(
     '/comandas/:id/receber',
     { ...operar, schema: corpo({ forma: texto(30) }) },
-    (req) => na(req, (c) => receberComanda(c, req.params.id, req.body ?? {})),
+    (req) =>
+      na(req, (c) =>
+        receberComanda(c, req.params.id, req.body ?? {}, {
+          barbeariaId: barbearia(req),
+          usuarioId: req.contexto.usuarioId,
+        }),
+      ),
   );
   fastify.post('/comandas/:id/cancelar', operar, (req) =>
     na(req, (c) => cancelarComanda(c, req.params.id)),

@@ -6,6 +6,7 @@ import {
 } from '@barbertime/dominio';
 import { conflito, invalido, naoEncontrado } from '../infra/erros.js';
 import { agora } from './agenda.js';
+import { baixarComanda } from './estoque.js';
 
 // Caixa do dia e comandas (planejamento 0020, fase 1). A comanda nasce no
 // check-in ou na entrada na fila e acompanha o atendimento até o pagamento.
@@ -172,7 +173,7 @@ async function normalizarItens(c, itens = [], barbeiroId) {
       rows: [ref],
     } = await c.query(
       `select id, nome, preco from ${produto ? 'produtos' : 'servicos'}
-        where id = $1 and excluido_em is null`,
+        where id = $1 and excluido_em is null${produto ? " and tipo = 'revenda'" : ''}`,
       [Number(i.refId)],
     );
     if (!ref)
@@ -272,8 +273,16 @@ export async function salvarComanda(c, barbeariaId, dados) {
   return obterComanda(c, nova.id);
 }
 
-/** Recebe a comanda; o atendimento ligado vira "pago". */
-export async function receberComanda(c, id, { forma } = {}) {
+/**
+ * Recebe a comanda; o atendimento ligado vira "pago". Com o módulo estoque
+ * ativo, baixa a revenda e os consumíveis das fichas (planejamento 0027).
+ */
+export async function receberComanda(
+  c,
+  id,
+  { forma } = {},
+  { barbeariaId, usuarioId } = {},
+) {
   const caixa = await exigirCaixaAberto(c);
   const cm = await travarComanda(c, id);
   if (cm.estado !== 'aberta') throw conflito('Essa comanda já foi encerrada.');
@@ -293,6 +302,7 @@ export async function receberComanda(c, id, { forma } = {}) {
       [cm.atendimentoId],
     );
   }
+  if (barbeariaId) await baixarComanda(c, barbeariaId, cm, usuarioId);
   return { ...(await obterComanda(c, cm.id)), creditos: [] };
 }
 

@@ -21,6 +21,15 @@ import {
   sobrepoe,
   janelaDoAgendamentoOnline,
   mesclarConfigBarbearia,
+  TIPOS_DE_PRODUTO,
+  UNIDADES,
+  arredondarQuantidade,
+  sugestaoDeCompra,
+  baixasDaComanda,
+  ajusteDeInventario,
+  totalDaCompra,
+  motivoParcelasInvalidas,
+  documentoValido,
 } from '@barbertime/dominio';
 import { formatarTelefone, somenteDigitos } from '@barbertime/ui-utils';
 import { ErroDeNegocio } from './erros.js';
@@ -239,6 +248,48 @@ export function criarApi({ agora = () => new Date() } = {}) {
     };
   }
 
+  /** Movimento de estoque: grava e muda o saldo junto (planejamento 0027). */
+  function movimentar({
+    produtoId,
+    tipo,
+    quantidade,
+    custoUnitario = null,
+    motivo = '',
+    comandaId = null,
+    compraId = null,
+  }) {
+    const qtd = arredondarQuantidade(quantidade);
+    const p = buscar('produtos', produtoId, 'Produto');
+    if (!qtd) return p;
+    banco.movimentosEstoque.push({
+      id: proximoId(banco.movimentosEstoque),
+      produtoId: p.id,
+      tipo,
+      quantidade: qtd,
+      custoUnitario,
+      motivo,
+      comandaId,
+      compraId,
+      criadoEm: agora().toISOString(),
+      usuarioNome: '',
+    });
+    p.saldo = arredondarQuantidade(Number(p.saldo ?? 0) + qtd);
+    return p;
+  }
+
+  function completarCompra(cp) {
+    const f = banco.fornecedores.find((x) => x.id === cp.fornecedorId);
+    return {
+      ...cp,
+      fornecedorNome: f?.nome ?? '',
+      itens: cp.itens.map((i) => {
+        const p = banco.produtos.find((x) => x.id === i.produtoId);
+        return { ...i, nome: p?.nome ?? '', unidade: p?.unidade ?? 'un' };
+      }),
+      parcelas: cp.parcelas,
+    };
+  }
+
   const api = {
     /** Só para testes e para o botão "restaurar exemplo". */
     reiniciar() {
@@ -377,9 +428,22 @@ export function criarApi({ agora = () => new Date() } = {}) {
       async salvar(dados) {
         const nome = String(dados.nome ?? '').trim();
         if (!nome) throw new ErroDeNegocio('Informe o nome do produto.');
-        if (!(dados.preco > 0))
+        // Planejamento 0027: consumível não tem preço nem comissão.
+        const tipo = dados.tipo ?? 'revenda';
+        if (!TIPOS_DE_PRODUTO.includes(tipo))
+          throw new ErroDeNegocio(
+            'Escolha se o produto é de revenda ou consumível.',
+          );
+        const revenda = tipo === 'revenda';
+        if (revenda && !(dados.preco > 0))
           throw new ErroDeNegocio('Informe o preço de venda do produto.');
-        const comissao = Number(dados.comissao ?? 0);
+        const unidade = dados.unidade ?? 'un';
+        if (!UNIDADES.includes(unidade))
+          throw new ErroDeNegocio('Unidade inválida.');
+        const estoqueMinimo = arredondarQuantidade(dados.estoqueMinimo ?? 0);
+        if (!(estoqueMinimo >= 0))
+          throw new ErroDeNegocio('O estoque mínimo não pode ser negativo.');
+        const comissao = revenda ? Number(dados.comissao ?? 0) : 0;
         if (!(comissao >= 0 && comissao <= 100)) {
           throw new ErroDeNegocio('A comissão precisa estar entre 0% e 100%.');
         }
@@ -391,7 +455,14 @@ export function criarApi({ agora = () => new Date() } = {}) {
           throw new ErroDeNegocio(
             `Já existe um produto chamado "${repetido.nome}".`,
           );
-        const registro = { nome, preco: Number(dados.preco), comissao };
+        const registro = {
+          nome,
+          preco: revenda ? Number(dados.preco) : null,
+          comissao,
+          tipo,
+          unidade,
+          estoqueMinimo,
+        };
         let salvo;
         if (dados.id)
           salvo = Object.assign(
@@ -400,7 +471,12 @@ export function criarApi({ agora = () => new Date() } = {}) {
           );
         else
           banco.produtos.push(
-            (salvo = { ...registro, id: proximoId(banco.produtos) }),
+            (salvo = {
+              ...registro,
+              id: proximoId(banco.produtos),
+              ultimoCusto: null,
+              saldo: 0,
+            }),
           );
         return copia(salvo);
       },
@@ -711,6 +787,16 @@ export function criarApi({ agora = () => new Date() } = {}) {
             ...vigenciaDoPacote(pacoteDa(a), hoje()),
           });
         }
+        // Estoque (planejamento 0027): revenda e fichas técnicas, com o módulo ativo.
+        if (modulosAtivos.includes('estoque')) {
+          const produtos = new Map(banco.produtos.map((p) => [p.id, p]));
+          for (const b of baixasDaComanda({
+            itens: comanda.itens,
+            fichas: banco.fichas,
+            produtos,
+          }))
+            movimentar({ ...b, comandaId: comanda.id });
+        }
         // Fidelidade: selo e cashback (só com o módulo ativo e cliente identificado).
         let creditos = [];
         if (modulosAtivos.includes('fidelidade')) {
@@ -759,6 +845,280 @@ export function criarApi({ agora = () => new Date() } = {}) {
           agendamentoId: ag.id,
           itens: ag.servicoId ? [{ tipo: 'servico', refId: ag.servicoId }] : [],
         });
+      },
+    },
+
+    estoque: {
+      async obter() {
+        const produtos = copia(banco.produtos).sort((a, b) =>
+          a.nome.localeCompare(b.nome, 'pt-BR'),
+        );
+        return { produtos, comprar: sugestaoDeCompra(produtos) };
+      },
+      async movimentos({ produtoId, limite = 50 } = {}) {
+        return copia(
+          banco.movimentosEstoque
+            .filter((m) => !produtoId || m.produtoId === Number(produtoId))
+            .map((m) => {
+              const p = banco.produtos.find((x) => x.id === m.produtoId);
+              return { ...m, produtoNome: p?.nome ?? '', unidade: p?.unidade };
+            })
+            .reverse()
+            .slice(0, Math.min(200, limite)),
+        );
+      },
+      async consumir({ produtoId, quantidade, motivo } = {}) {
+        if (!produtoId) throw new ErroDeNegocio('Escolha o produto.');
+        const qtd = arredondarQuantidade(quantidade);
+        if (!(qtd > 0))
+          throw new ErroDeNegocio('A quantidade precisa ser maior que zero.');
+        if (!String(motivo ?? '').trim())
+          throw new ErroDeNegocio('Informe o motivo do consumo.');
+        return copia(
+          movimentar({
+            produtoId,
+            tipo: 'consumo_manual',
+            quantidade: -qtd,
+            motivo: String(motivo).trim(),
+          }),
+        );
+      },
+      async inventario(itens = []) {
+        if (!itens.length)
+          throw new ErroDeNegocio('Informe a contagem de ao menos um produto.');
+        if (itens.some((i) => i.contado === '' || !(Number(i.contado) >= 0)))
+          throw new ErroDeNegocio(
+            'A quantidade contada não pode ser negativa.',
+          );
+        const ajustes = [];
+        for (const i of itens) {
+          const p = buscar('produtos', i.produtoId, 'Produto');
+          const diferenca = ajusteDeInventario(p.saldo, i.contado);
+          if (diferenca === null) continue;
+          const anterior = p.saldo;
+          movimentar({
+            produtoId: p.id,
+            tipo: 'ajuste_inventario',
+            quantidade: diferenca,
+            motivo: 'Inventário',
+          });
+          ajustes.push({
+            produtoId: p.id,
+            nome: p.nome,
+            anterior,
+            contado: arredondarQuantidade(i.contado),
+            diferenca,
+          });
+        }
+        return copia({ ajustes });
+      },
+    },
+
+    fichas: {
+      async obter(servicoId) {
+        buscar('servicos', servicoId, 'Serviço');
+        return copia(
+          banco.fichas
+            .filter((f) => f.servicoId === Number(servicoId))
+            .map((f) => {
+              const p = banco.produtos.find((x) => x.id === f.produtoId);
+              return {
+                produtoId: f.produtoId,
+                nome: p?.nome ?? 'Produto excluído',
+                unidade: p?.unidade ?? 'un',
+                quantidade: f.quantidade,
+                valido: p?.tipo === 'consumivel',
+              };
+            }),
+        );
+      },
+      async salvar(servicoId, itens = []) {
+        const servico = buscar('servicos', servicoId, 'Serviço');
+        const ids = new Set();
+        for (const i of itens) {
+          if (!i.produtoId)
+            throw new ErroDeNegocio('Escolha o produto de cada linha.');
+          if (!(arredondarQuantidade(i.quantidade) > 0))
+            throw new ErroDeNegocio(
+              'A quantidade de cada produto precisa ser maior que zero.',
+            );
+          if (ids.has(Number(i.produtoId)))
+            throw new ErroDeNegocio(
+              'Cada produto aparece uma vez só na ficha.',
+            );
+          ids.add(Number(i.produtoId));
+          const p = banco.produtos.find((x) => x.id === Number(i.produtoId));
+          if (p?.tipo !== 'consumivel')
+            throw new ErroDeNegocio(
+              'A ficha técnica só aceita produtos consumíveis ativos.',
+            );
+        }
+        banco.fichas = [
+          ...banco.fichas.filter((f) => f.servicoId !== servico.id),
+          ...itens.map((i) => ({
+            servicoId: servico.id,
+            produtoId: Number(i.produtoId),
+            quantidade: arredondarQuantidade(i.quantidade),
+          })),
+        ];
+        return api.fichas.obter(servico.id);
+      },
+    },
+
+    fornecedores: {
+      async listar() {
+        return copia(banco.fornecedores).sort((a, b) =>
+          a.nome.localeCompare(b.nome, 'pt-BR'),
+        );
+      },
+      async salvar(dados) {
+        const nome = String(dados.nome ?? '').trim();
+        if (!nome) throw new ErroDeNegocio('Informe o nome do fornecedor.');
+        const documento = somenteDigitos(dados.documento ?? '');
+        if (!documentoValido(documento))
+          throw new ErroDeNegocio('CPF ou CNPJ inválido.');
+        const registro = {
+          nome,
+          documento: documento || null,
+          telefone: somenteDigitos(dados.telefone ?? '') || null,
+          observacoes: String(dados.observacoes ?? '').trim(),
+        };
+        let salvo;
+        if (dados.id)
+          salvo = Object.assign(
+            buscar('fornecedores', dados.id, 'Fornecedor'),
+            registro,
+          );
+        else
+          banco.fornecedores.push(
+            (salvo = { ...registro, id: proximoId(banco.fornecedores) }),
+          );
+        return copia(salvo);
+      },
+      async excluir(id) {
+        const f = buscar('fornecedores', id, 'Fornecedor');
+        banco.fornecedores = banco.fornecedores.filter((x) => x.id !== f.id);
+      },
+    },
+
+    compras: {
+      async listar() {
+        return copia(
+          banco.compras
+            .map((cp) => ({
+              id: cp.id,
+              data: cp.data,
+              fornecedorId: cp.fornecedorId,
+              fornecedorNome:
+                banco.fornecedores.find((f) => f.id === cp.fornecedorId)
+                  ?.nome ?? '',
+              total: cp.total,
+              cancelada: cp.cancelada,
+              parcelas: cp.parcelas.length,
+              quitadas: cp.parcelas.filter((p) => p.situacao === 'quitada')
+                .length,
+            }))
+            .sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id),
+        );
+      },
+      async obter(id) {
+        return copia(completarCompra(buscar('compras', id, 'Compra')));
+      },
+      async registrar(dados) {
+        const fornecedor = banco.fornecedores.find(
+          (f) => f.id === Number(dados.fornecedorId),
+        );
+        if (!fornecedor)
+          throw new ErroDeNegocio('Escolha o fornecedor da compra.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dados.data ?? '')))
+          throw new ErroDeNegocio('Informe a data da compra.');
+        const itens = (dados.itens ?? []).map((i) => ({
+          produtoId: Number(i.produtoId),
+          quantidade: arredondarQuantidade(i.quantidade),
+          custoUnitario: Math.round(Number(i.custoUnitario) * 100) / 100,
+        }));
+        if (!itens.length)
+          throw new ErroDeNegocio('Inclua ao menos um produto na compra.');
+        if (
+          itens.some(
+            (i) =>
+              !i.produtoId || !(i.quantidade > 0) || !(i.custoUnitario >= 0),
+          )
+        )
+          throw new ErroDeNegocio(
+            'Cada item precisa de produto, quantidade e custo.',
+          );
+        itens.forEach((i) => buscar('produtos', i.produtoId, 'Produto'));
+        const frete = Number(dados.frete || 0);
+        const desconto = Number(dados.desconto || 0);
+        const { total, motivo } = totalDaCompra({ itens, frete, desconto });
+        if (motivo) throw new ErroDeNegocio(motivo);
+        const parcelas = (dados.parcelas ?? []).map((p) => ({
+          valor: Math.round(Number(p.valor) * 100) / 100,
+          vencimento: String(p.vencimento ?? ''),
+        }));
+        if (total > 0) {
+          const m = motivoParcelasInvalidas(parcelas, total);
+          if (m) throw new ErroDeNegocio(m);
+        }
+        const compra = {
+          id: proximoId(banco.compras),
+          fornecedorId: fornecedor.id,
+          data: dados.data,
+          frete,
+          desconto,
+          total,
+          observacao: String(dados.observacao ?? ''),
+          cancelada: false,
+          itens,
+          parcelas:
+            total > 0
+              ? parcelas.map((p, n) => ({
+                  id: n + 1,
+                  parcela: n + 1,
+                  parcelas: parcelas.length,
+                  valor: p.valor,
+                  vencimento: p.vencimento,
+                  situacao: 'aberta',
+                  pagoEm: null,
+                }))
+              : [],
+        };
+        for (const i of itens) {
+          movimentar({
+            produtoId: i.produtoId,
+            tipo: 'compra',
+            quantidade: i.quantidade,
+            custoUnitario: i.custoUnitario,
+            compraId: compra.id,
+          });
+          buscar('produtos', i.produtoId, 'Produto').ultimoCusto =
+            i.custoUnitario;
+        }
+        banco.compras.push(compra);
+        return copia(completarCompra(compra));
+      },
+      async cancelar(id) {
+        const compra = buscar('compras', id, 'Compra');
+        if (compra.cancelada)
+          throw new ErroDeNegocio('Essa compra já foi cancelada.');
+        if (compra.parcelas.some((p) => p.situacao === 'quitada'))
+          throw new ErroDeNegocio(
+            'Essa compra já tem parcela paga. Estorne o pagamento antes de cancelar.',
+          );
+        for (const i of compra.itens)
+          movimentar({
+            produtoId: i.produtoId,
+            tipo: 'estorno_compra',
+            quantidade: -i.quantidade,
+            custoUnitario: i.custoUnitario,
+            compraId: compra.id,
+          });
+        compra.parcelas.forEach((p) => {
+          if (p.situacao === 'aberta') p.situacao = 'cancelada';
+        });
+        compra.cancelada = true;
+        return copia(completarCompra(compra));
       },
     },
 

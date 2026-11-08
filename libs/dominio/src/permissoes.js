@@ -88,6 +88,25 @@ export const PERMISSOES = Object.freeze([
     modulo: 'pacotes',
   },
   {
+    chave: 'estoque.ver',
+    grupo: 'Estoque e compras',
+    descricao: 'Ver saldos, movimentos e compras',
+    modulo: 'estoque',
+  },
+  {
+    chave: 'estoque.gerenciar',
+    grupo: 'Estoque e compras',
+    descricao:
+      'Registrar consumo, inventário, fornecedores, compras e ficha técnica',
+    modulo: 'estoque',
+  },
+  {
+    chave: 'financeiro.gerenciar',
+    grupo: 'Financeiro',
+    descricao: 'Contas a pagar e a receber, recorrências e previsão',
+    modulo: 'financeiro',
+  },
+  {
     chave: 'pagamentos.operar',
     grupo: 'Pagamento online',
     descricao: 'Gerar cobranças online e acompanhar pagamentos',
@@ -133,6 +152,7 @@ export const PAPEIS_PADRAO = Object.freeze([
       'clientes.editar',
       'caixa.operar',
       'pacotes.vender',
+      'estoque.ver',
     ],
   },
   {

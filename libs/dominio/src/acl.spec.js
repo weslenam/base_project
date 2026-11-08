@@ -61,6 +61,8 @@ describe('permissões', () => {
       'Administração',
       'Fidelidade',
       'Pacotes',
+      'Estoque e compras',
+      'Financeiro',
       'Pagamento online',
     ]);
   });
