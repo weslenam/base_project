@@ -30,6 +30,20 @@ export function testarDsLayout({ DsApp, DsLayout }, montar) {
     });
   });
 
+  it('agrupa itens com o mesmo grupo sob um subtítulo único', async () => {
+    const itensMenu = [
+      { titulo: 'Agenda', rota: '/agenda' },
+      { titulo: 'Usuários', rota: '/usuarios', grupo: 'Administração' },
+      { titulo: 'Módulos', rota: '/modulos', grupo: 'Administração' },
+    ];
+    const w = montarLayout({ titulo: 'BarberTime', itensMenu });
+    await esperar(() => expect(w.text()).toContain('Módulos'));
+    expect(w.text().match(/Administração/g)).toHaveLength(1);
+    expect(w.text().indexOf('Administração')).toBeLessThan(
+      w.text().indexOf('Usuários'),
+    );
+  });
+
   it('renderiza o slot cabecalho-acoes', async () => {
     const w = montarLayout(
       { titulo: 'BarberTime' },

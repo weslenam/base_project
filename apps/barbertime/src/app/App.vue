@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { RouterView, useRoute, useRouter } from 'vue-router';
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { DsApp, DsBotao, DsLayout } from '@barbertime/ui';
 import Marca from './Marca.vue';
 import { rotas, rotaPermitida } from '../router';
@@ -23,6 +23,7 @@ const itensMenu = computed(() => {
       titulo: r.meta.menu.titulo,
       rota: r.path,
       icone: r.meta.menu.icone,
+      grupo: r.meta.menu.grupo,
     }));
   if (
     sessao.value.modulosAtivos?.includes('agendamento_online') &&
@@ -55,10 +56,10 @@ async function aoSair() {
         <Marca />
       </template>
       <template v-if="sessao?.usuario" #cabecalho-acoes>
-        <div class="usuario">
+        <RouterLink to="/perfil" class="usuario" title="Meu perfil">
           <span class="usuario__nome">{{ sessao.usuario.nome }}</span>
-          <span class="usuario__papel">{{ sessao.papel.nome }}</span>
-        </div>
+          <span class="usuario__papel">{{ sessao.papel?.nome }}</span>
+        </RouterLink>
         <DsBotao variante="fantasma" tamanho="sm" @click="aoSair">Sair</DsBotao>
       </template>
       <RouterView />
@@ -70,8 +71,16 @@ async function aoSair() {
 .usuario {
   display: grid;
   margin-inline-end: var(--esp-2);
+  padding: var(--esp-1) var(--esp-2);
+  border-radius: var(--raio-sm);
   text-align: right;
   line-height: 1.2;
+  color: inherit;
+  text-decoration: none;
+}
+.usuario:hover,
+.usuario:focus-visible {
+  background: var(--cobre-suave);
 }
 .usuario__nome {
   font-weight: 600;

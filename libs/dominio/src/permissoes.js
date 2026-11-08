@@ -53,6 +53,11 @@ export const PERMISSOES = Object.freeze([
     descricao: 'Ver relatórios e faturamento',
   },
   {
+    chave: 'barbearia.configurar',
+    grupo: 'Administração',
+    descricao: 'Editar dados, horário de funcionamento e regras da barbearia',
+  },
+  {
     chave: 'usuarios.gerenciar',
     grupo: 'Administração',
     descricao: 'Convidar e remover usuários',
@@ -98,6 +103,7 @@ export const CHAVES_DE_PERMISSAO = Object.freeze(
 );
 
 const ADMINISTRACAO = [
+  'barbearia.configurar',
   'usuarios.gerenciar',
   'papeis.gerenciar',
   'modulos.gerenciar',

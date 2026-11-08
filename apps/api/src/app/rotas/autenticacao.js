@@ -1,12 +1,17 @@
-import { conferirSenha } from '../../seguranca/senha.js';
+import {
+  conferirSenha,
+  gerarHashDeSenha,
+  SENHA_MINIMA,
+} from '../../seguranca/senha.js';
 import {
   COOKIE,
   criarSessao,
+  encerrarOutrasSessoes,
   encerrarSessao,
   opcoesDoCookie,
   trocarBarbeariaDaSessao,
 } from '../../seguranca/sessao.js';
-import { naoAutenticado, proibido } from '../../infra/erros.js';
+import { invalido, naoAutenticado, proibido } from '../../infra/erros.js';
 import { criarBarbearia } from '../../servicos/barbearias.js';
 
 async function dadosDaSessao(fastify, req) {
@@ -88,6 +93,57 @@ export default async function (fastify) {
     req.sessao.barbeariaId = id;
     req.contexto = null;
     return dadosDaSessao(fastify, req);
+  });
+
+  /** Meu perfil: o próprio usuário troca o nome. */
+  fastify.put('/auth/perfil', async (req) => {
+    await fastify.autenticado(req);
+    const nome = String(req.body?.nome ?? '').trim();
+    if (!nome) throw invalido('Informe o nome.');
+    if (nome.length > 120)
+      throw invalido('O nome pode ter até 120 caracteres.');
+    await fastify.db.query('update usuarios set nome = $2 where id = $1', [
+      req.contexto.usuarioId,
+      nome,
+    ]);
+    return dadosDaSessao(fastify, req);
+  });
+
+  /**
+   * Trocar a própria senha: exige a atual. As outras sessões abertas caem
+   * (ex.: celular esquecido logado); a atual continua.
+   */
+  fastify.put('/auth/senha', async (req) => {
+    await fastify.autenticado(req);
+    const { senhaAtual, novaSenha } = req.body ?? {};
+    const { usuarioId } = req.contexto;
+    const {
+      rows: [usuario],
+    } = await fastify.db.query(
+      'select senha_hash from usuarios where id = $1',
+      [usuarioId],
+    );
+    if (!(await conferirSenha(String(senhaAtual ?? ''), usuario.senha_hash))) {
+      throw invalido('A senha atual não confere.');
+    }
+    if (String(novaSenha ?? '').length < SENHA_MINIMA) {
+      throw invalido(
+        `A nova senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`,
+      );
+    }
+    if (novaSenha === senhaAtual) {
+      throw invalido('A nova senha precisa ser diferente da atual.');
+    }
+    await fastify.db.query(
+      'update usuarios set senha_hash = $2 where id = $1',
+      [usuarioId, await gerarHashDeSenha(novaSenha)],
+    );
+    const encerradas = await encerrarOutrasSessoes(
+      fastify.db,
+      usuarioId,
+      req.sessao.token,
+    );
+    return { ok: true, sessoesEncerradas: encerradas };
   });
 
   /** Cadastro self-service da barbearia (público). Já entra como Dono. */

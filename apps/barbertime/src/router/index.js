@@ -12,7 +12,7 @@ import {
  *  - publica: página do cliente final, sem login e sem menu
  *  - semLayout: entrar e cadastro (sem login, sem menu)
  *  - permissoes: basta uma delas (ADR 0010); modulo: precisa estar ativo (ADR 0011)
- *  - menu: { titulo, icone, grupo } para aparecer no menu lateral
+ *  - menu: { titulo, icone, grupo } para aparecer no menu lateral (grupo vira subtítulo)
  */
 export const rotas = [
   { path: '/', redirect: '/agenda' },
@@ -45,7 +45,7 @@ export const rotas = [
     component: () => import('../telas/equipe/EquipeView.vue'),
     meta: {
       permissoes: ['equipe.gerenciar'],
-      menu: { titulo: 'Equipe', icone: 'equipe' },
+      menu: { titulo: 'Equipe', icone: 'equipe', grupo: 'Cadastros' },
     },
   },
   {
@@ -53,7 +53,7 @@ export const rotas = [
     component: () => import('../telas/servicos/ServicosView.vue'),
     meta: {
       permissoes: ['catalogo.gerenciar'],
-      menu: { titulo: 'Serviços', icone: 'servico' },
+      menu: { titulo: 'Serviços', icone: 'servico', grupo: 'Cadastros' },
     },
   },
   {
@@ -61,7 +61,7 @@ export const rotas = [
     component: () => import('../telas/produtos/ProdutosView.vue'),
     meta: {
       permissoes: ['catalogo.gerenciar'],
-      menu: { titulo: 'Produtos', icone: 'produto' },
+      menu: { titulo: 'Produtos', icone: 'produto', grupo: 'Cadastros' },
     },
   },
   {
@@ -70,7 +70,7 @@ export const rotas = [
     meta: {
       permissoes: ['pacotes.gerenciar'],
       modulo: 'pacotes',
-      menu: { titulo: 'Pacotes', icone: 'assinante' },
+      menu: { titulo: 'Pacotes', icone: 'assinante', grupo: 'Cadastros' },
     },
   },
   {
@@ -79,7 +79,19 @@ export const rotas = [
     meta: {
       permissoes: ['fidelidade.gerenciar'],
       modulo: 'fidelidade',
-      menu: { titulo: 'Fidelidade', icone: 'check' },
+      menu: { titulo: 'Fidelidade', icone: 'check', grupo: 'Cadastros' },
+    },
+  },
+  {
+    path: '/configuracoes',
+    component: () => import('../telas/administracao/ConfiguracoesView.vue'),
+    meta: {
+      permissoes: ['barbearia.configurar'],
+      menu: {
+        titulo: 'Configurações',
+        icone: 'configuracoes',
+        grupo: 'Administração',
+      },
     },
   },
   {
@@ -87,7 +99,7 @@ export const rotas = [
     component: () => import('../telas/administracao/UsuariosView.vue'),
     meta: {
       permissoes: ['usuarios.gerenciar'],
-      menu: { titulo: 'Usuários', icone: 'cliente' },
+      menu: { titulo: 'Usuários', icone: 'cliente', grupo: 'Administração' },
     },
   },
   {
@@ -95,18 +107,34 @@ export const rotas = [
     component: () => import('../telas/administracao/PapeisView.vue'),
     meta: {
       permissoes: ['papeis.gerenciar'],
-      menu: { titulo: 'Papéis e permissões', icone: 'bloqueio' },
+      menu: {
+        titulo: 'Papéis e permissões',
+        icone: 'bloqueio',
+        grupo: 'Administração',
+      },
     },
   },
   {
     path: '/modulos',
     component: () => import('../telas/administracao/ModulosView.vue'),
-    meta: { menu: { titulo: 'Módulos', icone: 'componentes' } },
+    meta: {
+      menu: { titulo: 'Módulos', icone: 'componentes', grupo: 'Administração' },
+    },
   },
+  // Vitrine do kit de UI: ferramenta de quem desenvolve. Fora do menu e só
+  // existe no modo de desenvolvimento (não vai para o build de produção).
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/componentes',
+          component: () => import('../views/ComponentesView.vue'),
+        },
+      ]
+    : []),
   {
-    path: '/componentes',
-    component: () => import('../views/ComponentesView.vue'),
-    meta: { menu: { titulo: 'Componentes', icone: 'componentes' } },
+    // Qualquer usuário logado: nome, senha e barbearias (planejamento 0017).
+    path: '/perfil',
+    component: () => import('../telas/acesso/PerfilView.vue'),
   },
   {
     path: '/sem-acesso',

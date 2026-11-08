@@ -129,12 +129,13 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 | `/clientes`             | Busca por nome ou telefone; cadastro em duas colunas com abas Resumo (serviços, produtos, total gasto, ticket médio, último serviço, fidelidade e pacotes), Comandas (5 por vez, "Ver mais") e Agendamentos |
 | `/servicos`             | Serviços (duração, preço) e equipe (expediente, comissão)                                                                                                                                                   |
 | `/agendar/:slug`        | Página pública do cliente final (ex.: `/agendar/barbearia-modelo`), em etapas: serviço → barbeiro → dia → horário → dados                                                                                   |
-| `/componentes`          | Vitrine do kit de UI                                                                                                                                                                                        |
 | `/pacotes`              | Pacotes de serviços: por quantidade ou livres, mensais ou de compra única, com intervalo mínimo e/ou máximo por semana (módulo Pacotes)                                                                     |
 | `/fidelidade`           | Cartão de selos e/ou cashback (módulo Fidelidade)                                                                                                                                                           |
-| `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar                                                                                                                             |
+| `/configuracoes`        | Administração (Dono): dados da barbearia, endereço público, horário de funcionamento e regras do agendamento online                                                                                         |
+| `/usuarios`             | Quem tem acesso à barbearia e com qual papel; convidar, trocar papel, desativar, definir senha provisória                                                                                                   |
 | `/papeis`               | Papéis e permissões (checklist por grupo); Dono protegido                                                                                                                                                   |
 | `/modulos`              | Módulos inclusos e serviços adicionais                                                                                                                                                                      |
+| `/perfil`               | Meu perfil (todo usuário): nome, trocar senha e trocar de barbearia; abre pelo nome no cabeçalho                                                                                                            |
 | `/entrar` · `/cadastro` | Login e cadastro self-service da barbearia                                                                                                                                                                  |
 
 **Cliente no balcão (comanda e novo agendamento):** um campo aceita nome ou telefone. Com letras, busca pelo nome; com números, pelo telefone (os últimos 4 dígitos já bastam). Quem começa com o nome ou termina com os dígitos aparece primeiro. Se nada for encontrado, dá para cadastrar ali mesmo, com o que foi digitado já preenchido. O botão "Procurar na lista" abre todos os clientes com atendimentos, última visita e faltas. Na comanda, deixar sem cliente grava como **cliente avulso**: entra no caixa e na comissão do barbeiro, mas não vai para o histórico de ninguém. O agendamento sempre exige cliente.
@@ -185,7 +186,7 @@ Industrial e urbana: concreto, grafite e cobre; Big Shoulders nos títulos, Barl
 | `useNotificacao()` | `.sucesso()`, `.erro()`, `.aviso()`, `.info()`                                                   |
 | `useTema()`        | aplica o tema claro/escuro (a escolha é preferência, ADR 0006)                                   |
 
-Vitrine em `/componentes` no app. Os contratos de comportamento ficam em `libs/ui-contrato`.
+Vitrine em `/componentes` no app, só no modo de desenvolvimento (`pnpm dev`) e fora do menu. Os contratos de comportamento ficam em `libs/ui-contrato`.
 
 ## Regras do workspace
 

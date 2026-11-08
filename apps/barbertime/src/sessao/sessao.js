@@ -52,6 +52,12 @@ export function useSessao() {
     async trocarBarbearia(barbeariaId) {
       definirSessao(await http('POST', '/api/auth/barbearia', { barbeariaId }));
     },
+    async atualizarPerfil(dados) {
+      definirSessao(await http('PUT', '/api/auth/perfil', dados));
+    },
+    /** Devolve { ok, sessoesEncerradas }. */
+    trocarSenha: (senhaAtual, novaSenha) =>
+      http('PUT', '/api/auth/senha', { senhaAtual, novaSenha }),
     async sair() {
       await http('POST', '/api/auth/sair').catch(() => undefined);
       definirSessao(null);

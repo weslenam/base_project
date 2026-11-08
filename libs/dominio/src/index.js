@@ -49,3 +49,11 @@ export {
   podeUsarPacote,
   renovarAssinatura,
 } from './pacotes.js';
+export {
+  DIAS_DA_SEMANA,
+  CONFIG_BARBEARIA_PADRAO,
+  LIMITES_DO_AGENDAMENTO,
+  SLUG,
+  mesclarConfigBarbearia,
+  validarConfigBarbearia,
+} from './barbearia.js';

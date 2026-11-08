@@ -4,7 +4,8 @@ import {
   naoEncontrado,
   proibido,
 } from '../../infra/erros.js';
-import { gerarHashDeSenha } from '../../seguranca/senha.js';
+import { gerarHashDeSenha, SENHA_MINIMA } from '../../seguranca/senha.js';
+import { encerrarOutrasSessoes } from '../../seguranca/sessao.js';
 import { validarNovoUsuario } from '../../servicos/barbearias.js';
 
 const LISTAR = `
@@ -101,6 +102,46 @@ export default async function (fastify) {
       );
       return (await c.query(`${LISTAR} where u.id = $1`, [id])).rows[0];
     });
+  });
+
+  /**
+   * Senha provisória definida pelo Dono (quem esqueceu a senha). Só para conta
+   * que acessa apenas esta barbearia: a conta é global e outro tenant também
+   * pode depender dela. Todas as sessões da pessoa caem.
+   */
+  fastify.put('/usuarios/:id/senha', acesso, async (req) => {
+    const id = Number(req.params.id);
+    if (id === req.contexto.usuarioId) {
+      throw proibido('Para trocar a sua senha, use Meu perfil.');
+    }
+    const senha = String(req.body?.senha ?? '');
+    if (senha.length < SENHA_MINIMA) {
+      throw invalido(
+        `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`,
+      );
+    }
+    const {
+      rows: [{ exclusivo }],
+    } = await fastify.db.query(
+      'select usuario_so_na_barbearia($1, $2) as exclusivo',
+      [id, req.contexto.barbeariaId],
+    );
+    if (!exclusivo) {
+      const existe = await fastify.naBarbearia(req, (c) =>
+        c.query('select 1 from vinculos where usuario_id = $1', [id]),
+      );
+      if (!existe.rowCount)
+        throw naoEncontrado('Usuário não encontrado nesta barbearia.');
+      throw conflito(
+        'Essa pessoa também acessa outra barbearia com esta conta. Ela mesma precisa trocar a senha em Meu perfil.',
+      );
+    }
+    await fastify.db.query(
+      'update usuarios set senha_hash = $2 where id = $1',
+      [id, await gerarHashDeSenha(senha)],
+    );
+    await encerrarOutrasSessoes(fastify.db, id);
+    return { ok: true };
   });
 
   /** Remove o acesso à barbearia (a conta do usuário continua existindo). */

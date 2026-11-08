@@ -36,6 +36,15 @@ export const trocarBarbeariaDaSessao = (db, token, barbeariaId) =>
 export const encerrarSessao = (db, token) =>
   db.query('delete from sessoes where id_hash = $1', [hash(token ?? '')]);
 
+/** Encerra as sessões do usuário, menos a do token informado. Devolve quantas caíram. */
+export async function encerrarOutrasSessoes(db, usuarioId, tokenMantido = '') {
+  const { rowCount } = await db.query(
+    'delete from sessoes where usuario_id = $1 and id_hash <> $2',
+    [usuarioId, hash(tokenMantido ?? '')],
+  );
+  return rowCount;
+}
+
 export const opcoesDoCookie = () => ({
   path: '/',
   httpOnly: true,
