@@ -31,12 +31,12 @@ PY
 
 transcricao="$(campo transcript_path)"
 if ! { [ -f "$transcricao" ] && grep -q '"skill":"security-review"' "$transcricao"; }; then
-  negar "Commit bloqueado: rode a revisão de segurança antes (Skill \"security-review\") sobre o diff em stage. Se não houver achados abertos, registre com .claude/hooks/registrar-security-review.sh. Regra em .claude/rules/fluxo-de-trabalho.md (etapa 7)."
+  negar "Commit bloqueado: rode a revisão de segurança antes (Skill \"security-review\") sobre o diff em stage. Se não houver achados abertos, registre com .claude/hooks/registrar-security-review.sh. Regra em .claude/rules/fluxo-de-trabalho.md (etapa 8)."
 fi
 
 registro="$dir/.claude/estado/security-review.ok"
 arvore="$(git -C "$dir" write-tree 2>/dev/null)"
 if [ ! -f "$registro" ] || [ "$(cat "$registro")" != "$arvore" ]; then
-  negar "Commit bloqueado: o que está em stage não é o que passou na revisão de segurança (ou ela não foi registrada). Revise de novo com a skill security-review e, sem achados abertos, rode .claude/hooks/registrar-security-review.sh. Regra em .claude/rules/fluxo-de-trabalho.md (etapa 7)."
+  negar "Commit bloqueado: o que está em stage não é o que passou na revisão de segurança (ou ela não foi registrada). Revise de novo com a skill security-review e, sem achados abertos, rode .claude/hooks/registrar-security-review.sh. Regra em .claude/rules/fluxo-de-trabalho.md (etapa 8)."
 fi
 exit 0

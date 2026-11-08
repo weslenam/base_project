@@ -34,7 +34,7 @@
 
 ## Fluxo de trabalho (obrigatório)
 
-- Siga a ordem de `.claude/rules/fluxo-de-trabalho.md`: grafo → planejamento → skills da área → implementar com testes → verificar → revisar → **segurança** → fechar. Hooks em `.claude/hooks/` garantem parte dela (injetam o fluxo, lembram do grafo, **bloqueiam UI sem a skill `design-system`**, **bloqueiam commit sem a skill `security-review`**, atualizam o grafo).
+- Siga a ordem de `.claude/rules/fluxo-de-trabalho.md`: grafo → entrevista (`grill-me`) → planejamento → skills da área (`mudancas-cirurgicas` em todo código, `git-guardrails` em git e operações destrutivas) → implementar com testes → verificar → revisar → **segurança** → fechar. Hooks em `.claude/hooks/` garantem parte dela (injetam o fluxo, lembram do grafo, **bloqueiam UI sem a skill `design-system`**, **bloqueiam commit sem a skill `security-review`**, atualizam o grafo). Agentes `planejador`, `implementador` e `revisor` em `.claude/agents/` podem assumir etapas.
 
 ## graphify
 
