@@ -40,6 +40,20 @@ test.describe('app das barbearias', () => {
     });
   }
 
+  test('convite com a história do papel', async ({ page, conferirLayout }) => {
+    await page.goto('/usuarios');
+    await page.getByRole('button', { name: 'Convidar usuário' }).click();
+    await page.getByLabel('Nome').fill('Ana Souza');
+    await page
+      .getByRole('group', { name: 'Papel' })
+      .getByRole('button', { name: /Recepção/ })
+      .click();
+    await expect(
+      page.getByText('Como vai ser o dia de Ana como Recepção'),
+    ).toBeVisible();
+    await conferirLayout('app-convite');
+  });
+
   test('menu lateral aberto', async ({ page, conferirLayout }, info) => {
     await page.goto('/agenda');
     await page.waitForLoadState('networkidle');

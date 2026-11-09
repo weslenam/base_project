@@ -156,7 +156,7 @@ describe('menu e telas pelo papel', () => {
       'Serviços',
       'Produtos',
       'Usuários',
-      'Papéis e permissões',
+      'Papéis',
       'Configurações',
     ]) {
       expect(menu()).not.toContain(item);

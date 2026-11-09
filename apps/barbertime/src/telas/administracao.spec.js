@@ -1,19 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SESSAO_DONO,
-  campo,
   clicar,
+  clicarContendo,
   esperar,
+  preencher,
   montarApp,
   sessaoCom,
   simularApi,
   texto,
 } from '../testes/apoio.js';
-import {
-  CHAVES_DE_PERMISSAO,
-  MODULOS,
-  PAPEIS_PADRAO,
-} from '@barbertime/dominio';
+import { MODULOS, PAPEIS_PADRAO } from '@barbertime/dominio';
 
 let app;
 afterEach(() => {
@@ -98,6 +95,34 @@ describe('usuários', () => {
   });
 });
 
+describe('convite com a história do papel (planejamento 0033)', () => {
+  it('mostra o dia da pessoa no papel escolhido e envia o papel certo', async () => {
+    const chamadas = simularApi({
+      'GET /api/usuarios': USUARIOS,
+      'GET /api/papeis': PAPEIS,
+      'POST /api/usuarios': (c) => [201, { id: 9, nome: c.nome }],
+    });
+    app = await montarApp('/usuarios');
+    await esperar(() => expect(texto()).toContain('Renata Recepção'));
+    await clicar('Convidar usuário');
+    await preencher('Nome', 'Ana Souza');
+    await preencher('E-mail', 'ana@barbertime.dev');
+    await clicarContendo('Atende os clientes');
+    await esperar(() =>
+      expect(texto()).toContain('Como vai ser o dia de Ana como Barbeiro'),
+    );
+    expect(texto()).toContain('Ver a própria agenda e os clientes do dia');
+    await clicar('Convidar', { ultimo: true });
+    await esperar(() =>
+      expect(chamadas.find((c) => c.metodo === 'POST')).toBeTruthy(),
+    );
+    expect(chamadas.find((c) => c.metodo === 'POST').corpo).toMatchObject({
+      nome: 'Ana Souza',
+      papelId: 4,
+    });
+  });
+});
+
 describe('hierarquia na tela de usuários (planejamento 0023)', () => {
   const comoGerente = sessaoCom('Gerente', ['usuarios.gerenciar']);
 
@@ -112,23 +137,26 @@ describe('hierarquia na tela de usuários (planejamento 0023)', () => {
     expect(texto()).not.toContain('Remover acesso');
   });
 
-  it('Gerente só oferece Recepção e Barbeiro ao convidar', async () => {
+  it('Gerente só oferece Recepção e Barbeiro, e cada papel conta a sua história', async () => {
     simularApi({ 'GET /api/usuarios': USUARIOS, 'GET /api/papeis': PAPEIS });
     app = await montarApp('/usuarios', { sessao: comoGerente });
     await esperar(() => expect(texto()).toContain('Renata Recepção'));
     await clicar('Convidar usuário');
-    await esperar(() => expect(campo('Papel')).toBeTruthy());
-    campo('Papel')
-      .closest('.v-input')
-      .querySelector('[role="combobox"]')
-      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    await esperar(() =>
-      expect(document.querySelectorAll('[role="option"]').length).toBe(2),
-    );
-    const opcoes = [...document.querySelectorAll('[role="option"]')].map((o) =>
-      o.textContent.trim(),
-    );
-    expect(opcoes).toEqual(['Recepção', 'Barbeiro']);
+    const cartoes = () => [
+      ...document.querySelectorAll('[role="group"][aria-label="Papel"] button'),
+    ];
+    await esperar(() => expect(cartoes().length).toBe(2));
+    expect(cartoes().map((b) => b.querySelector('span').textContent)).toEqual([
+      'Recepção',
+      'Barbeiro',
+    ]);
+    // Sem chave técnica de permissão na tela.
+    expect(texto()).not.toMatch(/caixa\.operar|agenda\.ver/);
+    await clicarContendo('Recebe os clientes');
+    await esperar(() => expect(texto()).toContain('Vai poder'));
+    expect(texto()).toContain('Abrir o caixa e receber as comandas');
+    expect(texto()).toContain('Não vai poder');
+    expect(texto()).toContain('Fechar o caixa no fim do dia');
   });
 });
 
@@ -136,18 +164,15 @@ describe('papéis', () => {
   it('quatro papéis fixos com nível, só para leitura e sem "Novo papel"', async () => {
     simularApi({ 'GET /api/papeis': PAPEIS });
     app = await montarApp('/papeis');
-    await esperar(() => expect(texto()).toContain('Nível 4'));
+    await esperar(() => expect(texto()).toContain('Barbeiro'));
     for (const nome of ['Dono', 'Gerente', 'Recepção', 'Barbeiro'])
       expect(texto()).toContain(nome);
     expect(texto()).not.toContain('Novo papel');
     expect(texto()).not.toContain('Editar');
-    await clicar('Ver permissões');
-    await esperar(() => expect(texto()).toContain('Os papéis são fixos'));
-    const caixas = [
-      ...document.querySelectorAll('.v-dialog input[type="checkbox"]'),
-    ];
-    expect(caixas.length).toBe(CHAVES_DE_PERMISSAO.length);
-    expect(caixas.every((c) => c.checked && c.disabled)).toBe(true);
+    // Histórias no lugar da lista técnica de permissões (planejamento 0033).
+    expect(texto()).toContain('Recebe os clientes, cuida da agenda e cobra');
+    expect(texto()).toContain('Não vai poder');
+    expect(texto()).not.toContain('Ver permissões');
   });
 });
 

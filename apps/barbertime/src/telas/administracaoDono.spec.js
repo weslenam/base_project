@@ -43,7 +43,7 @@ describe('área de administração no menu', () => {
     expect(menu.indexOf('Administração')).toBeLessThan(
       menu.indexOf('Configurações'),
     );
-    for (const t of ['Usuários', 'Papéis e permissões', 'Módulos']) {
+    for (const t of ['Usuários', 'Papéis', 'Módulos']) {
       expect(linkDoMenu(t)).toBeTruthy();
     }
     expect(menu).toContain('Cadastros');

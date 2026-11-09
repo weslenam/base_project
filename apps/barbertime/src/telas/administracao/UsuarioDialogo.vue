@@ -6,13 +6,18 @@ import {
   DsEscolha,
   DsFormulario,
   DsInput,
-  DsSelect,
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
-import { podeAgirSobre } from '@barbertime/dominio';
+import {
+  historiaDoPapel,
+  podeAgirSobre,
+  resumoDoPapel,
+} from '@barbertime/dominio';
 import { administracao } from '../../dados/administracao.js';
 import { useAcao } from '../../dados/useAcao.js';
+import { useSessao } from '../../sessao/sessao.js';
+import HistoriaDoPapel from './HistoriaDoPapel.vue';
 
 // Hierarquia fixa (ADR 0010, planejamento 0023): só se altera quem está abaixo,
 // e só se dá papel abaixo do seu. Senha de outra pessoa não se troca aqui: cada
@@ -39,11 +44,33 @@ const souEu = computed(() => props.usuario?.id === props.eu);
 const podeAlterar = computed(
   () => novo.value || podeAgirSobre(props.meuPapel, props.usuario?.papelChave),
 );
+// Papéis como cartões com o resumo; a história completa aparece ao escolher
+// (planejamento 0033), só com o que existe nesta barbearia (módulos ativos).
 const opcoesPapeis = computed(() =>
   props.papeis
     .filter((p) => podeAgirSobre(props.meuPapel, p.chave))
-    .map((p) => ({ valor: p.id, rotulo: p.nome })),
+    .map((p) => ({
+      valor: p.id,
+      rotulo: p.nome,
+      detalhe: resumoDoPapel(p.chave),
+    })),
 );
+const { sessao } = useSessao();
+const historia = computed(() => {
+  const papel = props.papeis.find((p) => p.id === form.value.papelId);
+  return papel
+    ? historiaDoPapel(papel.chave, sessao.value?.modulosAtivos ?? [])
+    : null;
+});
+const tituloDaHistoria = computed(() => {
+  const nome = String(
+    (novo.value ? form.value.nome : props.usuario?.nome) ?? '',
+  )
+    .trim()
+    .split(/\s+/)[0];
+  const quem = nome || 'quem for';
+  return `Como vai ser o dia de ${quem} como ${historia.value?.nome}`;
+});
 const situacoes = [
   { valor: true, rotulo: 'Ativo' },
   { valor: false, rotulo: 'Desativado' },
@@ -94,7 +121,7 @@ async function remover() {
   <DsDialogo
     v-model="aberto"
     :titulo="novo ? 'Convidar usuário' : usuario.nome"
-    largura="sm"
+    largura="md"
     fechavel
   >
     <p v-if="souEu" class="ds-corpo-sm ds-suave">
@@ -122,11 +149,16 @@ async function remover() {
         />
       </template>
       <p v-else class="ds-valor ds-suave">{{ usuario.email }}</p>
-      <DsSelect
+      <DsEscolha
         v-model="form.papelId"
         rotulo="Papel"
         :opcoes="opcoesPapeis"
-        obrigatorio
+        grande
+      />
+      <HistoriaDoPapel
+        v-if="historia"
+        :historia="historia"
+        :titulo="tituloDaHistoria"
       />
       <DsEscolha
         v-if="!novo"

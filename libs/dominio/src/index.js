@@ -33,6 +33,11 @@ export {
   permissoesPorGrupo,
 } from './permissoes.js';
 export {
+  ACOES_DAS_PERMISSOES,
+  historiaDoPapel,
+  resumoDoPapel,
+} from './historias.js';
+export {
   MODULOS,
   CHAVES_DE_MODULO,
   ESTADOS_DE_MODULO,

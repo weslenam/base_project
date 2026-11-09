@@ -145,7 +145,7 @@ export const rotas = [
     meta: {
       permissoes: ['usuarios.gerenciar'],
       menu: {
-        titulo: 'Papéis e permissões',
+        titulo: 'Papéis',
         icone: 'permissoes',
         grupo: 'Administração',
       },
