@@ -360,7 +360,12 @@ describe('escalada de privilégio: hierarquia fixa (ADR 0010)', () => {
       ),
     );
     const eu = (await pessoas.barbeiro.n.get('/api/auth/eu')).corpo;
-    expect(eu.permissoes).toEqual(['agenda.ver_propria']);
+    expect(eu.permissoes).toEqual([
+      'agenda.ver',
+      'agenda.ajudar',
+      'clientes.ver',
+      'clientes.editar',
+    ]);
     expect((await pessoas.barbeiro.n.get('/api/barbearia')).status).toBe(403);
   });
 });

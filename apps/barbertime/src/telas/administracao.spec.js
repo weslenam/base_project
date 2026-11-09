@@ -111,7 +111,7 @@ describe('convite com a história do papel (planejamento 0033)', () => {
     await esperar(() =>
       expect(texto()).toContain('Como vai ser o dia de Ana como Barbeiro'),
     );
-    expect(texto()).toContain('Ver a própria agenda e os clientes do dia');
+    expect(texto()).toContain('Ver a agenda de todos os barbeiros');
     await clicar('Convidar', { ultimo: true });
     await esperar(() =>
       expect(chamadas.find((c) => c.metodo === 'POST')).toBeTruthy(),

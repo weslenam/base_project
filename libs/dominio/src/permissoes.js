@@ -19,6 +19,12 @@ export const PERMISSOES = Object.freeze([
     descricao: 'Marcar, alterar e cancelar agendamentos e bloqueios',
   },
   {
+    chave: 'agenda.ajudar',
+    grupo: 'Agenda',
+    descricao:
+      'Marcar e bloquear horários; mexer só no que marcou e no próprio atendimento',
+  },
+  {
     chave: 'clientes.ver',
     grupo: 'Clientes',
     descricao: 'Ver clientes e histórico',
@@ -160,9 +166,48 @@ export const PAPEIS_PADRAO = Object.freeze([
     nome: 'Barbeiro',
     nivel: 4,
     protegido: true,
-    permissoes: ['agenda.ver_propria'],
+    // Só a Agenda, sem menu (planejamento 0035).
+    semMenu: true,
+    permissoes: [
+      'agenda.ver',
+      'agenda.ajudar',
+      'clientes.ver',
+      'clientes.editar',
+    ],
   },
 ]);
+
+/** Pode marcar agendamentos e bloquear horários (em qualquer coluna)? */
+export const podeMarcarNaAgenda = (permissoes = []) =>
+  permissoes.includes('agenda.gerenciar') ||
+  permissoes.includes('agenda.ajudar');
+
+/**
+ * Pode levar este item da agenda para `estado` (confirmado, atendido, faltou,
+ * cancelado)? Planejamento 0035. Com `agenda.gerenciar`, sempre. Com
+ * `agenda.ajudar`: confirmar, cancelar e remover bloqueio só no que a pessoa
+ * criou; atendido e faltou também nos atendimentos em que ela é o barbeiro.
+ * Se a transição em si é válida, quem decide é o ciclo do atendimento.
+ *
+ * @param {{ usuarioId: number, permissoes: string[] }} quem
+ * @param {{ bloqueio?: boolean, criadoPor?: number|null, barbeiroUsuarioId?: number|null }} item
+ */
+export function podeAgirNaAgenda(quem, item, estado) {
+  const permissoes = quem?.permissoes ?? [];
+  if (permissoes.includes('agenda.gerenciar')) return true;
+  if (!permissoes.includes('agenda.ajudar') || quem.usuarioId == null)
+    return false;
+  const criou = item?.criadoPor != null && item.criadoPor === quem.usuarioId;
+  if (item?.bloqueio) return criou;
+  if (estado === 'confirmado' || estado === 'cancelado') return criou;
+  if (estado === 'atendido' || estado === 'faltou')
+    return (
+      criou ||
+      (item?.barbeiroUsuarioId != null &&
+        item.barbeiroUsuarioId === quem.usuarioId)
+    );
+  return false;
+}
 
 /** Permissões fora do catálogo (para recusar com 400). */
 export const permissoesInvalidas = (lista = []) =>
@@ -180,6 +225,9 @@ export function permissoesEfetivas(doPapel = [], modulosAtivos = []) {
 }
 
 const papelFixo = (chave) => PAPEIS_PADRAO.find((p) => p.chave === chave);
+
+/** O papel usa o app sem menu (só a Agenda e o Perfil)? */
+export const papelSemMenu = (chave) => Boolean(papelFixo(chave)?.semMenu);
 
 /** Nível do papel (1 = Dono, 4 = Barbeiro). Chave desconhecida: null. */
 export const nivelDoPapel = (chave) => papelFixo(chave)?.nivel ?? null;

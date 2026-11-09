@@ -2,11 +2,12 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { request } from '@playwright/test';
 import { codigoDoPasso, passoAtual } from './totp.js';
-import { APP, BC, ESTADO_APP, ESTADO_BC } from './urls.js';
+import { APP, BC, ESTADO_APP, ESTADO_BARBEIRO, ESTADO_BC } from './urls.js';
 
 // Login uma vez por execução, com as contas da semente de desenvolvimento
 // (apps/api/scripts/semear.js). SÓ DESENVOLVIMENTO.
 const DONO = { email: 'dono@barbertime.dev', senha: 'barbertime123' };
+const BARBEIRO = { email: 'barbeiro@barbertime.dev', senha: 'barbertime123' };
 const OPERADOR = {
   email: 'operador@barbertime.dev',
   senha: 'barbertime-operador',
@@ -25,15 +26,15 @@ async function sessaoValida(baseURL, estado, rota) {
   return ok;
 }
 
-async function entrarNoApp() {
-  if (await sessaoValida(APP, ESTADO_APP, '/api/auth/eu')) return;
+async function entrarNoApp(conta = DONO, estado = ESTADO_APP) {
+  if (await sessaoValida(APP, estado, '/api/auth/eu')) return;
   const ctx = await request.newContext({ baseURL: APP });
-  const r = await ctx.post('/api/auth/entrar', { data: DONO });
+  const r = await ctx.post('/api/auth/entrar', { data: conta });
   if (!r.ok())
     throw new Error(
-      `Login do Dono falhou (${r.status()}). O ambiente está no ar (pnpm dev) e semeado (api:semear)?`,
+      `Login de ${conta.email} falhou (${r.status()}). O ambiente está no ar (pnpm dev) e semeado (api:semear)?`,
     );
-  await ctx.storageState({ path: ESTADO_APP });
+  await ctx.storageState({ path: estado });
   await ctx.dispose();
 }
 
@@ -60,5 +61,10 @@ async function entrarNoBusinessCenter() {
 
 export default async function entrar() {
   mkdirSync(dirname(ESTADO_APP), { recursive: true });
-  await Promise.all([entrarNoApp(), entrarNoBusinessCenter()]);
+  await Promise.all([
+    entrarNoApp(),
+    // Barbeiro: só a Agenda, sem menu (planejamento 0035).
+    entrarNoApp(BARBEIRO, ESTADO_BARBEIRO),
+    entrarNoBusinessCenter(),
+  ]);
 }

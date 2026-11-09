@@ -4,7 +4,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { DsApp, DsBotao, DsLayout } from '@barbertime/ui';
 import Marca from './Marca.vue';
 import { rotas, rotaPermitida } from '../router';
-import { useSessao } from '../sessao/sessao.js';
+import { semMenu as papelSemMenu, useSessao } from '../sessao/sessao.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -25,8 +25,9 @@ const gruposMenu = [
 // Menu montado das rotas: só o que o papel permite e o módulo libera.
 // O link da página pública fica em Configurações > Página pública (planejamento
 // 0019): no modo "só com o link" ele exige o código, que a sessão não conhece.
+// Papel sem menu (Barbeiro, planejamento 0035): o DsLayout some com o sanduíche.
 const itensMenu = computed(() => {
-  if (!sessao.value) return [];
+  if (!sessao.value || papelSemMenu()) return [];
   return rotas
     .filter((r) => r.meta?.menu && rotaPermitida(r.meta))
     .map((r) => ({

@@ -199,7 +199,7 @@ describe('clientes e agenda', () => {
       return n;
     };
     const barbeiro = await convidar('barbeiro');
-    expect((await barbeiro.post('/api/agendamentos', {})).status).toBe(403);
+    // Agendar ele pode (planejamento 0035, agendaBarbeiro.spec.js).
     expect(
       (
         await barbeiro.post('/api/servicos', {

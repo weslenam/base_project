@@ -34,9 +34,10 @@ describe('histórias dos papéis', () => {
 
   it('Barbeiro vê os limites; Dono não tem limites', () => {
     const barbeiro = historiaDoPapel('barbeiro', []);
-    expect(barbeiro.pode).toEqual([
-      'Ver a própria agenda e os clientes do dia',
-    ]);
+    expect(barbeiro.pode).toContain('Ver a agenda de todos os barbeiros');
+    expect(barbeiro.pode).toContain(
+      'Ajudar na agenda: marcar e bloquear horários, e cancelar só o que você marcou',
+    );
     expect(barbeiro.naoPode).toContain('Abrir o caixa e receber as comandas');
     expect(barbeiro.naoPode.length).toBeLessThanOrEqual(4);
 
@@ -58,6 +59,10 @@ describe('histórias dos papéis', () => {
     );
     // Vê a agenda de todos: o item da própria agenda seria redundante.
     expect(gerente.pode).toContain('Ver a agenda de todos os barbeiros');
+    // Gerencia a agenda: "ajudar" seria redundante.
+    expect(gerente.pode.some((f) => f.startsWith('Ajudar na agenda'))).toBe(
+      false,
+    );
     expect(gerente.pode).not.toContain(
       'Ver a própria agenda e os clientes do dia',
     );

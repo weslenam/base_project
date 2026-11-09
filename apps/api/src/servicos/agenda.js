@@ -37,7 +37,8 @@ export const SELECT_ATENDIMENTO = `
          c.telefone as "clienteTelefone",
          coalesce(s.nome, '') as "servicoNome",
          coalesce(b.nome, 'Primeiro livre') as "barbeiroNome",
-         cm.id as "comandaId", cm.estado as "comandaEstado"
+         cm.id as "comandaId", cm.estado as "comandaEstado",
+         a.criado_por as "criadoPor", b.usuario_id as "barbeiroUsuarioId"
     from atendimentos a
     left join barbeiros b on b.id = a.barbeiro_id
     left join servicos s on s.id = a.servico_id
@@ -65,11 +66,14 @@ export const bloqueioNaAgenda = (b) => ({
   clienteNome: b.motivo,
   servicoNome: '',
   barbeiroNome: b.barbeiroNome,
+  criadoPor: b.criadoPor,
+  barbeiroUsuarioId: b.barbeiroUsuarioId,
 });
 
 export const SELECT_BLOQUEIO = `
   select k.id, k.data, k.inicio, k.fim, k.barbeiro_id as "barbeiroId", k.motivo,
-         b.nome as "barbeiroNome"
+         b.nome as "barbeiroNome", k.criado_por as "criadoPor",
+         b.usuario_id as "barbeiroUsuarioId"
     from bloqueios k join barbeiros b on b.id = k.barbeiro_id`;
 
 /** `travar`: trava a linha até o fim da transação (transições de estado). */
@@ -164,7 +168,7 @@ export async function criarAgendamento(
   c,
   barbeariaId,
   { data, inicio, barbeiroId, servicoId, clienteId, cliente, canal = 'balcao' },
-  { validarJanela } = {},
+  { validarJanela, criadoPor = null } = {},
 ) {
   if (!data || !inicio) throw invalido('Escolha o dia e o horário.');
   if (data < agora().data)
@@ -192,8 +196,8 @@ export async function criarAgendamento(
     rows: [novo],
   } = await c.query(
     `insert into atendimentos
-       (barbearia_id, origem, canal, data, inicio, fim, duracao, barbeiro_id, servico_id, cliente_id, estado)
-     values ($1, 'agendamento', $2, $3, $4, $5, $6, $7, $8, $9, 'agendado') returning id`,
+       (barbearia_id, origem, canal, data, inicio, fim, duracao, barbeiro_id, servico_id, cliente_id, estado, criado_por)
+     values ($1, 'agendamento', $2, $3, $4, $5, $6, $7, $8, $9, 'agendado', $10) returning id`,
     [
       barbeariaId,
       canal,
@@ -204,6 +208,7 @@ export async function criarAgendamento(
       barbeiro.id,
       servico.id,
       idCliente,
+      criadoPor,
     ],
   );
   return buscarAtendimento(c, novo.id);

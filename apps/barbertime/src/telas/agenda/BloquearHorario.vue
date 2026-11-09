@@ -12,7 +12,11 @@ import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
 
 const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ data: { type: String, required: true } });
+const props = defineProps({
+  data: { type: String, required: true },
+  /** Barbeiro já escolhido (atalho na coluna da agenda). */
+  barbeiroId: { type: Number, default: null },
+});
 const emit = defineEmits(['criado']);
 
 const notificar = useNotificacao();
@@ -23,7 +27,7 @@ const form = ref({});
 watch(aberto, async (abriu) => {
   if (!abriu) return;
   form.value = {
-    barbeiroId: null,
+    barbeiroId: props.barbeiroId,
     data: props.data,
     inicio: '12:00',
     fim: '13:00',

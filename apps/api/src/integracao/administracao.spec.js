@@ -110,7 +110,10 @@ describe('ACL dentro da barbearia', () => {
       ['barbeiro', 4],
     ]);
     expect(papeis.find((p) => p.chave === 'barbeiro').permissoes).toEqual([
-      'agenda.ver_propria',
+      'agenda.ver',
+      'agenda.ajudar',
+      'clientes.ver',
+      'clientes.editar',
     ]);
     // Não se cria, edita nem exclui papel.
     const recepcao = papeis.find((p) => p.chave === 'recepcao');

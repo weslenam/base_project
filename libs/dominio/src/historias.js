@@ -15,6 +15,8 @@ export const ACOES_DAS_PERMISSOES = Object.freeze({
   'agenda.ver': 'Ver a agenda de todos os barbeiros',
   'agenda.gerenciar':
     'Marcar, remarcar e cancelar horários, e receber quem chega na fila do balcão',
+  'agenda.ajudar':
+    'Ajudar na agenda: marcar e bloquear horários, e cancelar só o que você marcou',
   'clientes.ver': 'Consultar os clientes e o histórico de cada um',
   'clientes.editar': 'Cadastrar clientes e atualizar os dados',
   'clientes.excluir': 'Excluir clientes do cadastro',
@@ -60,8 +62,8 @@ const ROTEIROS = Object.freeze({
     ],
   },
   barbeiro: {
-    resumo: 'Atende os clientes e acompanha a própria agenda',
-    limites: ['agenda.ver', 'caixa.operar', 'clientes.ver', 'relatorios.ver'],
+    resumo: 'Atende os clientes e ajuda a cuidar da agenda',
+    limites: ['caixa.operar', 'clientes.excluir', 'relatorios.ver'],
   },
 });
 
@@ -80,9 +82,12 @@ export function historiaDoPapel(chave, modulosAtivos = []) {
   const roteiro = ROTEIROS[chave];
   if (!papel || !roteiro) return null;
   const doPapel = permissoesDoPapel(chave);
-  // Quem vê a agenda de todos não precisa ler que vê a própria.
+  // Quem vê a agenda de todos não precisa ler que vê a própria; quem gerencia
+  // a agenda não precisa ler que ajuda nela.
   const efetivas = permissoesEfetivas(doPapel, modulosAtivos).filter(
-    (p) => !(p === 'agenda.ver_propria' && doPapel.includes('agenda.ver')),
+    (p) =>
+      !(p === 'agenda.ver_propria' && doPapel.includes('agenda.ver')) &&
+      !(p === 'agenda.ajudar' && doPapel.includes('agenda.gerenciar')),
   );
   return {
     chave,

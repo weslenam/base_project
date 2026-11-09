@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import {
+  ROTAS_SEM_MENU,
   carregarSessao,
   moduloAtivo,
   podeAlguma,
+  semMenu,
   sessaoCarregada,
   temSessao,
 } from '../sessao/sessao.js';
@@ -229,6 +231,8 @@ router.beforeEach(async (to) => {
   if (to.meta.publica || to.meta.semLayout) return true;
   if (!sessaoCarregada()) await carregarSessao();
   if (!temSessao()) return { name: 'entrar', query: { volta: to.fullPath } };
+  // Papel sem menu (Barbeiro): só a Agenda e o Perfil (planejamento 0035).
+  if (semMenu() && !ROTAS_SEM_MENU.includes(to.path)) return '/agenda';
   if (!rotaPermitida(to.meta))
     return { name: 'sem-acesso', query: { de: to.fullPath } };
   return true;

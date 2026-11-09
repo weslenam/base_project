@@ -4,3 +4,5 @@ export const ESTADO_APP = new URL('../.estado/app.json', import.meta.url)
   .pathname;
 export const ESTADO_BC = new URL('../.estado/bc.json', import.meta.url)
   .pathname;
+export const ESTADO_BARBEIRO = new URL('../.estado/barbeiro.json', import.meta.url)
+  .pathname;

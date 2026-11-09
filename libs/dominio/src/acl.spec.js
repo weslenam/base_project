@@ -8,6 +8,9 @@ import {
   permissoesInvalidas,
   permissoesPorGrupo,
   podeAgirSobre,
+  podeAgirNaAgenda,
+  podeMarcarNaAgenda,
+  papelSemMenu,
 } from './permissoes.js';
 import { MODULOS, moduloDoCatalogo, transicaoDeModulo } from './modulos.js';
 
@@ -33,7 +36,12 @@ describe('permissões', () => {
     expect(CHAVES_DE_PERMISSAO).not.toContain('papeis.gerenciar');
     expect(papel('recepcao')).not.toContain('caixa.fechar');
     expect(papel('recepcao')).not.toContain('usuarios.gerenciar');
-    expect(papel('barbeiro')).toEqual(['agenda.ver_propria']);
+    expect(papel('barbeiro')).toEqual([
+      'agenda.ver',
+      'agenda.ajudar',
+      'clientes.ver',
+      'clientes.editar',
+    ]);
     expect(papel('recepcao')).toContain('pacotes.vender');
     expect(papel('recepcao')).not.toContain('pacotes.gerenciar');
     expect(papel('inventado')).toEqual([]);
@@ -154,5 +162,77 @@ describe('módulos', () => {
     expect(transicaoDeModulo('comissoes', 'inativo', 'voar').erro).toBe(
       'Ação desconhecida.',
     );
+  });
+});
+
+// Planejamento 0035: o Barbeiro ajuda na agenda, sem menu.
+describe('agenda: quem ajuda x quem gerencia', () => {
+  const barbeiro = { usuarioId: 7, permissoes: permissoesDoPapel('barbeiro') };
+  const recepcao = { usuarioId: 3, permissoes: permissoesDoPapel('recepcao') };
+  const deOutro = { criadoPor: 3, barbeiroUsuarioId: 9 };
+  const queEleMarcou = { criadoPor: 7, barbeiroUsuarioId: 9 };
+  const naColunaDele = { criadoPor: null, barbeiroUsuarioId: 7 };
+
+  it('só o Barbeiro fica sem menu', () => {
+    expect(papelSemMenu('barbeiro')).toBe(true);
+    for (const c of ['dono', 'gerente', 'recepcao', 'inventado'])
+      expect(papelSemMenu(c)).toBe(false);
+  });
+
+  it('Barbeiro e Recepção marcam e bloqueiam; sem permissão, não', () => {
+    expect(podeMarcarNaAgenda(barbeiro.permissoes)).toBe(true);
+    expect(podeMarcarNaAgenda(recepcao.permissoes)).toBe(true);
+    expect(podeMarcarNaAgenda(['agenda.ver'])).toBe(false);
+    expect(podeMarcarNaAgenda()).toBe(false);
+  });
+
+  it('quem gerencia age em qualquer item', () => {
+    for (const estado of ['confirmado', 'cancelado', 'atendido', 'faltou'])
+      expect(podeAgirNaAgenda(recepcao, deOutro, estado)).toBe(true);
+    expect(podeAgirNaAgenda(recepcao, { bloqueio: true }, 'cancelado')).toBe(
+      true,
+    );
+  });
+
+  it('Barbeiro confirma e cancela só o que marcou', () => {
+    for (const estado of ['confirmado', 'cancelado']) {
+      expect(podeAgirNaAgenda(barbeiro, queEleMarcou, estado)).toBe(true);
+      expect(podeAgirNaAgenda(barbeiro, deOutro, estado)).toBe(false);
+      expect(podeAgirNaAgenda(barbeiro, naColunaDele, estado)).toBe(false);
+    }
+  });
+
+  it('Barbeiro marca atendido e falta na coluna dele ou no que marcou', () => {
+    for (const estado of ['atendido', 'faltou']) {
+      expect(podeAgirNaAgenda(barbeiro, queEleMarcou, estado)).toBe(true);
+      expect(podeAgirNaAgenda(barbeiro, naColunaDele, estado)).toBe(true);
+      expect(podeAgirNaAgenda(barbeiro, deOutro, estado)).toBe(false);
+    }
+    expect(podeAgirNaAgenda(barbeiro, queEleMarcou, 'inventado')).toBe(false);
+  });
+
+  it('Barbeiro remove só o bloqueio que criou', () => {
+    const bloqueio = (criadoPor) => ({
+      bloqueio: true,
+      criadoPor,
+      barbeiroUsuarioId: 7,
+    });
+    expect(podeAgirNaAgenda(barbeiro, bloqueio(7), 'cancelado')).toBe(true);
+    expect(podeAgirNaAgenda(barbeiro, bloqueio(3), 'cancelado')).toBe(false);
+    expect(podeAgirNaAgenda(barbeiro, bloqueio(null), 'cancelado')).toBe(
+      false,
+    );
+  });
+
+  it('item sem autor ou pessoa sem permissão: nada', () => {
+    expect(podeAgirNaAgenda(barbeiro, {}, 'cancelado')).toBe(false);
+    expect(
+      podeAgirNaAgenda(
+        { usuarioId: 7, permissoes: ['agenda.ver'] },
+        queEleMarcou,
+        'cancelado',
+      ),
+    ).toBe(false);
+    expect(podeAgirNaAgenda(null, queEleMarcou, 'cancelado')).toBe(false);
   });
 });

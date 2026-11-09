@@ -1,4 +1,8 @@
-import { horariosLivres, paraMinutos } from '@barbertime/dominio';
+import {
+  horariosLivres,
+  paraMinutos,
+  podeAgirNaAgenda,
+} from '@barbertime/dominio';
 import { invalido, naoEncontrado, proibido } from '../../infra/erros.js';
 import {
   SELECT_ATENDIMENTO,
@@ -41,7 +45,11 @@ export default async function (fastify) {
   const ver = {
     preHandler: fastify.exigirAlguma('agenda.ver', 'agenda.ver_propria'),
   };
-  const gerenciar = { preHandler: fastify.exigir('agenda.gerenciar') };
+  // Quem gerencia age em tudo; quem ajuda (Barbeiro) marca e bloqueia em
+  // qualquer coluna, mas só mexe no que é seu (planejamento 0035).
+  const marcar = {
+    preHandler: fastify.exigirAlguma('agenda.gerenciar', 'agenda.ajudar'),
+  };
   const na = (req, fn) => fastify.naBarbearia(req, fn);
   const soOsProprios = (req) => !req.contexto.permissoes.includes('agenda.ver');
 
@@ -139,7 +147,7 @@ export default async function (fastify) {
   fastify.post(
     '/agendamentos',
     {
-      ...gerenciar,
+      ...marcar,
       schema: corpo({
         data: campoData,
         inicio: campoHora,
@@ -151,7 +159,9 @@ export default async function (fastify) {
     },
     async (req, reply) => {
       const r = await na(req, (c) =>
-        criarAgendamento(c, req.contexto.barbeariaId, req.body ?? {}),
+        criarAgendamento(c, req.contexto.barbeariaId, req.body ?? {}, {
+          criadoPor: req.contexto.usuarioId,
+        }),
       );
       reply.code(201);
       return r;
@@ -161,7 +171,7 @@ export default async function (fastify) {
   fastify.post(
     '/agendamentos/bloqueios',
     {
-      ...gerenciar,
+      ...marcar,
       schema: corpo({
         data: campoData,
         inicio: campoHora,
@@ -185,8 +195,8 @@ export default async function (fastify) {
         const {
           rows: [novo],
         } = await c.query(
-          `insert into bloqueios (barbearia_id, barbeiro_id, data, inicio, fim, motivo)
-         values ($1, $2, $3, $4, $5, $6) returning id`,
+          `insert into bloqueios (barbearia_id, barbeiro_id, data, inicio, fim, motivo, criado_por)
+         values ($1, $2, $3, $4, $5, $6, $7) returning id`,
           [
             req.contexto.barbeariaId,
             barbeiro.id,
@@ -194,6 +204,7 @@ export default async function (fastify) {
             inicio,
             fim,
             String(motivo ?? '').trim() || 'Bloqueado',
+            req.contexto.usuarioId,
           ],
         );
         return bloqueio(c, -novo.id);
@@ -206,14 +217,23 @@ export default async function (fastify) {
   /** Ações da agenda atual: confirmar, marcar atendido, falta ou cancelar. */
   fastify.put(
     '/agendamentos/:id/estado',
-    { ...gerenciar, schema: corpo({ estado: texto(20) }) },
+    { ...marcar, schema: corpo({ estado: texto(20) }) },
     (req) =>
       na(req, async (c) => {
         const estado = req.body?.estado;
         const negado = () =>
           invalido('Esse agendamento não pode mais mudar para esse estado.');
+        const exigirPermitido = (item) => {
+          if (!podeAgirNaAgenda(req.contexto, item, estado))
+            throw proibido(
+              item.bloqueio
+                ? 'Você só pode remover os bloqueios que você criou.'
+                : 'Você só pode mexer nos agendamentos que você marcou ou nos seus atendimentos.',
+            );
+        };
         if (Number(req.params.id) < 0) {
           const k = await bloqueio(c, req.params.id);
+          exigirPermitido({ ...k, bloqueio: true });
           if (estado !== 'cancelado') throw negado();
           await c.query('update bloqueios set cancelado = true where id = $1', [
             -k.id,
@@ -223,6 +243,7 @@ export default async function (fastify) {
         if (!Object.hasOwn(ACOES, estado)) throw negado();
         const acao = ACOES[estado];
         const a = await buscarAtendimento(c, req.params.id, { travar: true });
+        exigirPermitido(a);
         // Como na agenda atual: pendente só confirma ou cancela.
         const pendente = a.status === 'agendado' && !a.confirmadoEm;
         if (

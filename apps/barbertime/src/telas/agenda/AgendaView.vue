@@ -8,8 +8,9 @@ import {
   DsPagina,
 } from '@barbertime/ui';
 import { formatarDiaCurto } from '@barbertime/ui-utils';
-import { hojeIso, somarDias } from '@barbertime/dominio';
+import { hojeIso, podeMarcarNaAgenda, somarDias } from '@barbertime/dominio';
 import { api } from '../../dados/api.js';
+import { useSessao } from '../../sessao/sessao.js';
 import NovoAgendamento from './NovoAgendamento.vue';
 import DetalheAgendamento from './DetalheAgendamento.vue';
 import BloquearHorario from './BloquearHorario.vue';
@@ -18,8 +19,24 @@ const data = ref(hojeIso());
 const barbeiros = ref([]);
 const agendamentos = ref([]);
 
+// Recepção e Barbeiro (agenda.ajudar) marcam e bloqueiam (planejamento 0035).
+const { sessao } = useSessao();
+const podeMarcar = computed(() =>
+  podeMarcarNaAgenda(sessao.value?.permissoes ?? []),
+);
+
 const novoAberto = ref(false);
 const bloqueioAberto = ref(false);
+// Atalhos da coluna já abrem o diálogo com o barbeiro dela; os botões do topo, sem.
+const barbeiroDoAtalho = ref(null);
+function novoAgendamento(barbeiroId = null) {
+  barbeiroDoAtalho.value = barbeiroId;
+  novoAberto.value = true;
+}
+function bloquearHorario(barbeiroId = null) {
+  barbeiroDoAtalho.value = barbeiroId;
+  bloqueioAberto.value = true;
+}
 const detalheAberto = ref(false);
 const selecionadoId = ref(null);
 
@@ -51,12 +68,12 @@ function abrir(id) {
 
 <template>
   <DsPagina titulo="Agenda" :sobretitulo="sobretitulo">
-    <template #acoes>
-      <DsBotao variante="secundario" @click="bloqueioAberto = true">
+    <template v-if="podeMarcar" #acoes>
+      <DsBotao variante="secundario" @click="bloquearHorario()">
         <DsIcone nome="bloqueio" />
         Bloquear horário
       </DsBotao>
-      <DsBotao @click="novoAberto = true">
+      <DsBotao @click="novoAgendamento()">
         <DsIcone nome="adicionar" />
         Novo agendamento
       </DsBotao>
@@ -102,6 +119,28 @@ function abrir(id) {
           <span class="ds-hora ds-suave"
             >{{ coluna.inicio }}–{{ coluna.fim }}</span
           >
+          <div v-if="podeMarcar" class="coluna__atalhos">
+            <DsBotao
+              variante="fantasma"
+              tamanho="sm"
+              @click="bloquearHorario(coluna.id)"
+            >
+              <DsIcone
+                nome="bloqueio"
+                :rotulo="`Bloquear horário de ${coluna.nome}`"
+              />
+            </DsBotao>
+            <DsBotao
+              variante="fantasma"
+              tamanho="sm"
+              @click="novoAgendamento(coluna.id)"
+            >
+              <DsIcone
+                nome="adicionar"
+                :rotulo="`Novo agendamento com ${coluna.nome}`"
+              />
+            </DsBotao>
+          </div>
         </header>
         <div class="coluna__itens">
           <DsBlocoAgenda
@@ -122,8 +161,18 @@ function abrir(id) {
       </section>
     </div>
 
-    <NovoAgendamento v-model="novoAberto" :data="data" @criado="carregar" />
-    <BloquearHorario v-model="bloqueioAberto" :data="data" @criado="carregar" />
+    <NovoAgendamento
+      v-model="novoAberto"
+      :data="data"
+      :barbeiro-id="barbeiroDoAtalho"
+      @criado="carregar"
+    />
+    <BloquearHorario
+      v-model="bloqueioAberto"
+      :data="data"
+      :barbeiro-id="barbeiroDoAtalho"
+      @criado="carregar"
+    />
     <DetalheAgendamento
       :id="selecionadoId"
       v-model="detalheAberto"
@@ -160,6 +209,7 @@ function abrir(id) {
 }
 .coluna__cabecalho {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--esp-2);
@@ -168,10 +218,18 @@ function abrir(id) {
   border-bottom: 1px solid var(--linha);
 }
 .coluna__nome {
+  /* Ocupa a sobra sem encolher: em coluna estreita, hora e atalhos descem. */
+  flex: 1 0 auto;
   margin: 0;
   font: var(--tipo-subtitulo);
   letter-spacing: var(--tipo-subtitulo-espacamento);
   text-transform: uppercase;
+}
+/* Atalhos: bloquear e agendar já com o barbeiro da coluna. */
+.coluna__atalhos {
+  display: flex;
+  gap: var(--esp-1);
+  align-self: center;
 }
 .coluna__itens {
   display: grid;

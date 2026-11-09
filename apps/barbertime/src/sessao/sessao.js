@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue';
+import { papelSemMenu } from '@barbertime/dominio';
 import { http, ErroDeSessao } from '../dados/http.js';
 import { api } from '../dados/api.js';
 
@@ -34,6 +35,9 @@ export const pode = (...permissoes) =>
   permissoes.every((p) => estado.dados?.permissoes?.includes(p));
 export const podeAlguma = (...permissoes) =>
   permissoes.some((p) => estado.dados?.permissoes?.includes(p));
+/** Papel que usa o app sem menu: só a Agenda e o Perfil (planejamento 0035). */
+export const semMenu = () => papelSemMenu(estado.dados?.papel?.chave);
+export const ROTAS_SEM_MENU = ['/agenda', '/perfil'];
 export const moduloAtivo = (chave) =>
   Boolean(estado.dados?.modulosAtivos?.includes(chave));
 

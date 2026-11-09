@@ -357,7 +357,9 @@ describe('clientes, equipe e permissões', () => {
     expect(agenda.map((x) => x.id)).toEqual([ag.id]);
   });
 
-  it('N10: barbeiro não lê bloqueio de colega', async () => {
+  // Planejamento 0035: o Barbeiro vê a agenda de todos (agenda.ver), mas não
+  // remove o bloqueio que outra pessoa criou.
+  it('N10: barbeiro lê o bloqueio de colega, mas não remove', async () => {
     const b = await balcao();
     const { n, usuarioId } = await convidar(b.dono, 'barbeiro');
     await b.dono.put(`/api/barbeiros/${b.leo.id}`, {
@@ -377,8 +379,11 @@ describe('clientes, equipe e permissões', () => {
       })
     ).corpo;
     expect(k.id).toBeLessThan(0);
-    expect((await n.get(`/api/agendamentos/${k.id}`)).status).toBe(403);
-    expect((await b.dono.get(`/api/agendamentos/${k.id}`)).status).toBe(200);
+    expect((await n.get(`/api/agendamentos/${k.id}`)).status).toBe(200);
+    expect(
+      (await n.put(`/api/agendamentos/${k.id}/estado`, { estado: 'cancelado' }))
+        .status,
+    ).toBe(403);
   });
 });
 

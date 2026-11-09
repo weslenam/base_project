@@ -31,6 +31,9 @@ export {
   podeAgirSobre,
   permissoesEfetivas,
   permissoesPorGrupo,
+  podeMarcarNaAgenda,
+  podeAgirNaAgenda,
+  papelSemMenu,
 } from './permissoes.js';
 export {
   ACOES_DAS_PERMISSOES,

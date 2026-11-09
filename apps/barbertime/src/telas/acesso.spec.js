@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { permissoesDoPapel } from '@barbertime/dominio';
 import router from '../router';
 import {
   clicar,
@@ -166,12 +167,30 @@ describe('menu e telas pelo papel', () => {
 
   it('abrir uma tela sem permissão mostra "Sem acesso"', async () => {
     app = await montarApp('/usuarios', {
-      sessao: sessaoCom('Barbeiro', ['agenda.ver_propria']),
+      sessao: sessaoCom('Recepção', ['agenda.ver']),
     });
     await esperar(() =>
       expect(router.currentRoute.value.name).toBe('sem-acesso'),
     );
     expect(texto()).toContain('não permite abrir essa tela');
+  });
+
+  // Planejamento 0035: o Barbeiro usa só a Agenda, sem menu sanduíche.
+  it('Barbeiro fica sem menu: outra tela volta para a Agenda; Perfil abre', async () => {
+    const barbeiro = sessaoCom('Barbeiro', permissoesDoPapel('barbeiro'));
+    app = await montarApp('/clientes', { sessao: barbeiro });
+    await esperar(() =>
+      expect(router.currentRoute.value.path).toBe('/agenda'),
+    );
+    await esperar(() => expect(texto()).toContain('Novo agendamento'));
+    expect(texto()).toContain('Bloquear horário');
+    expect(menu()).toEqual([]);
+    expect(document.querySelector('[aria-label="Abrir menu"]')).toBeNull();
+
+    await router.push('/perfil');
+    await esperar(() =>
+      expect(router.currentRoute.value.path).toBe('/perfil'),
+    );
   });
 
   it('Página pública só aparece com o módulo de agendamento online ativo', async () => {

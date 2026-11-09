@@ -10,8 +10,10 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarDiaCurto, formatarTelefone } from '@barbertime/ui-utils';
+import { podeAgirNaAgenda } from '@barbertime/dominio';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
+import { useSessao } from '../../sessao/sessao.js';
 import { seloDoEstado } from '../estados.js';
 
 const aberto = defineModel({ type: Boolean, default: false });
@@ -35,6 +37,36 @@ const bloqueio = computed(() => agendamento.value?.estado === 'bloqueado');
 const titulo = computed(() =>
   bloqueio.value ? 'Horário bloqueado' : 'Agendamento',
 );
+
+// Só aparece o que a API vai aceitar (planejamento 0035): quem só ajuda na
+// agenda mexe no que marcou e nos próprios atendimentos.
+const { sessao, pode } = useSessao();
+const permite = (estado) =>
+  podeAgirNaAgenda(
+    {
+      usuarioId: sessao.value?.usuario?.id,
+      permissoes: sessao.value?.permissoes,
+    },
+    { ...agendamento.value, bloqueio: bloqueio.value },
+    estado,
+  );
+const podeComanda = computed(() => pode('caixa.operar'));
+const temAcao = computed(() => {
+  const a = agendamento.value;
+  if (!a) return false;
+  if (bloqueio.value) return permite('cancelado');
+  if (a.estado === 'pendente')
+    return permite('confirmado') || permite('cancelado');
+  if (a.estado === 'confirmado')
+    return (
+      (a.status !== 'agendado' && permite('atendido')) ||
+      podeComanda.value ||
+      permite('faltou') ||
+      permite('cancelado')
+    );
+  if (a.estado === 'atendido') return podeComanda.value;
+  return false;
+});
 
 async function mudar(estado, mensagemDeSucesso) {
   const salvo = await executar(() =>
@@ -139,8 +171,12 @@ async function removerBloqueio() {
       <!-- Ações (estilo PDV) -->
       <section class="acoes" aria-label="Ações">
         <p class="ds-rotulo">O que fazer</p>
-        <template v-if="agendamento.estado === 'pendente'">
+        <p v-if="!temAcao" class="acoes__vazio">
+          Nenhuma ação disponível para este agendamento.
+        </p>
+        <template v-else-if="agendamento.estado === 'pendente'">
           <DsAcao
+            v-if="permite('confirmado')"
             icone="check"
             titulo="Confirmar presença"
             descricao="O cliente confirmou que vem"
@@ -148,6 +184,7 @@ async function removerBloqueio() {
             @click="mudar('confirmado', 'Presença confirmada.')"
           />
           <DsAcao
+            v-if="permite('cancelado')"
             icone="fechar"
             titulo="Cancelar agendamento"
             descricao="Libera o horário na agenda"
@@ -158,7 +195,7 @@ async function removerBloqueio() {
         <template v-else-if="agendamento.estado === 'confirmado'">
           <!-- Sem check-in no balcão não há comanda: atendido só depois de chegar. -->
           <DsAcao
-            v-if="agendamento.status !== 'agendado'"
+            v-if="agendamento.status !== 'agendado' && permite('atendido')"
             icone="check"
             titulo="Marcar atendido"
             descricao="Conclui o atendimento"
@@ -166,12 +203,14 @@ async function removerBloqueio() {
             @click="mudar('atendido', 'Atendimento concluído.')"
           />
           <DsAcao
+            v-if="podeComanda"
             icone="caixa"
             titulo="Abrir comanda"
             descricao="Lança serviço e produtos no caixa"
             @click="abrirComanda"
           />
           <DsAcao
+            v-if="permite('faltou')"
             icone="alerta"
             titulo="Marcar falta"
             descricao="Fica no histórico do cliente"
@@ -179,6 +218,7 @@ async function removerBloqueio() {
             @click="marcarFalta"
           />
           <DsAcao
+            v-if="permite('cancelado')"
             icone="fechar"
             titulo="Cancelar agendamento"
             descricao="Libera o horário na agenda"
@@ -202,9 +242,6 @@ async function removerBloqueio() {
           variante="perigo"
           @click="removerBloqueio"
         />
-        <p v-else class="acoes__vazio">
-          Nenhuma ação disponível para este agendamento.
-        </p>
       </section>
     </div>
   </DsDialogo>
