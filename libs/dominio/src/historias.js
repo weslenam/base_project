@@ -20,7 +20,7 @@ export const ACOES_DAS_PERMISSOES = Object.freeze({
   'clientes.ver': 'Consultar os clientes e o histórico de cada um',
   'clientes.editar': 'Cadastrar clientes e atualizar os dados',
   'clientes.excluir': 'Excluir clientes do cadastro',
-  'caixa.operar': 'Abrir o caixa e receber as comandas',
+  'caixa.operar': 'Lançar e receber as comandas',
   'caixa.abrir': 'Abrir o caixa do dia',
   'caixa.fechar': 'Fechar o caixa no fim do dia',
   'catalogo.gerenciar': 'Cuidar dos serviços, produtos e preços',
@@ -64,7 +64,12 @@ const ROTEIROS = Object.freeze({
   },
   barbeiro: {
     resumo: 'Atende os clientes e ajuda a cuidar da agenda',
-    limites: ['caixa.abrir', 'caixa.fechar', 'clientes.excluir', 'relatorios.ver'],
+    limites: [
+      'caixa.abrir',
+      'caixa.fechar',
+      'clientes.excluir',
+      'relatorios.ver',
+    ],
   },
 });
 

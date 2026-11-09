@@ -42,7 +42,7 @@ export const PERMISSOES = Object.freeze([
   {
     chave: 'caixa.operar',
     grupo: 'Caixa',
-    descricao: 'Abrir o caixa, lançar e receber comandas',
+    descricao: 'Lançar e receber comandas (abrir o caixa é caixa.abrir)',
   },
   {
     chave: 'caixa.abrir',

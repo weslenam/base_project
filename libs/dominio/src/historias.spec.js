@@ -23,7 +23,7 @@ describe('histórias dos papéis', () => {
   it('Recepção: o que pode depende dos módulos ativos', () => {
     const sem = historiaDoPapel('recepcao', []);
     expect(sem.nome).toBe('Recepção');
-    expect(sem.pode).toContain('Abrir o caixa e receber as comandas');
+    expect(sem.pode).toContain('Lançar e receber as comandas');
     expect(sem.pode).not.toContain('Vender pacotes e usar no balcão');
     expect(sem.naoPode).toContain('Fechar o caixa no fim do dia');
 
@@ -38,7 +38,7 @@ describe('histórias dos papéis', () => {
     expect(barbeiro.pode).toContain(
       'Ajudar na agenda: marcar e bloquear horários, e cancelar só o que você marcou',
     );
-    expect(barbeiro.pode).toContain('Abrir o caixa e receber as comandas');
+    expect(barbeiro.pode).toContain('Lançar e receber as comandas');
     expect(barbeiro.naoPode).toContain('Fechar o caixa no fim do dia');
     expect(barbeiro.naoPode.length).toBeLessThanOrEqual(4);
 
@@ -47,6 +47,12 @@ describe('histórias dos papéis', () => {
     expect(dono.pode).toContain(
       'Configurar a barbearia: dados, horário de funcionamento e regras',
     );
+  });
+
+  it('#17: a história do Barbeiro não diz que ele abre o caixa', () => {
+    const barbeiro = historiaDoPapel('barbeiro', []);
+    expect(barbeiro.naoPode).toContain('Abrir o caixa do dia');
+    expect(barbeiro.pode.some((f) => /abrir o caixa/i.test(f))).toBe(false);
   });
 
   it('Gerente não configura a barbearia nem contrata módulos', () => {
