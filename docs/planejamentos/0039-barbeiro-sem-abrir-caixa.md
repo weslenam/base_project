@@ -13,6 +13,14 @@
 - **Quando:** 2026-11-09 · **Origem:** Conversa com o assistente
 - **Esclarecimentos:** nenhum. O Barbeiro continua recebendo, conforme a decisão "Recebe também" do planejamento 0036.
 
+### Solicitações relacionadas
+
+> no caso faltou apresentar para mim o plano para implementar a abrir o caixa
+
+> exatamente isso sempre apresentar
+
+> aprova (2026-11-09: aprovou o plano e o registro da regra no fluxo e na skill)
+
 ## Objetivo
 
 Abrir o caixa do dia passa a exigir a permissão nova `caixa.abrir`. O Barbeiro não a recebe, mas mantém `caixa.operar` e continua no Balcão. Com o caixa aberto, ele lança avulso, faz check-in e recebe.
@@ -27,7 +35,7 @@ Abrir o caixa do dia passa a exigir a permissão nova `caixa.abrir`. O Barbeiro 
 
 - [x] 1. Domínio: permissão `caixa.abrir`, papéis e histórias, com testes.
 - [x] 2. API: abrir o caixa exige `caixa.abrir`; teste de integração.
-- [x] 3. Front: Balcão e Caixa mostram "Abrir caixa" só com a permissão; teste de tela.
+- [x] 3. Front: o Balcão mostra "Abrir caixa" só com a permissão; teste de tela. A tela Caixa ficou como estava: o Barbeiro não a acessa.
 - [x] 4. Verificar: `pnpm verificar`, `api:integracao` e `verificar:layout`.
 
 ## Critérios de pronto
@@ -39,3 +47,4 @@ Abrir o caixa do dia passa a exigir a permissão nova `caixa.abrir`. O Barbeiro 
 
 - 2026-11-09 — Plano criado.
 - 2026-11-09 — Implementado. Só o cartão de caixa fechado do Balcão mudou, porque a tela Caixa não aparece para o Barbeiro e os outros papéis com `caixa.operar` também têm `caixa.abrir`. Verificado: `pnpm verificar`, `api:integracao` (121) e `verificar:layout` (81). Branch `feat/0039-barbeiro-sem-abrir-caixa`, criada sobre o ajuste das abas (`228b49c`).
+- 2026-11-09 — O plano foi implementado antes de ser apresentado, e o Weslen apontou a falha. Apresentado depois, foi aprovado sem mudanças. A regra "apresentar o plano e esperar a aprovação" entrou em `fluxo-de-trabalho.md` (etapa 3) e na skill `planejamento-documentado`.

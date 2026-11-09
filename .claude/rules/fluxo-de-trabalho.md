@@ -16,6 +16,7 @@ Os hooks em `.claude/settings.json` (scripts em `.claude/hooks/`) **garantem** p
 1. **Contexto pelo grafo.** Antes de qualquer Grep, Glob ou leitura de código, rode `graphify query "<pergunta>"` (ou `graphify explain`, `graphify path`, `graphify affected`). Abra arquivos só nas linhas que o grafo apontou. Sem `graphify` no PATH, use `~/.local/bin/graphify`.
 2. **Entrevista.** Feature, tela, módulo novo, pedido vago ou mudança de arquitetura: carregue a skill `grill-me` e feche os requisitos com o Weslen antes de planejar. Correção pontual e clara dispensa.
 3. **Planejamento.** Se o pedido exige planejar (feature, refatoração, migração, várias etapas), carregue a skill `planejamento-documentado` e escreva ou atualize o documento em `docs/planejamentos/` **antes** de codar, com a citação literal do pedido. O mini-spec do `grill-me` alimenta esse documento.
+   - **Apresente o plano ao Weslen e espere a aprovação antes da etapa 4.** Escrever o documento não basta: mostre as decisões e as dúvidas em aberto e pare. Isso vale também para mudança pequena de regra ou permissão, e para pedidos que chegam no meio de outra tarefa. A exceção é a correção pontual e clara de bug, que segue a seção "Bugs e branches" (planejamento 0039).
 4. **Skills por área, carregadas antes de editar:**
    - Qualquer alteração de código: skill `mudancas-cirurgicas` (mínimo necessário, sem refatorar fora do escopo).
    - UI Vue (`.vue`, `libs/ui-*`, tokens): skill `design-system`. **O hook nega a edição sem ela.**

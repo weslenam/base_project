@@ -78,6 +78,7 @@ O que pode dar errado ou ficou em aberto, com responsável se souber.
 ## Fluxo
 
 1. **Ao receber o pedido que exige planejamento**, antes de codar: copie a citação literal, registre os esclarecimentos que fizer, redija o documento e adicione ao índice. Informe o caminho ao usuário.
+   - **Apresente o plano e espere a aprovação antes de implementar.** Mostre as decisões e as dúvidas em aberto e pare. Isso vale para qualquer tamanho de mudança, exceto correção pontual e clara de bug.
 2. **Se faltar decisão do usuário**, pergunte antes de fechar o plano e anote as respostas em *Esclarecimentos*.
 3. **Ao ser aprovado** ("pode implementar"), mude o status para *Aprovado*/*Em andamento* e cite a aprovação em *Registro de mudanças*.
 4. **Durante a execução**, marque etapas e registre desvios.
