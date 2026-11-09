@@ -27,13 +27,17 @@ const props = defineProps({
   grupos: { type: Array, default: () => [] },
   /**
    * [{ titulo, rota, icone? }]: navegação por abas no lugar do menu lateral.
-   * Abaixo do cabeçalho no PC e no tablet; barra fixa no rodapé no celular.
+   * Dentro do cabeçalho, ao lado do título, no PC e no tablet; barra fixa no
+   * rodapé no celular.
    */
   abas: { type: Array, default: () => [] },
 });
 
 // Celular: abas no rodapé, ao alcance do polegar.
 const { xs: celular } = useDisplay();
+// Altura do cabeçalho: as abas usam a mesma, para o sublinhado da aba ativa
+// ficar na borda de baixo (#18).
+const ALTURA_DO_CABECALHO = 64;
 
 // Seções do menu: itens seguidos com o mesmo grupo (ou sem grupo) juntos.
 const secoes = computed(() => {
@@ -57,7 +61,12 @@ const menuAberto = ref(null);
 </script>
 
 <template>
-  <VAppBar class="ds-layout__cabecalho" flat border="b">
+  <VAppBar
+    class="ds-layout__cabecalho"
+    flat
+    border="b"
+    :height="ALTURA_DO_CABECALHO"
+  >
     <VAppBarNavIcon
       v-if="itensMenu.length"
       aria-label="Abrir menu"
@@ -80,7 +89,8 @@ const menuAberto = ref(null);
       class="ds-layout__abas"
       aria-label="Navegação principal"
       color="primary"
-      height="64"
+      :height="ALTURA_DO_CABECALHO"
+      show-arrows
     >
       <VTab
         v-for="aba in abas"
@@ -211,14 +221,16 @@ const menuAberto = ref(null);
   font-family: var(--font-sans);
 }
 .ds-layout__titulo--com-abas {
-  /* Com abas, o título não empurra as abas para a direita. */
-  flex: 0 0 auto;
+  /* Com abas, o título não empurra as abas para a direita e é ele quem
+     encolhe (com reticências) quando falta espaço: as abas ficam sempre
+     inteiras (#18). */
+  flex: 0 1 auto;
+  min-width: 0;
   margin-inline-end: var(--esp-6);
 }
 .ds-layout__abas {
-  align-self: stretch;
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 60%;
 }
 .ds-layout__rodape {
   background: var(--placa) !important;
