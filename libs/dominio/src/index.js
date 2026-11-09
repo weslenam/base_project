@@ -50,6 +50,9 @@ export {
   validarConfigFidelidade,
   creditosDaComanda,
   saldoDeFidelidade,
+  limiteDeCashback,
+  motivoParaUsarCashback,
+  motivoParaUsarPremio,
 } from './fidelidade.js';
 export {
   TIPOS_DE_PACOTE,

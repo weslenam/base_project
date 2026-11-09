@@ -107,6 +107,25 @@ describe('na comanda', () => {
     );
   });
 
+  it('usar cashback abate do total e o saldo é gasto ao receber (planejamento 0034)', async () => {
+    app = await montarApp('/agenda');
+    await clicarContendo('Rafael Souza');
+    await clicarContendo('Abrir comanda');
+    await esperar(() => expect(texto()).toContain('Usar cashback (até R$'));
+    expect(normalizar(texto())).toContain('7 de 10 selos');
+    await preencher('Usar cashback (até R$\u00a03,50)', '3,50');
+    await esperar(() =>
+      expect(normalizar(texto())).toMatch(/Cashback\s*−\s*R\$\s3,50/),
+    );
+    await clicar('Pix');
+    await clicarContendo('Receber R');
+    await esperar(() => expect(normalizar(texto())).toContain('Recebido'));
+    // 3,50 gastos; o cashback novo incide só sobre o que foi pago.
+    const saldo = await api.fidelidade.saldo(1);
+    expect(saldo.selos).toBe(8);
+    expect(saldo.cashback).toBeLessThan(3.5);
+  });
+
   it('receber credita selo e cashback, e a notificação conta ao balcão', async () => {
     app = await montarApp('/agenda');
     await clicarContendo('Rafael Souza');

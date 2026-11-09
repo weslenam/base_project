@@ -20,6 +20,7 @@ import {
   escalar,
   inteiro,
   itensDeComanda,
+  logico,
   query,
   texto,
 } from '../esquemas.js';
@@ -40,8 +41,14 @@ export default async function (fastify) {
       itens: itensDeComanda,
       desconto: escalar(),
       forma: texto(30),
+      premioFidelidade: logico,
+      cashbackUsado: escalar(),
     }),
   };
+  // Resgate e crédito da fidelidade só com o módulo ativo (ADR 0011).
+  const fidelidade = (req) => ({
+    ativo: req.contexto.modulosAtivos.includes('fidelidade'),
+  });
   const verCliente = {
     preHandler: fastify.exigirAlguma('clientes.ver', 'caixa.operar'),
   };
@@ -73,14 +80,20 @@ export default async function (fastify) {
   );
   fastify.post('/comandas', comanda, async (req, reply) => {
     reply.code(201);
-    return na(req, (c) => salvarComanda(c, barbearia(req), req.body ?? {}));
+    return na(req, (c) =>
+      salvarComanda(c, barbearia(req), req.body ?? {}, {
+        fidelidade: fidelidade(req),
+      }),
+    );
   });
   fastify.put('/comandas/:id', comanda, (req) =>
     na(req, (c) =>
-      salvarComanda(c, barbearia(req), {
-        ...req.body,
-        id: Number(req.params.id),
-      }),
+      salvarComanda(
+        c,
+        barbearia(req),
+        { ...req.body, id: Number(req.params.id) },
+        { fidelidade: fidelidade(req) },
+      ),
     ),
   );
   fastify.post(
@@ -91,6 +104,7 @@ export default async function (fastify) {
         receberComanda(c, req.params.id, req.body ?? {}, {
           barbeariaId: barbearia(req),
           usuarioId: req.contexto.usuarioId,
+          fidelidade: fidelidade(req),
         }),
       ),
   );

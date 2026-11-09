@@ -15,7 +15,11 @@ const emReais = (centavos) => centavos / 100;
  * Totais de uma comanda { itens: [{ tipo, preco, quantidade }], desconto }:
  * servicos, produtos, subtotal (= servicos + produtos), desconto e total.
  */
-export function totalDaComanda({ itens = [], desconto = 0 }) {
+export function totalDaComanda({
+  itens = [],
+  desconto = 0,
+  cashbackUsado = 0,
+}) {
   let servicos = 0;
   let produtos = 0;
   for (const i of itens) {
@@ -25,22 +29,34 @@ export function totalDaComanda({ itens = [], desconto = 0 }) {
   }
   const subtotal = servicos + produtos;
   const descontoC = emCentavos(desconto);
+  // Cashback usado (planejamento 0034) abate do que o cliente paga; o caixa só
+  // conta o que entrou de fato.
+  const cashbackC = emCentavos(cashbackUsado);
   return {
     servicos: emReais(servicos),
     produtos: emReais(produtos),
     subtotal: emReais(subtotal),
     desconto: emReais(descontoC),
-    total: emReais(Math.max(0, subtotal - descontoC)),
+    cashback: emReais(cashbackC),
+    total: emReais(Math.max(0, subtotal - descontoC - cashbackC)),
   };
 }
 
 /** Motivo pelo qual a comanda não pode ser recebida, ou null se pode. */
-export function motivoParaNaoReceber({ itens = [], desconto = 0, forma }) {
+export function motivoParaNaoReceber({
+  itens = [],
+  desconto = 0,
+  cashbackUsado = 0,
+  forma,
+}) {
   if (!itens.length)
     return 'Inclua pelo menos um serviço ou produto antes de receber.';
   const { subtotal } = totalDaComanda({ itens });
   if (emCentavos(desconto) > emCentavos(subtotal)) {
     return 'O desconto não pode ser maior que o valor da comanda.';
+  }
+  if (emCentavos(desconto) + emCentavos(cashbackUsado) > emCentavos(subtotal)) {
+    return 'O cashback não pode passar do valor da comanda.';
   }
   if (!FORMAS_DE_PAGAMENTO.some((f) => f.valor === forma))
     return 'Escolha a forma de pagamento.';

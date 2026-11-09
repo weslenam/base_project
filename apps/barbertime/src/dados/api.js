@@ -1,6 +1,8 @@
 import {
   resumoDeComandas,
   creditosDaComanda,
+  motivoParaUsarCashback,
+  motivoParaUsarPremio,
   FIDELIDADE_PADRAO,
   podeUsarPacote,
   saldoDeFidelidade,
@@ -50,6 +52,13 @@ export function criarApi({ agora = () => new Date() } = {}) {
   const hoje = () => hojeIso(agora());
   const horaAgora = () =>
     paraHora(agora().getHours() * 60 + agora().getMinutes());
+
+  const saldoFidelidade = (clienteId) =>
+    saldoDeFidelidade(
+      banco.extratoFidelidade.filter((m) => m.clienteId === Number(clienteId)),
+      banco.fidelidade ?? FIDELIDADE_PADRAO,
+      hoje(),
+    );
 
   const buscar = (lista, id, rotulo) => {
     const item = banco[lista].find((i) => i.id === Number(id));
@@ -710,7 +719,11 @@ export function criarApi({ agora = () => new Date() } = {}) {
         if (!dados.barbeiroId)
           throw new ErroDeNegocio('Escolha o barbeiro da comanda.');
         const barbeiro = buscar('barbeiros', dados.barbeiroId, 'Barbeiro');
-        const itens = normalizarItens(dados.itens, barbeiro.id);
+        // O item do prêmio é montado aqui, nunca vem de quem chama (planejamento 0034).
+        const itens = normalizarItens(
+          (dados.itens ?? []).filter((i) => !i.premio),
+          barbeiro.id,
+        );
         validarUsosDePacote(
           itens,
           dados.clienteId ? Number(dados.clienteId) : null,
@@ -721,14 +734,51 @@ export function criarApi({ agora = () => new Date() } = {}) {
             'O desconto não pode ser maior que o valor da comanda.',
           );
         }
+        const clienteId = dados.clienteId
+          ? buscar('clientes', dados.clienteId, 'Cliente').id
+          : null;
+        const premioFidelidade = Boolean(dados.premioFidelidade);
+        const cashbackUsado = Number(dados.cashbackUsado || 0);
+        if (premioFidelidade || cashbackUsado) {
+          if (!modulosAtivos.includes('fidelidade'))
+            throw new ErroDeNegocio(
+              'O módulo Fidelidade não está ativo nesta barbearia.',
+            );
+          const config = banco.fidelidade ?? FIDELIDADE_PADRAO;
+          const saldo = clienteId ? saldoFidelidade(clienteId) : null;
+          if (premioFidelidade) {
+            const motivo = motivoParaUsarPremio({ config, saldo, clienteId });
+            if (motivo) throw new ErroDeNegocio(motivo);
+            const s = buscar(
+              'servicos',
+              config.selos.premioServicoId,
+              'Serviço do prêmio',
+            );
+            itens.push({
+              tipo: 'servico',
+              refId: s.id,
+              nome: s.nome,
+              preco: 0,
+              quantidade: 1,
+              barbeiroId: barbeiro.id,
+              premio: true,
+            });
+          }
+          const motivo = motivoParaUsarCashback({
+            valor: cashbackUsado,
+            saldo,
+            comanda: { clienteId, itens, desconto },
+          });
+          if (motivo) throw new ErroDeNegocio(motivo);
+        }
         const registro = {
-          clienteId: dados.clienteId
-            ? buscar('clientes', dados.clienteId, 'Cliente').id
-            : null,
+          clienteId,
           barbeiroId: barbeiro.id,
           itens,
           desconto,
           forma: dados.forma ?? null,
+          premioFidelidade,
+          cashbackUsado,
         };
         let salva;
         if (dados.id) {
@@ -797,8 +847,42 @@ export function criarApi({ agora = () => new Date() } = {}) {
           }))
             movimentar({ ...b, comandaId: comanda.id });
         }
-        // Fidelidade: selo e cashback (só com o módulo ativo e cliente identificado).
+        // Fidelidade: gastos do resgate, depois selo e cashback (só com o módulo
+        // ativo e cliente identificado).
         let creditos = [];
+        if (comanda.premioFidelidade || comanda.cashbackUsado) {
+          const config = banco.fidelidade ?? FIDELIDADE_PADRAO;
+          const saldo = saldoFidelidade(comanda.clienteId);
+          const motivo =
+            (comanda.premioFidelidade &&
+              motivoParaUsarPremio({
+                config,
+                saldo,
+                clienteId: comanda.clienteId,
+              })) ||
+            motivoParaUsarCashback({
+              valor: comanda.cashbackUsado,
+              saldo,
+              comanda,
+            });
+          if (motivo) throw new ErroDeNegocio(motivo);
+          if (comanda.premioFidelidade)
+            banco.extratoFidelidade.push({
+              clienteId: comanda.clienteId,
+              tipo: 'resgate_selos',
+              valor: config.selos.necessarios,
+              data: hoje(),
+              expiraEm: null,
+            });
+          if (comanda.cashbackUsado)
+            banco.extratoFidelidade.push({
+              clienteId: comanda.clienteId,
+              tipo: 'uso_cashback',
+              valor: comanda.cashbackUsado,
+              data: hoje(),
+              expiraEm: null,
+            });
+        }
         if (modulosAtivos.includes('fidelidade')) {
           creditos = creditosDaComanda(
             comanda,
@@ -1126,11 +1210,10 @@ export function criarApi({ agora = () => new Date() } = {}) {
       async obterConfig() {
         return copia(banco.fidelidade ?? FIDELIDADE_PADRAO);
       },
-      /** `servicoConferido`: a API real já conferiu o prêmio (apiHttp.js). */
-      async salvarConfig(config, { servicoConferido = false } = {}) {
+      async salvarConfig(config) {
         const motivo = validarConfigFidelidade(config);
         if (motivo) throw new ErroDeNegocio(motivo);
-        if (config.selos?.ativo && !servicoConferido)
+        if (config.selos?.ativo)
           buscar('servicos', config.selos.premioServicoId, 'Serviço de prêmio');
         banco.fidelidade = copia(config);
         return copia(banco.fidelidade);

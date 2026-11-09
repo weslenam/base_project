@@ -149,6 +149,21 @@ for (const b of cadastradas.filter((x) => temPerfil(x.slug))) {
   );
 }
 
+// Fidelidade da barbearia modelo (planejamento 0034): 10 selos dão um Corte e
+// 5% de cashback. Sem créditos retroativos: só as comandas pagas daqui em diante.
+await fastify.comBarbearia(modelo.id, (c) =>
+  c.query(
+    `insert into fidelidade_config (barbearia_id, selos_ativo, selos_necessarios,
+       premio_servico_id, selos_validade_meses, cashback_ativo, cashback_percentual,
+       cashback_validade_dias)
+     select $1, true, 10, s.id, 12, true, 5, 90
+       from servicos s where s.nome = 'Corte' and s.excluido_em is null
+      order by s.id limit 1
+     on conflict (barbearia_id) do nothing`,
+    [modelo.id],
+  ),
+);
+
 // Movimento de exemplo para o painel do Business Center (planejamento 0028).
 if (!config.producao) {
   const hoje = momentoNoFuso(new Date()).data;

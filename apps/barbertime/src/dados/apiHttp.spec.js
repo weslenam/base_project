@@ -51,46 +51,19 @@ describe('página pública: reconhecer por telefone', () => {
   });
 });
 
-describe('fidelidade com a API real', () => {
-  const config = (premioServicoId) => ({
-    selos: { ativo: true, necessarios: 10, premioServicoId, validadeMeses: 12 },
-    cashback: { ativo: true, percentual: 5, validadeDias: 90 },
-  });
-  const base = {
-    fidelidade: {
-      salvarConfig: vi.fn(async (c, opcoes) => ({ ...c, opcoes })),
-    },
-  };
-
-  it('aceita o prêmio que é serviço da barbearia, mesmo fora do catálogo de exemplo', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => resposta(200, [{ id: 15, nome: 'Corte' }])),
+describe('fidelidade com a API real (planejamento 0034)', () => {
+  it('configuração e saldo vêm das rotas da API', async () => {
+    const fetch = vi.fn((url, op) =>
+      url.endsWith('/fidelidade')
+        ? resposta(200, { saldo: { selos: 3, cashback: 2.5 }, extrato: [] })
+        : resposta(200, { ok: op?.method }),
     );
-    const salvo = await criarApiHttp(base).fidelidade.salvarConfig(config(15));
-    expect(salvo.opcoes).toEqual({ servicoConferido: true });
-  });
-
-  it('prêmio fora dos serviços da barbearia chega vazio, não como id solto', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => resposta(200, [{ id: 15, nome: 'Corte' }])),
-    );
-    const api = criarApiHttp({
-      fidelidade: { obterConfig: async () => config(1) },
-    });
-    expect((await api.fidelidade.obterConfig()).selos.premioServicoId).toBe(
-      null,
-    );
-  });
-
-  it('recusa prêmio que não é serviço da barbearia', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => resposta(200, [{ id: 15, nome: 'Corte' }])),
-    );
-    await expect(
-      criarApiHttp(base).fidelidade.salvarConfig(config(99)),
-    ).rejects.toThrow('Serviço de prêmio não encontrado.');
+    vi.stubGlobal('fetch', fetch);
+    const api = criarApiHttp({});
+    expect(await api.fidelidade.saldo(5)).toEqual({ selos: 3, cashback: 2.5 });
+    expect(fetch.mock.calls[0][0]).toBe('/api/clientes/5/fidelidade');
+    await api.fidelidade.salvarConfig({ selos: { ativo: false } });
+    expect(fetch.mock.calls[1][0]).toBe('/api/fidelidade/config');
+    expect(fetch.mock.calls[1][1].method).toBe('PUT');
   });
 });

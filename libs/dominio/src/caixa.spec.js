@@ -19,6 +19,7 @@ describe('totalDaComanda', () => {
       produtos: 0,
       subtotal: 124.8,
       desconto: 4.8,
+      cashback: 0,
       total: 120,
     });
     expect(
@@ -40,6 +41,7 @@ describe('totalDaComanda', () => {
       produtos: 124.7,
       subtotal: 154.7,
       desconto: 4.7,
+      cashback: 0,
       total: 150,
     });
   });

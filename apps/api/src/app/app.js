@@ -20,6 +20,7 @@ import rotasPublico from './rotas/publico.js';
 import rotasCaixa from './rotas/caixa.js';
 import rotasBalcao from './rotas/balcao.js';
 import rotasEstoque from './rotas/estoque.js';
+import rotasFidelidade from './rotas/fidelidade.js';
 import rotasSenha from './rotas/senha.js';
 import rotasPlataforma from './rotas/plataforma.js';
 import { criarCorreioSmtp } from '../infra/correio.js';
@@ -75,6 +76,7 @@ export async function app(fastify, opts = {}) {
       api.register(rotasCaixa);
       api.register(rotasBalcao);
       api.register(rotasEstoque);
+      api.register(rotasFidelidade);
       api.register(rotasPublico, {
         liberada: opts.paginaPublicaLiberada ?? config.paginaPublicaLiberada,
       });

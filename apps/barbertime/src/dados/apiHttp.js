@@ -4,7 +4,7 @@ import { http } from './http.js';
 /**
  * Camada de dados pela API real (planejamento 0019). Mesma interface da versão
  * em memória (api.js): as telas não sabem qual está em uso.
- * `base` cobre o que ainda não migrou para o banco (fidelidade e pacotes).
+ * `base` cobre o que ainda não migrou para o banco (pacotes, planejamento 0034 etapa B).
  */
 const q = (params) => {
   const s = new URLSearchParams(
@@ -83,31 +83,14 @@ export function criarApiHttp(base) {
       alterarEstado: (id, estado) =>
         http('PUT', `/api/agendamentos/${id}/estado`, { estado }),
     },
-    // Fidelidade ainda em memória (parte 3 do 0019), mas o prêmio é um serviço
-    // real: confere na API, não no catálogo de exemplo da memória.
-    fidelidade: base.fidelidade && {
-      ...base.fidelidade,
-      // Prêmio que não é serviço desta barbearia (ex.: o "1" do catálogo de
-      // exemplo) chega vazio, para o seletor pedir a escolha em vez de mostrar o id.
-      async obterConfig() {
-        const [config, servicos] = await Promise.all([
-          base.fidelidade.obterConfig(),
-          http('GET', '/api/servicos'),
-        ]);
-        const id = Number(config.selos?.premioServicoId);
-        if (config.selos && !servicos.some((s) => s.id === id))
-          config.selos.premioServicoId = null;
-        return config;
-      },
-      async salvarConfig(config) {
-        if (config.selos?.ativo) {
-          const servicos = await http('GET', '/api/servicos');
-          const id = Number(config.selos.premioServicoId);
-          if (!servicos.some((s) => s.id === id))
-            throw new ErroDeNegocio('Serviço de prêmio não encontrado.');
-        }
-        return base.fidelidade.salvarConfig(config, { servicoConferido: true });
-      },
+    // Fidelidade no banco (planejamento 0034): configuração, saldo e extrato.
+    fidelidade: {
+      obterConfig: () => http('GET', '/api/fidelidade/config'),
+      salvarConfig: (config) => http('PUT', '/api/fidelidade/config', config),
+      saldo: async (clienteId) =>
+        (await http('GET', `/api/clientes/${clienteId}/fidelidade`)).saldo,
+      extrato: async (clienteId) =>
+        (await http('GET', `/api/clientes/${clienteId}/fidelidade`)).extrato,
     },
     // Caixa e comandas (planejamento 0020, fase 1). Pacotes e fidelidade: parte 3 do 0019.
     caixa: {

@@ -16,7 +16,12 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
-import { FORMAS_DE_PAGAMENTO, totalDaComanda } from '@barbertime/dominio';
+import {
+  FORMAS_DE_PAGAMENTO,
+  limiteDeCashback,
+  motivoParaUsarPremio,
+  totalDaComanda,
+} from '@barbertime/dominio';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
 import { rotuloDaForma, seloDaComanda } from './rotulos.js';
@@ -58,6 +63,52 @@ const pacoteDisponivel = computed(() =>
     : null,
 );
 watch(pacoteDisponivel, (p) => (usarPacote.value = Boolean(p)));
+
+// Fidelidade na comanda (planejamento 0034): saldo do cliente e resgate do
+// prêmio e do cashback. A API confere tudo de novo ao receber.
+const fidelidade = ref(null);
+watch(
+  () => comanda.value?.clienteId,
+  async (id, antigo) => {
+    // Trocar de cliente desfaz o resgate que era do anterior.
+    if (antigo && id !== antigo && comanda.value?.estado === 'aberta') {
+      comanda.value.premioFidelidade = false;
+      comanda.value.cashbackUsado = 0;
+    }
+    if (!id || !moduloAtivo('fidelidade')) {
+      fidelidade.value = null;
+      return;
+    }
+    const [config, saldo] = await Promise.all([
+      api.fidelidade.obterConfig(),
+      api.fidelidade.saldo(id),
+    ]);
+    fidelidade.value = { config, saldo };
+  },
+);
+const podeUsarPremio = computed(
+  () =>
+    Boolean(fidelidade.value) &&
+    (comanda.value.premioFidelidade ||
+      !motivoParaUsarPremio({
+        ...fidelidade.value,
+        clienteId: comanda.value.clienteId,
+      })),
+);
+const nomeDoPremio = computed(
+  () =>
+    catalogo.value.servico.find(
+      (s) => s.id === fidelidade.value?.config.selos.premioServicoId,
+    )?.nome ?? 'o prêmio',
+);
+const limiteCashback = computed(() =>
+  fidelidade.value
+    ? limiteDeCashback({
+        saldo: fidelidade.value.saldo,
+        comanda: comanda.value,
+      })
+    : 0,
+);
 const saldoDoServico = computed(() => {
   const s = pacoteDisponivel.value?.saldo.find(
     (x) => x.servicoId === novoItem.value.id,
@@ -90,6 +141,8 @@ watch(aberto, async (abriu) => {
         barbeiroId: null,
         itens: [],
         desconto: 0,
+        premioFidelidade: false,
+        cashbackUsado: 0,
         forma: null,
         estado: 'aberta',
       };
@@ -207,7 +260,8 @@ async function incluir(tipo) {
 }
 
 function remover(indice) {
-  comanda.value.itens.splice(indice, 1);
+  const [item] = comanda.value.itens.splice(indice, 1);
+  if (item?.premio) comanda.value.premioFidelidade = false;
 }
 
 async function salvarRascunho() {
@@ -382,6 +436,10 @@ async function cancelar() {
             <dt>Desconto</dt>
             <dd class="ds-valor">− {{ formatarMoeda(totais.desconto) }}</dd>
           </div>
+          <div v-if="totais.cashback">
+            <dt>Cashback</dt>
+            <dd class="ds-valor">− {{ formatarMoeda(totais.cashback) }}</dd>
+          </div>
           <div class="resumo__total">
             <dt class="ds-rotulo">Total</dt>
             <dd>{{ formatarMoeda(totais.total) }}</dd>
@@ -389,6 +447,31 @@ async function cancelar() {
         </dl>
 
         <template v-if="editavel">
+          <section
+            v-if="fidelidade"
+            class="fidelidade"
+            aria-label="Fidelidade do cliente"
+          >
+            <p class="ds-rotulo">Fidelidade</p>
+            <p class="ds-corpo-sm">
+              <template v-if="fidelidade.config.selos.ativo">
+                {{ fidelidade.saldo.selos }} de
+                {{ fidelidade.config.selos.necessarios }} selos ·
+              </template>
+              {{ formatarMoeda(fidelidade.saldo.cashback) }} de cashback
+            </p>
+            <DsCaixaDeSelecao
+              v-if="podeUsarPremio"
+              v-model="comanda.premioFidelidade"
+              :rotulo="`Usar prêmio: ${nomeDoPremio} grátis`"
+              :descricao="`Gasta ${fidelidade.config.selos.necessarios} selos ao receber`"
+            />
+            <DsInputMoeda
+              v-if="fidelidade.saldo.cashback > 0"
+              v-model="comanda.cashbackUsado"
+              :rotulo="`Usar cashback (até ${formatarMoeda(limiteCashback)})`"
+            />
+          </section>
           <DsInputMoeda v-model="comanda.desconto" rotulo="Desconto" />
           <DsEscolha
             v-model="comanda.forma"
@@ -531,5 +614,16 @@ async function cancelar() {
     border-top: 1px solid var(--linha);
     border-left: 0;
   }
+}
+.fidelidade {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-3);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-md);
+  background: var(--placa-funda);
+}
+.fidelidade p {
+  margin: 0;
 }
 </style>

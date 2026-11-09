@@ -1,9 +1,13 @@
 import {
   creditosDaComanda,
   FIDELIDADE_PADRAO,
+  limiteDeCashback,
+  motivoParaUsarCashback,
+  motivoParaUsarPremio,
   saldoDeFidelidade,
   validarConfigFidelidade,
 } from './fidelidade.js';
+import { motivoParaNaoReceber, totalDaComanda } from './caixa.js';
 import {
   podeUsarPacote,
   renovarAssinatura,
@@ -126,6 +130,106 @@ describe('fidelidade', () => {
       faltamParaPremio: 8,
       cashback: 2.5,
     });
+  });
+});
+
+describe('resgate na comanda (planejamento 0034)', () => {
+  it('gasta primeiro o cashback que vence antes; sobra vencida não conta', () => {
+    const movimentos = [
+      {
+        tipo: 'cashback',
+        valor: 10,
+        data: '2026-10-01',
+        expiraEm: '2026-11-05',
+      },
+      {
+        tipo: 'cashback',
+        valor: 10,
+        data: '2026-10-02',
+        expiraEm: '2026-12-31',
+      },
+      { tipo: 'uso_cashback', valor: 5, data: '2026-10-10' },
+    ];
+    // O uso saiu do crédito que vencia antes; a sobra dele (5) venceu.
+    expect(saldoDeFidelidade(movimentos, config, '2026-11-07').cashback).toBe(
+      10,
+    );
+    expect(saldoDeFidelidade(movimentos, config, '2026-11-01').cashback).toBe(
+      15,
+    );
+  });
+
+  it('gasto não consome crédito que ainda não existia', () => {
+    const movimentos = [
+      {
+        tipo: 'cashback',
+        valor: 3,
+        data: '2026-11-01',
+        expiraEm: '2026-12-31',
+      },
+      { tipo: 'uso_cashback', valor: 3, data: '2026-10-01' },
+    ];
+    expect(saldoDeFidelidade(movimentos, config, '2026-11-07').cashback).toBe(
+      3,
+    );
+  });
+
+  it('prêmio: precisa de cliente, cartão ligado e selos suficientes', () => {
+    const saldo = { selos: 10 };
+    expect(motivoParaUsarPremio({ config, saldo, clienteId: 1 })).toBeNull();
+    expect(motivoParaUsarPremio({ config, saldo, clienteId: null })).toMatch(
+      /Identifique o cliente/,
+    );
+    expect(
+      motivoParaUsarPremio({ config, saldo: { selos: 7 }, clienteId: 1 }),
+    ).toMatch(/7 de 10 selos/);
+    const desligado = { ...config, selos: { ...config.selos, ativo: false } };
+    expect(
+      motivoParaUsarPremio({ config: desligado, saldo, clienteId: 1 }),
+    ).toMatch(/não está ligado/);
+  });
+
+  it('cashback: até o saldo e até o que falta pagar', () => {
+    const cm = comanda({ estado: 'aberta' }); // 84,90 - 4,90 = 80
+    expect(limiteDeCashback({ saldo: { cashback: 100 }, comanda: cm })).toBe(
+      80,
+    );
+    expect(limiteDeCashback({ saldo: { cashback: 12.5 }, comanda: cm })).toBe(
+      12.5,
+    );
+    const saldo = { cashback: 12.5 };
+    expect(
+      motivoParaUsarCashback({ valor: 12.5, saldo, comanda: cm }),
+    ).toBeNull();
+    expect(motivoParaUsarCashback({ valor: 13, saldo, comanda: cm })).toMatch(
+      /não tem esse saldo/,
+    );
+    expect(
+      motivoParaUsarCashback({
+        valor: 90,
+        saldo: { cashback: 200 },
+        comanda: cm,
+      }),
+    ).toMatch(/não pode passar/);
+    expect(
+      motivoParaUsarCashback({
+        valor: 1,
+        saldo,
+        comanda: { ...cm, clienteId: null },
+      }),
+    ).toMatch(/Identifique o cliente/);
+  });
+
+  it('o total pago desconta o cashback usado, e o cashback ganho incide sobre ele', () => {
+    const cm = comanda({ cashbackUsado: 10 });
+    expect(totalDaComanda(cm)).toMatchObject({ cashback: 10, total: 70 });
+    const ganho = creditosDaComanda(cm, config, '2026-11-07').movimentos.find(
+      (m) => m.tipo === 'cashback',
+    );
+    expect(ganho.valor).toBe(3.5); // 5% de 70
+    expect(
+      motivoParaNaoReceber({ ...cm, cashbackUsado: 81, forma: 'pix' }),
+    ).toMatch(/cashback não pode passar/);
   });
 });
 

@@ -7,10 +7,11 @@ import {
 import { conflito, invalido, naoEncontrado } from '../infra/erros.js';
 import { agora } from './agenda.js';
 import { baixarComanda } from './estoque.js';
+import { conferirResgate, fidelidadeAoReceber } from './fidelidade.js';
 
 // Caixa do dia e comandas (planejamento 0020, fase 1). A comanda nasce no
 // check-in ou na entrada na fila e acompanha o atendimento até o pagamento.
-// Pacotes e fidelidade entram com a parte 3 do planejamento 0019.
+// Fidelidade (crédito e resgate) no planejamento 0034; pacotes na etapa B dele.
 
 const SELECT_CAIXA = `
   select id, data, valor_inicial as "valorInicial", aberto, aberto_as as "abertoAs",
@@ -21,6 +22,7 @@ export const SELECT_COMANDA = `
   select cm.id, cm.caixa_id as "caixaId", cx.data, cm.atendimento_id as "atendimentoId",
          cm.cliente_id as "clienteId", cm.barbeiro_id as "barbeiroId", cm.hora,
          cm.itens, cm.desconto, cm.forma, cm.estado, cm.paga_as as "pagaAs",
+         cm.premio_fidelidade as "premioFidelidade", cm.cashback_usado as "cashbackUsado",
          coalesce(cl.nome, a.cliente_nome, 'Cliente avulso') as "clienteNome",
          coalesce(b.nome, '') as "barbeiroNome"
     from comandas cm
@@ -164,6 +166,8 @@ async function normalizarItens(c, itens = [], barbeiroId) {
   const normalizados = [];
   const conferidos = new Set(barbeiroId ? [barbeiroId] : []);
   for (const i of itens) {
+    // O item do prêmio da fidelidade é montado pelo servidor (conferirResgate).
+    if (i.premio) continue;
     if (i.tipo === 'pacote' || i.assinaturaId)
       throw invalido(
         'Pacotes ainda não estão disponíveis nesta versão do caixa.',
@@ -195,8 +199,16 @@ async function normalizarItens(c, itens = [], barbeiroId) {
   return normalizados;
 }
 
-/** Cria ou atualiza uma comanda aberta. */
-export async function salvarComanda(c, barbeariaId, dados) {
+/**
+ * Cria ou atualiza uma comanda aberta. `fidelidade` ({ ativo, hoje }) libera o
+ * resgate (prêmio e cashback) quando o módulo está ativo.
+ */
+export async function salvarComanda(
+  c,
+  barbeariaId,
+  dados,
+  { fidelidade = { ativo: false } } = {},
+) {
   const caixa = await exigirCaixaAberto(c);
   const barbeiroId = dados.barbeiroId ? Number(dados.barbeiroId) : null;
   if (barbeiroId) {
@@ -233,6 +245,16 @@ export async function salvarComanda(c, barbeariaId, dados) {
     );
     if (!r.rowCount) throw invalido('Cliente não encontrado.');
   }
+  const premioFidelidade = Boolean(dados.premioFidelidade);
+  const cashbackUsado = Number(dados.cashbackUsado || 0);
+  if (!Number.isFinite(cashbackUsado) || cashbackUsado < 0)
+    throw invalido('Informe o cashback em reais.');
+  const { itemPremio } = await conferirResgate(
+    c,
+    { clienteId, premioFidelidade, cashbackUsado, itens, desconto },
+    { ...fidelidade, hoje: agora().data },
+  );
+  if (itemPremio) itens.push(itemPremio);
 
   if (dados.id) {
     const atual = await travarComanda(c, dados.id);
@@ -241,7 +263,8 @@ export async function salvarComanda(c, barbeariaId, dados) {
     await trazerParaOCaixaDeHoje(c, atual, caixa);
     await c.query(
       `update comandas set cliente_id = $2, barbeiro_id = coalesce($3, barbeiro_id),
-         itens = $4, desconto = $5, forma = $6 where id = $1`,
+         itens = $4, desconto = $5, forma = $6, premio_fidelidade = $7,
+         cashback_usado = $8 where id = $1`,
       [
         atual.id,
         clienteId,
@@ -249,6 +272,8 @@ export async function salvarComanda(c, barbeariaId, dados) {
         JSON.stringify(itens),
         desconto,
         dados.forma ?? null,
+        premioFidelidade,
+        cashbackUsado,
       ],
     );
     return obterComanda(c, atual.id);
@@ -256,8 +281,9 @@ export async function salvarComanda(c, barbeariaId, dados) {
   const {
     rows: [nova],
   } = await c.query(
-    `insert into comandas (barbearia_id, caixa_id, atendimento_id, cliente_id, barbeiro_id, hora, itens, desconto, forma)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
+    `insert into comandas (barbearia_id, caixa_id, atendimento_id, cliente_id, barbeiro_id,
+       hora, itens, desconto, forma, premio_fidelidade, cashback_usado)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`,
     [
       barbeariaId,
       caixa.id,
@@ -268,6 +294,8 @@ export async function salvarComanda(c, barbeariaId, dados) {
       JSON.stringify(itens),
       desconto,
       dados.forma ?? null,
+      premioFidelidade,
+      cashbackUsado,
     ],
   );
   return obterComanda(c, nova.id);
@@ -281,7 +309,7 @@ export async function receberComanda(
   c,
   id,
   { forma } = {},
-  { barbeariaId, usuarioId } = {},
+  { barbeariaId, usuarioId, fidelidade = { ativo: false } } = {},
 ) {
   const caixa = await exigirCaixaAberto(c);
   const cm = await travarComanda(c, id);
@@ -303,7 +331,14 @@ export async function receberComanda(
     );
   }
   if (barbeariaId) await baixarComanda(c, barbeariaId, cm, usuarioId);
-  return { ...(await obterComanda(c, cm.id)), creditos: [] };
+  // Fidelidade (planejamento 0034): gastos do resgate e créditos, na mesma transação.
+  const creditos = barbeariaId
+    ? await fidelidadeAoReceber(c, barbeariaId, cm, {
+        ...fidelidade,
+        hoje: agora().data,
+      })
+    : [];
+  return { ...(await obterComanda(c, cm.id)), creditos };
 }
 
 export async function cancelarComanda(c, id) {

@@ -86,24 +86,100 @@ export function creditosDaComanda(comanda, config, data) {
  * Créditos vencidos (expiraEm < hoje) não contam.
  */
 export function saldoDeFidelidade(movimentos, config, hoje) {
-  const valido = (m) => !m.expiraEm || m.expiraEm >= hoje;
-  const soma = (tipo, filtro = () => true) =>
-    movimentos
-      .filter((m) => m.tipo === tipo && filtro(m))
-      .reduce((t, m) => t + Math.round(m.valor * 100), 0);
-
-  const selos = Math.max(
-    0,
-    soma('selo', valido) / 100 - soma('resgate_selos') / 100,
+  const selos = consumirPorVencimento(
+    movimentos,
+    'selo',
+    'resgate_selos',
+    hoje,
+  );
+  const cashback = consumirPorVencimento(
+    movimentos,
+    'cashback',
+    'uso_cashback',
+    hoje,
   );
   const necessarios = config.selos?.necessarios ?? 0;
-  const cashback =
-    Math.max(0, soma('cashback', valido) - soma('uso_cashback')) / 100;
+  const s = selos / 100;
   return {
-    selos,
+    selos: s,
     necessarios,
-    premiosDisponiveis: necessarios ? Math.floor(selos / necessarios) : 0,
-    faltamParaPremio: necessarios ? necessarios - (selos % necessarios) : 0,
-    cashback,
+    premiosDisponiveis: necessarios ? Math.floor(s / necessarios) : 0,
+    faltamParaPremio: necessarios ? necessarios - (s % necessarios) : 0,
+    cashback: cashback / 100,
   };
+}
+
+/**
+ * Saldo (em centavos) de um tipo de crédito depois dos gastos, gastando
+ * primeiro o crédito que vence antes (planejamento 0034). Cada gasto só
+ * consome créditos que já existiam e ainda valiam na data dele (sem data:
+ * os válidos hoje). Sobra de crédito vencido não conta.
+ */
+function consumirPorVencimento(movimentos, credito, gasto, hoje) {
+  const valeEm = (m, dia) => !m.expiraEm || m.expiraEm >= dia;
+  const creditos = movimentos
+    .filter((m) => m.tipo === credito)
+    .map((m) => ({ ...m, resto: Math.round(m.valor * 100) }))
+    .sort((a, b) =>
+      (a.expiraEm ?? '9999-12-31').localeCompare(b.expiraEm ?? '9999-12-31'),
+    );
+  const gastos = movimentos
+    .filter((m) => m.tipo === gasto)
+    .sort((a, b) => (a.data ?? hoje).localeCompare(b.data ?? hoje));
+  for (const g of gastos) {
+    const dia = g.data ?? hoje;
+    let falta = Math.round(g.valor * 100);
+    for (const c of creditos) {
+      if (!falta) break;
+      if (!c.resto || !valeEm(c, dia) || (c.data && c.data > dia)) continue;
+      const usa = Math.min(c.resto, falta);
+      c.resto -= usa;
+      falta -= usa;
+    }
+  }
+  return creditos
+    .filter((c) => valeEm(c, hoje))
+    .reduce((t, c) => t + c.resto, 0);
+}
+
+/** Motivo para não usar o prêmio dos selos nesta comanda, ou null se pode. */
+export function motivoParaUsarPremio({ config, saldo, clienteId }) {
+  if (!clienteId)
+    return 'Identifique o cliente para usar o prêmio da fidelidade.';
+  if (!config?.selos?.ativo || !config.selos.premioServicoId)
+    return 'O cartão de selos não está ligado nesta barbearia.';
+  if (!saldo || saldo.selos < config.selos.necessarios)
+    return `O cliente ainda não completou o cartão (${saldo?.selos ?? 0} de ${config.selos.necessarios} selos).`;
+  return null;
+}
+
+/**
+ * Quanto de cashback dá para usar: o saldo, limitado ao que falta pagar da
+ * comanda (subtotal menos desconto).
+ */
+export function limiteDeCashback({ saldo, comanda }) {
+  const { subtotal, desconto } = totalDaComanda({
+    ...comanda,
+    cashbackUsado: 0,
+  });
+  const restante = Math.max(0, Math.round((subtotal - desconto) * 100));
+  return Math.min(Math.round((saldo?.cashback ?? 0) * 100), restante) / 100;
+}
+
+/** Motivo para não usar este valor de cashback, ou null se pode. */
+export function motivoParaUsarCashback({ valor, saldo, comanda }) {
+  const v = Math.round(Number(valor || 0) * 100);
+  if (!v) return null;
+  if (v < 0) return 'Informe um valor de cashback válido.';
+  if (!comanda.clienteId) return 'Identifique o cliente para usar o cashback.';
+  if (v > Math.round((saldo?.cashback ?? 0) * 100))
+    return 'O cliente não tem esse saldo de cashback.';
+  if (
+    v >
+    Math.round(
+      limiteDeCashback({ saldo: { cashback: Infinity }, comanda }) * 100,
+    )
+  )
+    return 'O cashback não pode passar do valor da comanda.';
+  return null;
 }
