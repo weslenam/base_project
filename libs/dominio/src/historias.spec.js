@@ -24,11 +24,11 @@ describe('histórias dos papéis', () => {
     const sem = historiaDoPapel('recepcao', []);
     expect(sem.nome).toBe('Recepção');
     expect(sem.pode).toContain('Lançar e receber as comandas');
-    expect(sem.pode).not.toContain('Vender pacotes e usar no balcão');
+    expect(sem.pode).not.toContain('Vender e renovar os pacotes dos clientes');
     expect(sem.naoPode).toContain('Fechar o caixa no fim do dia');
 
     const com = historiaDoPapel('recepcao', ['pacotes', 'estoque']);
-    expect(com.pode).toContain('Vender pacotes e usar no balcão');
+    expect(com.pode).toContain('Vender e renovar os pacotes dos clientes');
     expect(com.pode).toContain('Conferir o estoque e as compras');
   });
 

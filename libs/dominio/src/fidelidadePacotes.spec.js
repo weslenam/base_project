@@ -9,6 +9,7 @@ import {
 } from './fidelidade.js';
 import { motivoParaNaoReceber, totalDaComanda } from './caixa.js';
 import {
+  cicloDaRenovacao,
   podeUsarPacote,
   renovarAssinatura,
   saldoDoPacote,
@@ -449,5 +450,21 @@ describe('pacotes', () => {
     expect(
       renovarAssinatura(quatroCortes, assinatura(quatroCortes)),
     ).toBeNull();
+  });
+
+  it('renovação: em vigor começa depois do fim; vencido começa no pagamento; único não renova', () => {
+    const emVigor = { inicio: '2026-11-02', fim: '2026-12-01' };
+    expect(cicloDaRenovacao(clubeLivre, emVigor, '2026-11-20')).toEqual({
+      inicio: '2026-12-02',
+      fim: '2027-01-01',
+    });
+    expect(cicloDaRenovacao(clubeLivre, emVigor, '2026-12-01')).toMatchObject({
+      inicio: '2026-12-02',
+    });
+    expect(cicloDaRenovacao(clubeLivre, emVigor, '2026-12-10')).toEqual({
+      inicio: '2026-12-10',
+      fim: '2027-01-09',
+    });
+    expect(cicloDaRenovacao(quatroCortes, emVigor, '2026-11-20')).toBeNull();
   });
 });

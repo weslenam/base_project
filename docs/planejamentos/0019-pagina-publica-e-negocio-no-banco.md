@@ -62,7 +62,7 @@ Qualquer barbearia cadastrada consegue publicar a página de agendamento e opera
 - [x] 3. Front: `apiHttp.js` e escolha da implementação; página pública via `api.publico`; aba "Página pública" em Configurações com compartilhar (link, copiar, WhatsApp, QR).
 - [x] 4. Semente com serviços, equipe e clientes da barbearia modelo.
 - [ ] 5. Parte 2: caixa e comandas.
-- [ ] 6. Parte 3: fidelidade, pacotes e assinaturas.
+- [x] 6. Parte 3: fidelidade, pacotes e assinaturas (planejamento 0034).
 - [ ] 7. ADR 0013, README, `pnpm verificar:tudo`, commits por parte.
 
 ## Critérios de pronto
@@ -74,10 +74,11 @@ Qualquer barbearia cadastrada consegue publicar a página de agendamento e opera
 ## Riscos e pendências
 
 - **API pública sem limite de requisições:** é preciso um rate limit (por IP e por slug) antes de produção.
-- **Até a parte 3:** em `pnpm dev`, fidelidade e pacotes ainda vêm da memória.
+- ~~**Até a parte 3:** em `pnpm dev`, fidelidade e pacotes ainda vêm da memória.~~ Resolvido pelo planejamento 0034.
 
 ## Registro de mudanças
 
 - 2026-11-07: plano criado com as respostas do usuário.
 - 2026-11-07: parte 1 concluída. Decidido junto: o item "Página pública" saiu do menu, porque no modo "só com o link" a sessão não conhece o código. O link fica em Configurações > Página pública. O pedido de operação pelo próprio barbeiro, com encaixe e fila, virou o planejamento 0020.
 - 2026-11-07: a pedido do usuário ("vamos deixar o acesso ao publico bloqueado depois analisamos"), a página pública fica travada no sistema todo (`PAGINA_PUBLICA`, padrão bloqueada) e barbearias novas começam com o modo "Desativada". A parte 2 (caixa e comandas) foi absorvida pela fase 1 do planejamento 0020 (Balcão).
+- 2026-11-09: a parte 3 foi feita no planejamento 0034 (etapa A, fidelidade; etapa B, pacotes e assinaturas).

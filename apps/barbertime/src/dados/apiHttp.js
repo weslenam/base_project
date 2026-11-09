@@ -4,7 +4,7 @@ import { http } from './http.js';
 /**
  * Camada de dados pela API real (planejamento 0019). Mesma interface da versão
  * em memória (api.js): as telas não sabem qual está em uso.
- * `base` cobre o que ainda não migrou para o banco (pacotes, planejamento 0034 etapa B).
+ * `base` cobre o que ainda não migrou para o banco (parte de clientes).
  */
 const q = (params) => {
   const s = new URLSearchParams(
@@ -92,7 +92,23 @@ export function criarApiHttp(base) {
       extrato: async (clienteId) =>
         (await http('GET', `/api/clientes/${clienteId}/fidelidade`)).extrato,
     },
-    // Caixa e comandas (planejamento 0020, fase 1). Pacotes e fidelidade: parte 3 do 0019.
+    // Pacotes e assinaturas no banco (planejamento 0034, etapa B).
+    pacotes: recurso('/api/pacotes'),
+    assinaturas: {
+      doCliente: (clienteId) =>
+        http('GET', `/api/clientes/${clienteId}/assinaturas`),
+      /** Abre a comanda da venda no caixa: { assinatura, comandaId }. */
+      vender: (d) => http('POST', '/api/assinaturas', d),
+      /** Renova o pacote mensal pelo caixa: { assinatura, comandaId }. */
+      renovar: (id, d = {}) =>
+        http('POST', `/api/assinaturas/${id}/renovar`, d),
+      podeUsar: ({ assinaturaId, servicoId, jaNaComanda = [] }) =>
+        http('POST', `/api/assinaturas/${assinaturaId}/pode-usar`, {
+          servicoId,
+          jaNaComanda,
+        }),
+    },
+    // Caixa e comandas (planejamento 0020, fase 1).
     caixa: {
       obterDoDia: () => http('GET', '/api/caixa'),
       abrir: (d) => http('POST', '/api/caixa/abrir', d),

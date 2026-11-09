@@ -8,7 +8,11 @@ import { criarBarbearia } from '../src/servicos/barbearias.js';
 import identidade from '../src/identidade/index.js';
 import { semearOperacao, temPerfil } from './operacao-exemplo.js';
 import { criarOperador } from '../src/servicos/operadores.js';
-import { momentoNoFuso } from '@barbertime/dominio';
+import {
+  momentoNoFuso,
+  somarDias,
+  vigenciaDoPacote,
+} from '@barbertime/dominio';
 import { semearMovimento, semearVendaAntiga } from './movimento-exemplo.js';
 
 const SENHA = 'barbertime123';
@@ -163,6 +167,56 @@ await fastify.comBarbearia(modelo.id, (c) =>
     [modelo.id],
   ),
 );
+
+// Pacotes da barbearia modelo (planejamento 0034, etapa B), os mesmos dos dados
+// de exemplo do front: "Clube do corte" (mensal) e "4 cortes" (60 dias). O
+// Diego já tem o Clube em vigor, para testar o uso e a renovação.
+await fastify.comBarbearia(modelo.id, async (c) => {
+  const ja = await c.query('select 1 from pacotes limit 1');
+  if (ja.rowCount) return;
+  const { rows: servicos } = await c.query(
+    "select id, nome from servicos where nome in ('Corte', 'Barba') and excluido_em is null order by id",
+  );
+  const servico = (nome) => servicos.find((s) => s.nome === nome)?.id;
+  if (!servico('Corte') || !servico('Barba')) return;
+  const pacote = async (dados, itens) => {
+    const {
+      rows: [{ id }],
+    } = await c.query(
+      `insert into pacotes (barbearia_id, nome, preco, tipo, validade_dias,
+         intervalo_minimo_dias, maximo_por_semana)
+       values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+      [modelo.id, ...dados],
+    );
+    for (const [nome, quantidade] of itens)
+      await c.query(
+        'insert into pacote_itens (pacote_id, barbearia_id, servico_id, quantidade) values ($1, $2, $3, $4)',
+        [id, modelo.id, servico(nome), quantidade],
+      );
+    return id;
+  };
+  const clube = await pacote(
+    ['Clube do corte', 99.9, 'recorrente', null, 7, null],
+    [
+      ['Corte', null],
+      ['Barba', null],
+    ],
+  );
+  await pacote(['4 cortes', 160, 'unico', 60, null, 1], [['Corte', 4]]);
+  const hoje = momentoNoFuso(new Date()).data;
+  const { inicio, fim } = vigenciaDoPacote(
+    { tipo: 'recorrente' },
+    somarDias(hoje, -10),
+  );
+  await c.query(
+    `insert into assinaturas (barbearia_id, cliente_id, pacote_id, estado, inicio, fim)
+     select $1, cl.id, $2, 'ativa', $3, $4
+       from clientes cl where cl.nome = 'Diego Alves' and cl.excluido_em is null
+      order by cl.id limit 1`,
+    [modelo.id, clube, inicio, fim],
+  );
+  console.log('Pacotes de exemplo criados (Clube do corte e 4 cortes).');
+});
 
 // Movimento de exemplo para o painel do Business Center (planejamento 0028).
 if (!config.producao) {

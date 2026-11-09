@@ -33,7 +33,7 @@ export const ACOES_DAS_PERMISSOES = Object.freeze({
   'modulos.gerenciar': 'Ativar módulos e contratar serviços adicionais',
   'fidelidade.gerenciar': 'Definir as regras de selos e cashback',
   'pacotes.gerenciar': 'Montar os pacotes de serviços',
-  'pacotes.vender': 'Vender pacotes e usar no balcão',
+  'pacotes.vender': 'Vender e renovar os pacotes dos clientes',
   'estoque.ver': 'Conferir o estoque e as compras',
   'estoque.gerenciar': 'Registrar compras, consumo, inventário e fornecedores',
   'financeiro.gerenciar': 'Cuidar das contas a pagar e a receber',

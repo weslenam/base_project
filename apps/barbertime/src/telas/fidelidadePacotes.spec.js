@@ -81,6 +81,44 @@ describe('no cliente', () => {
   });
 });
 
+describe('renovar o pacote mensal (planejamento 0034, etapa B)', () => {
+  it('"Renovar" abre a comanda no caixa e o pacote mostra a renovação pendente', async () => {
+    app = await montarApp('/clientes');
+    await esperar(() => expect(texto()).toContain('Diego Alves'));
+    [...document.querySelectorAll('td')]
+      .find((td) => td.textContent.trim() === 'Diego Alves')
+      .click();
+    await esperar(() => expect(texto()).toContain('Clube do corte'));
+    await clicar('Renovar');
+    await esperar(() => expect(texto()).toContain('Renovar pacote'));
+    expect(texto()).toContain('O novo mês começa em');
+    await escolherNoSelect('Quem vendeu', 'Marcos');
+    await clicar('Renovar e ir para o caixa');
+    await esperar(() => expect(router.currentRoute.value.path).toBe('/caixa'));
+    const [clube] = await api.assinaturas.doCliente(3);
+    expect(clube.renovacao).toBe('aguardando_pagamento');
+  });
+
+  it('sem pacotes.vender, o botão "Renovar" não aparece', async () => {
+    const semVender = sessaoCom(
+      'Gerente',
+      CHAVES_DE_PERMISSAO.filter((p) => p !== 'pacotes.vender'),
+      ['agendamento_online', 'fidelidade', 'pacotes'],
+    );
+    app = await montarApp('/clientes', { sessao: semVender });
+    await esperar(() => expect(texto()).toContain('Diego Alves'));
+    [...document.querySelectorAll('td')]
+      .find((td) => td.textContent.trim() === 'Diego Alves')
+      .click();
+    await esperar(() => expect(texto()).toContain('Clube do corte'));
+    expect(
+      [...document.querySelectorAll('button')].some(
+        (b) => b.textContent.trim() === 'Renovar',
+      ),
+    ).toBe(false);
+  });
+});
+
 describe('na comanda', () => {
   it('usar o pacote: serviço por R$ 0; repetir antes do intervalo é negado', async () => {
     app = await montarApp('/agenda');

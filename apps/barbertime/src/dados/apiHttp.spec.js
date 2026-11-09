@@ -67,3 +67,29 @@ describe('fidelidade com a API real (planejamento 0034)', () => {
     expect(fetch.mock.calls[1][1].method).toBe('PUT');
   });
 });
+
+describe('pacotes com a API real (planejamento 0034, etapa B)', () => {
+  it('venda, renovação e pré-checagem usam as rotas da API', async () => {
+    const fetch = vi.fn((url, op) =>
+      resposta(200, { url, metodo: op?.method }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const api = criarApiHttp({});
+    await api.assinaturas.doCliente(5);
+    await api.assinaturas.vender({ clienteId: 5, pacoteId: 2, barbeiroId: 1 });
+    await api.assinaturas.renovar(9, { barbeiroId: 1 });
+    await api.assinaturas.podeUsar({ assinaturaId: 9, servicoId: 3 });
+    await api.pacotes.excluir(2);
+    expect(fetch.mock.calls.map(([url, op]) => `${op.method} ${url}`)).toEqual([
+      'GET /api/clientes/5/assinaturas',
+      'POST /api/assinaturas',
+      'POST /api/assinaturas/9/renovar',
+      'POST /api/assinaturas/9/pode-usar',
+      'DELETE /api/pacotes/2',
+    ]);
+    expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual({
+      servicoId: 3,
+      jaNaComanda: [],
+    });
+  });
+});

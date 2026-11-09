@@ -65,6 +65,7 @@ export {
   saldoDoPacote,
   podeUsarPacote,
   renovarAssinatura,
+  cicloDaRenovacao,
 } from './pacotes.js';
 export {
   DIAS_DA_SEMANA,

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { criarApi } from './api.js';
 import { ErroDeNegocio } from './erros.js';
+import { somarDias } from '@barbertime/dominio';
 
 // Sábado, 7/11/2026, 08:00: antes de qualquer expediente.
 const agora = () => new Date(2026, 10, 7, 8, 0);
@@ -519,6 +520,32 @@ describe('fidelidade e pacotes (planejamento 0015)', () => {
       vigente: true,
     });
     expect(ativa.saldo[0]).toMatchObject({ quantidade: 4, restantes: 4 });
+  });
+
+  it('renovar o pacote mensal: uma renovação por vez; o novo mês começa depois do fim', async () => {
+    api.definirModulosAtivos(['fidelidade', 'pacotes']);
+    const [clube] = await api.assinaturas.doCliente(3);
+    const { assinatura, comandaId } = await api.assinaturas.renovar(clube.id, {
+      barbeiroId: 2,
+    });
+    expect(assinatura.estado).toBe('aguardando_pagamento');
+    expect(
+      (await api.assinaturas.doCliente(3)).find((a) => a.id === clube.id)
+        .renovacao,
+    ).toBe('aguardando_pagamento');
+    await recusa(
+      api.assinaturas.renovar(clube.id, { barbeiroId: 2 }),
+      'aguardando pagamento',
+    );
+    await api.comandas.receber(comandaId, { forma: 'pix' });
+    const nova = (await api.assinaturas.doCliente(3)).find(
+      (a) => a.id === assinatura.id,
+    );
+    expect(nova).toMatchObject({
+      estado: 'ativa',
+      inicio: somarDias(clube.fim, 1),
+      vigente: false,
+    });
   });
 
   it('cancelar a comanda da venda cancela o pacote pendente', async () => {
