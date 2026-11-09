@@ -50,3 +50,47 @@ describe('página pública: reconhecer por telefone', () => {
     ).rejects.toThrow('Erro interno.');
   });
 });
+
+describe('fidelidade com a API real', () => {
+  const config = (premioServicoId) => ({
+    selos: { ativo: true, necessarios: 10, premioServicoId, validadeMeses: 12 },
+    cashback: { ativo: true, percentual: 5, validadeDias: 90 },
+  });
+  const base = {
+    fidelidade: {
+      salvarConfig: vi.fn(async (c, opcoes) => ({ ...c, opcoes })),
+    },
+  };
+
+  it('aceita o prêmio que é serviço da barbearia, mesmo fora do catálogo de exemplo', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => resposta(200, [{ id: 15, nome: 'Corte' }])),
+    );
+    const salvo = await criarApiHttp(base).fidelidade.salvarConfig(config(15));
+    expect(salvo.opcoes).toEqual({ servicoConferido: true });
+  });
+
+  it('prêmio fora dos serviços da barbearia chega vazio, não como id solto', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => resposta(200, [{ id: 15, nome: 'Corte' }])),
+    );
+    const api = criarApiHttp({
+      fidelidade: { obterConfig: async () => config(1) },
+    });
+    expect((await api.fidelidade.obterConfig()).selos.premioServicoId).toBe(
+      null,
+    );
+  });
+
+  it('recusa prêmio que não é serviço da barbearia', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => resposta(200, [{ id: 15, nome: 'Corte' }])),
+    );
+    await expect(
+      criarApiHttp(base).fidelidade.salvarConfig(config(99)),
+    ).rejects.toThrow('Serviço de prêmio não encontrado.');
+  });
+});

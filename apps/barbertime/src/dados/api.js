@@ -1126,10 +1126,11 @@ export function criarApi({ agora = () => new Date() } = {}) {
       async obterConfig() {
         return copia(banco.fidelidade ?? FIDELIDADE_PADRAO);
       },
-      async salvarConfig(config) {
+      /** `servicoConferido`: a API real já conferiu o prêmio (apiHttp.js). */
+      async salvarConfig(config, { servicoConferido = false } = {}) {
         const motivo = validarConfigFidelidade(config);
         if (motivo) throw new ErroDeNegocio(motivo);
-        if (config.selos?.ativo)
+        if (config.selos?.ativo && !servicoConferido)
           buscar('servicos', config.selos.premioServicoId, 'Serviço de prêmio');
         banco.fidelidade = copia(config);
         return copia(banco.fidelidade);
