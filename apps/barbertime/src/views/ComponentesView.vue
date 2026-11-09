@@ -160,6 +160,9 @@ async function excluir() {
         >Fantasma</DsBotao
       >
       <DsBotao desabilitado>Desabilitado</DsBotao>
+      <DsBotao variante="fantasma" tamanho="sm" denso>
+        <DsIcone nome="adicionar" rotulo="Denso (só ícone)" />
+      </DsBotao>
     </div>
 
     <h2 class="ds-subtitulo">Formulário</h2>

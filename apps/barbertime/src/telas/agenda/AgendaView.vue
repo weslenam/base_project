@@ -123,6 +123,7 @@ function abrir(id) {
             <DsBotao
               variante="fantasma"
               tamanho="sm"
+              denso
               @click="bloquearHorario(coluna.id)"
             >
               <DsIcone
@@ -133,6 +134,7 @@ function abrir(id) {
             <DsBotao
               variante="fantasma"
               tamanho="sm"
+              denso
               @click="novoAgendamento(coluna.id)"
             >
               <DsIcone

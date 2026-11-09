@@ -50,4 +50,15 @@ export function testarDsBotao(DsBotao, montar) {
       expect(w.emitted('click')).toHaveLength(1);
     },
   );
+
+  it('denso marca o botão e segue emitindo click', async () => {
+    const w = montar(DsBotao, {
+      props: { denso: true, variante: 'fantasma' },
+      slots: { default: '+' },
+    });
+    expect(w.find('.ds-botao--denso').exists()).toBe(true);
+    expect(montar(DsBotao).find('.ds-botao--denso').exists()).toBe(false);
+    await w.find('button').trigger('click');
+    expect(w.emitted('click')).toHaveLength(1);
+  });
 }

@@ -25,6 +25,8 @@ const props = defineProps({
   desabilitado: Boolean,
   carregando: Boolean,
   bloco: Boolean,
+  /** Margens enxutas e sem largura mínima: para botões só com ícone. */
+  denso: Boolean,
   /** id de um DsFormulario: o botão o envia mesmo estando fora dele. */
   formulario: { type: String, default: undefined },
 });
@@ -42,7 +44,12 @@ const aparencia = computed(() => VARIANTES[props.variante]);
 
 <template>
   <VBtn
-    :class="['ds-botao', `ds-botao--${variante}`, `ds-botao--${tamanho}`]"
+    :class="[
+      'ds-botao',
+      `ds-botao--${variante}`,
+      `ds-botao--${tamanho}`,
+      { 'ds-botao--denso': denso },
+    ]"
     :color="aparencia.color"
     :variant="aparencia.variant"
     :type="formulario ? 'submit' : tipo"
@@ -91,5 +98,10 @@ const aparencia = computed(() => VARIANTES[props.variante]);
 }
 .ds-botao--fantasma {
   padding: 0 var(--esp-2);
+}
+/* Denso: largura do conteúdo (o VBtn impõe 64px) e respiro mínimo nas laterais. */
+.ds-botao--denso {
+  min-width: 0;
+  padding: 0 var(--esp-1);
 }
 </style>

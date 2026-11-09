@@ -31,6 +31,8 @@
 >
 > use o mesmo para o bloqueio, adicione o icone do + e cancelar como na ação da agenda (2026-11-09)
 
+> adicione o design system algo como botão denso lembro de ter no quasar e ele otimiza as margens mas é algo que poderia ser aplicado nesses dois icones novos (2026-11-09)
+
 ## Objetivo
 
 O Barbeiro usa só a Agenda, sem menu sanduíche. Vê todas as colunas e ajuda a recepção (agenda e bloqueia em qualquer coluna), mas só confirma/cancela o que criou e só marca Atendido/Faltou na própria coluna ou no que criou.
@@ -62,6 +64,7 @@ O Barbeiro usa só a Agenda, sem menu sanduíche. Vê todas as colunas e ajuda a
 - [x] 4. Front: App manda menu vazio (o `DsLayout` já some com o sanduíche nesse caso, coberto pelo contrato) e guarda de rotas.
 - [x] 5. Front: botões da Agenda e ações do Detalhe pela regra do domínio.
 - [x] 7. Atalhos na coluna da agenda: ícones de bloqueio e + no cabeçalho de cada barbeiro abrem os diálogos com ele já escolhido; os botões do topo continuam sem barbeiro. Teste em `agendaAtalhos.spec.js`.
+- [x] 8. `DsBotao` ganha a prop `denso` (sem largura mínima, margens enxutas), com teste de contrato e exemplo na vitrine; aplicada aos atalhos da coluna.
 - [x] 6. Verificar: `pnpm verificar:tudo`, `pnpm verificar:layout` e spec de layout da agenda do Barbeiro.
 
 ## Critérios de pronto
@@ -84,3 +87,4 @@ O Barbeiro usa só a Agenda, sem menu sanduíche. Vê todas as colunas e ajuda a
 - 2026-11-09 — Plano criado e aprovado pelo Weslen ("todos os planos estão aprovados").
 - 2026-11-09 — Implementado. Desvios: `semMenu` não vai na sessão da API (o front calcula com `papelSemMenu(papel.chave)` do domínio) e o `DsLayout` não precisou de propriedade nova. O teste N10 (`correcoes.spec.js`) passou a afirmar a regra nova: o Barbeiro lê o bloqueio do colega, mas não o remove. Verificado: `pnpm verificar`, `api:integracao` (112) e `verificar:layout` (78 ok, 9 pulados por módulo inativo). Falta revisão (`/code-review`), `security-review` e commit.
 - 2026-11-09 — Etapa 7 (atalhos na coluna), a pedido do Weslen. O cabeçalho da coluna quebra a linha em tela estreita para o nome não encolher (pego pelo `verificar:layout`).
+- 2026-11-09 — Etapa 8: `denso` no `DsBotao`, a pedido do Weslen (como o `dense` do Quasar).
