@@ -1,0 +1,104 @@
+name: Bug
+description: Algo não funciona como deveria. Registre o que foi afetado e de onde veio (planejamento 0038).
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: textarea
+    id: resumo
+    attributes:
+      label: O que acontece
+      description: Uma ou duas frases sobre o problema.
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Entrar como Barbeiro
+        2. Abrir a Agenda
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Esperado x obtido
+      placeholder: |
+        Esperado: ...
+        Obtido: ...
+    validations:
+      required: true
+  - type: input
+    id: tela
+    attributes:
+      label: Afetado — tela ou rota
+      placeholder: '/agenda, Detalhe do agendamento'
+    validations:
+      required: true
+  - type: dropdown
+    id: papeis
+    attributes:
+      label: Afetado — papéis
+      multiple: true
+      options:
+        - Dono
+        - Gerente
+        - Recepção
+        - Barbeiro
+        - Cliente (página pública)
+        - Operador (Business Center)
+    validations:
+      required: true
+  - type: dropdown
+    id: modulos
+    attributes:
+      label: Afetado — área ou módulo
+      multiple: true
+      options:
+        - agenda
+        - balcao
+        - caixa
+        - fidelidade
+        - pacotes
+        - estoque
+        - acesso
+        - administracao
+        - business-center
+        - publico
+        - ui
+    validations:
+      required: true
+  - type: textarea
+    id: codigo
+    attributes:
+      label: Afetado — código
+      description: Arquivos e símbolos atingidos. Use `graphify affected "<símbolo>"` e cole a saída.
+      render: text
+  - type: input
+    id: introduzido
+    attributes:
+      label: Introduzido em
+      description: Commit, PR e planejamento que trouxeram o bug (`git log -S` ou `git blame`). Use "desconhecido" se não achar.
+      placeholder: 'commit a7b4f6a · PR #3 · planejamento 0034'
+    validations:
+      required: true
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Severidade
+      options:
+        - alta (dinheiro, dados ou acesso indevido)
+        - média (fluxo quebrado, com contorno)
+        - baixa (visual ou incômodo)
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidência
+      description: Captura, erro do Console (F12) ou resposta da API.
+  - type: markdown
+    attributes:
+      value: |
+        **Para corrigir:** branch `fix/<número>-<slug>`, teste de regressão com `#<número>` no nome (falha sem a correção), commit ou PR com `Fixes #<número>` e a linha `Introduzido em: <sha>`.

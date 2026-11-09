@@ -39,3 +39,4 @@
 | [0035](0035-barbeiro-ajuda-na-agenda-sem-menu.md)                 | Barbeiro ajuda na agenda, sem menu                                            | Concluído                | 2026-11-09 |
 | [0036](0036-barbeiro-com-abas-balcao-e-agenda.md)                | Barbeiro com abas Balcão e Agenda                                             | Concluído                | 2026-11-09 |
 | [0037](0037-correcoes-da-revisao-fidelidade-e-barbeiro.md)       | Correções da revisão (fidelidade e Barbeiro)                                  | Concluído                | 2026-11-09 |
+| [0038](0038-rastreabilidade-de-bugs-e-branches.md)               | Rastreabilidade de bugs e branches                                            | Concluído                | 2026-11-09 |

@@ -4,7 +4,8 @@
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** planejamentos 0034, 0035 e 0036; ADRs 0010 e 0011
-- **Commits:** ainda não commitado
+- **Commits:** `7126867` (PR #3, merge `29666ed`)
+- **Issues:** #4 a #13 (registradas depois pelo planejamento 0038)
 
 ## Solicitação de origem
 

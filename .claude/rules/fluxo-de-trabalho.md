@@ -36,3 +36,21 @@ Os hooks em `.claude/settings.json` (scripts em `.claude/hooks/`) **garantem** p
 - Plugins habilitados no projeto: `nx`, `frontend-design` (só inspiração; o design system prevalece), `superpowers` e `code-review`.
 - Push, merge e PR são ações externas: sempre perguntar antes.
 - Agentes do projeto (`.claude/agents/`), opcionais para delegar etapas: `planejador` (etapas 2 e 3, não escreve código), `implementador` (etapas 5 e 6, a partir de plano aprovado ou bug bem descrito) e `revisor` (complementa a etapa 7 antes do commit, não edita). Não substituem `/code-review` nem `security-review`.
+
+## Bugs e branches (rastreabilidade)
+
+Decidido no planejamento 0038. O objetivo é que, depois do merge e com a branch já apagada, ainda dê para saber **o que um bug afetou** e **de onde ele veio**.
+
+1. **Todo bug vira issue no GitHub**, pelo modelo "Bug" (`.github/ISSUE_TEMPLATE/bug.yml`), com as etiquetas `bug`, `severidade:*` e `area:*`. A issue registra:
+   - **o que foi afetado:** tela ou rota, papéis, módulos, e o código (cole a saída de `graphify affected "<símbolo>"`);
+   - **onde foi introduzido:** commit, PR e planejamento (`git log -S` ou `git blame`).
+
+   Bug achado em revisão ou em teste também vira issue, mesmo que seja corrigido na hora.
+
+2. **A branch diz de onde vem:**
+   - `feat/NNNN-slug`, `chore/NNNN-slug` e `docs/NNNN-slug`, onde NNNN é o planejamento;
+   - `fix/<issue>-slug` para bug.
+3. **A correção de bug leva:**
+   - um **teste de regressão** que falha sem a correção, com `#<issue>` no nome;
+   - `Fixes #<issue>` e `Introduzido em: <sha>` no commit ou no PR.
+4. **Depois do merge**, que é feito com merge commit e não squash: apagar a branch, local e remota, e voltar para a `main` atualizada.
