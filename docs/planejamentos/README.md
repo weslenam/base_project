@@ -40,3 +40,4 @@
 | [0036](0036-barbeiro-com-abas-balcao-e-agenda.md)                | Barbeiro com abas Balcão e Agenda                                             | Concluído                | 2026-11-09 |
 | [0037](0037-correcoes-da-revisao-fidelidade-e-barbeiro.md)       | Correções da revisão (fidelidade e Barbeiro)                                  | Concluído                | 2026-11-09 |
 | [0038](0038-rastreabilidade-de-bugs-e-branches.md)               | Rastreabilidade de bugs e branches                                            | Concluído                | 2026-11-09 |
+| [0039](0039-barbeiro-sem-abrir-caixa.md)                         | Barbeiro sem abrir o caixa                                                    | Concluído                | 2026-11-09 |

@@ -44,6 +44,10 @@ describe('permissões', () => {
       'clientes.editar',
       'caixa.operar',
     ]);
+    // Planejamento 0039: o Barbeiro opera o caixa, mas não abre.
+    expect(papel('barbeiro')).not.toContain('caixa.abrir');
+    for (const p of ['dono', 'gerente', 'recepcao'])
+      expect(papel(p)).toContain('caixa.abrir');
     expect(papel('recepcao')).toContain('pacotes.vender');
     expect(papel('recepcao')).not.toContain('pacotes.gerenciar');
     expect(papel('inventado')).toEqual([]);

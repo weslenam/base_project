@@ -202,10 +202,31 @@ describe('balcão do Barbeiro', () => {
     const fila = document.querySelector('ol[aria-label="Fila"]').textContent;
     expect(fila).not.toContain('Iniciar');
     expect(fila).not.toContain('Desistiu');
+    // Planejamento 0039: com o caixa fechado, o Barbeiro não vê "Abrir caixa".
+    expect(texto()).not.toContain('Peça à recepção');
     // Check-in e as abas Balcão / Agenda continuam.
     expect(texto()).toContain('Check-in');
     const abas = document.querySelector('[aria-label="Navegação principal"]');
     expect(abas.textContent).toContain('Balcão');
     expect(abas.textContent).toContain('Agenda');
+  });
+});
+
+describe('caixa fechado no balcão (planejamento 0039)', () => {
+  it('Barbeiro vê o aviso para pedir a abertura, sem o botão', async () => {
+    simularApi({ 'GET /api/balcao': PAINEL({ caixaAberto: false }) });
+    app = await montarApp('/balcao', {
+      sessao: sessaoCom('Barbeiro', permissoesDoPapel('barbeiro')),
+    });
+    await esperar(() => expect(texto()).toContain('Peça à recepção'));
+    expect(texto()).not.toContain('Abrir caixa');
+  });
+
+  it('a Recepção abre o caixa', async () => {
+    simularApi({ 'GET /api/balcao': PAINEL({ caixaAberto: false }) });
+    app = await montarApp('/balcao', {
+      sessao: sessaoCom('Recepção', permissoesDoPapel('recepcao')),
+    });
+    await esperar(() => expect(texto()).toContain('Abrir caixa'));
   });
 });
