@@ -14,6 +14,14 @@ const semMenu = computed(() =>
   Boolean(route.meta.publica || route.meta.semLayout),
 );
 
+// Ícone do título de cada grupo do menu (planejamento 0030).
+const gruposMenu = [
+  { titulo: 'Operação', icone: 'fila' },
+  { titulo: 'Cadastros', icone: 'componentes' },
+  { titulo: 'Estoque', icone: 'estoque' },
+  { titulo: 'Administração', icone: 'configuracoes' },
+];
+
 // Menu montado das rotas: só o que o papel permite e o módulo libera.
 // O link da página pública fica em Configurações > Página pública (planejamento
 // 0019): no modo "só com o link" ele exige o código, que a sessão não conhece.
@@ -42,6 +50,7 @@ async function aoSair() {
       v-else
       :titulo="sessao?.barbearia?.nome ?? 'BarberTime'"
       :itens-menu="itensMenu"
+      :grupos="gruposMenu"
     >
       <template #marca>
         <Marca />

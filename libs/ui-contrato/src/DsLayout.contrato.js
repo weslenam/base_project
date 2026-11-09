@@ -44,6 +44,40 @@ export function testarDsLayout({ DsApp, DsLayout }, montar) {
     );
   });
 
+  it('separa os grupos por linha, com ícones e itens do grupo recuados', async () => {
+    const itensMenu = [
+      { titulo: 'Agenda', rota: '/agenda', icone: 'agenda', grupo: 'Operação' },
+      { titulo: 'Caixa', rota: '/caixa', icone: 'caixa', grupo: 'Operação' },
+      {
+        titulo: 'Usuários',
+        rota: '/usuarios',
+        icone: 'cliente',
+        grupo: 'Administração',
+      },
+    ];
+    const grupos = [
+      { titulo: 'Operação', icone: 'fila' },
+      { titulo: 'Administração', icone: 'configuracoes' },
+    ];
+    const w = montarLayout({ titulo: 'BarberTime', itensMenu, grupos });
+    await esperar(() => expect(w.text()).toContain('Usuários'));
+    // Uma linha entre os dois grupos (nenhuma antes do primeiro).
+    expect(w.findAll('[role="separator"], hr')).toHaveLength(1);
+    // 3 ícones de item + 2 de grupo.
+    expect(w.findAll('.ds-icone')).toHaveLength(5);
+    // Cada item marcado com o grupo a que pertence (recuo).
+    expect(w.findAll('[data-ds-grupo="Operação"]')).toHaveLength(2);
+    expect(w.findAll('[data-ds-grupo="Administração"]')).toHaveLength(1);
+  });
+
+  it('itens sem grupo não ganham título nem recuo', async () => {
+    const itensMenu = [{ titulo: 'Agenda', rota: '/agenda' }];
+    const w = montarLayout({ titulo: 'BarberTime', itensMenu });
+    await esperar(() => expect(w.text()).toContain('Agenda'));
+    expect(w.findAll('[data-ds-grupo]')).toHaveLength(0);
+    expect(w.findAll('[role="separator"], hr')).toHaveLength(0);
+  });
+
   it('renderiza o slot cabecalho-acoes', async () => {
     const w = montarLayout(
       { titulo: 'BarberTime' },

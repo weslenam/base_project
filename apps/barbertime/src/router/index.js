@@ -22,7 +22,7 @@ export const rotas = [
     component: () => import('../telas/balcao/BalcaoView.vue'),
     meta: {
       permissoes: ['agenda.gerenciar', 'caixa.operar'],
-      menu: { titulo: 'Balcão', icone: 'fila' },
+      menu: { titulo: 'Balcão', icone: 'fila', grupo: 'Operação' },
     },
   },
   {
@@ -30,7 +30,7 @@ export const rotas = [
     component: () => import('../telas/agenda/AgendaView.vue'),
     meta: {
       permissoes: ['agenda.ver', 'agenda.ver_propria'],
-      menu: { titulo: 'Agenda', icone: 'agenda' },
+      menu: { titulo: 'Agenda', icone: 'agenda', grupo: 'Operação' },
     },
   },
   {
@@ -38,7 +38,7 @@ export const rotas = [
     component: () => import('../telas/caixa/CaixaView.vue'),
     meta: {
       permissoes: ['caixa.operar'],
-      menu: { titulo: 'Caixa', icone: 'caixa' },
+      menu: { titulo: 'Caixa', icone: 'caixa', grupo: 'Operação' },
     },
   },
   {
@@ -46,7 +46,7 @@ export const rotas = [
     component: () => import('../telas/clientes/ClientesView.vue'),
     meta: {
       permissoes: ['clientes.ver'],
-      menu: { titulo: 'Clientes', icone: 'clientes' },
+      menu: { titulo: 'Clientes', icone: 'clientes', grupo: 'Operação' },
     },
   },
   {
@@ -88,7 +88,7 @@ export const rotas = [
     meta: {
       permissoes: ['fidelidade.gerenciar'],
       modulo: 'fidelidade',
-      menu: { titulo: 'Fidelidade', icone: 'check', grupo: 'Cadastros' },
+      menu: { titulo: 'Fidelidade', icone: 'fidelidade', grupo: 'Cadastros' },
     },
   },
   // Estoque e compras (planejamento 0027, parte 1): só com o módulo "estoque".
@@ -98,7 +98,7 @@ export const rotas = [
     meta: {
       permissoes: ['estoque.ver'],
       modulo: 'estoque',
-      menu: { titulo: 'Estoque', icone: 'produto', grupo: 'Estoque' },
+      menu: { titulo: 'Estoque', icone: 'estoque', grupo: 'Estoque' },
     },
   },
   {
@@ -107,7 +107,7 @@ export const rotas = [
     meta: {
       permissoes: ['estoque.ver'],
       modulo: 'estoque',
-      menu: { titulo: 'Compras', icone: 'dinheiro', grupo: 'Estoque' },
+      menu: { titulo: 'Compras', icone: 'compras', grupo: 'Estoque' },
     },
   },
   {
@@ -116,7 +116,7 @@ export const rotas = [
     meta: {
       permissoes: ['estoque.ver'],
       modulo: 'estoque',
-      menu: { titulo: 'Fornecedores', icone: 'barbearia', grupo: 'Estoque' },
+      menu: { titulo: 'Fornecedores', icone: 'fornecedor', grupo: 'Estoque' },
     },
   },
   {
@@ -146,7 +146,7 @@ export const rotas = [
       permissoes: ['usuarios.gerenciar'],
       menu: {
         titulo: 'Papéis e permissões',
-        icone: 'bloqueio',
+        icone: 'permissoes',
         grupo: 'Administração',
       },
     },
