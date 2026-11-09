@@ -70,6 +70,8 @@ function aoClicarLinha(_evento, { item }) {
 
 <style scoped>
 .ds-tabela {
+  min-inline-size: 0;
+  max-inline-size: 100%;
   background: var(--placa);
   border: 1px solid var(--linha);
   border-radius: var(--raio-md);

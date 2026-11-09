@@ -74,17 +74,19 @@ O Vite repassa `/api/*` para a API. O banco é o Supabase local (ADR 0015): Stud
 
 ## Comandos
 
-| Comando                                  | O que faz                                                                                                          |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `pnpm dev`                               | `nx serve` do `barbertime`, do `business-center` e da `api` juntos                                                 |
-| `pnpm verificar`                         | lint + testes + build de todos os projetos                                                                         |
-| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                                                                 |
-| `pnpm format`                            | Prettier no workspace                                                                                              |
-| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json`                                                  |
-| `pnpm verificar:tudo`                    | verificar + testes de integração da API (precisa do Supabase local de pé)                                          |
-| `pnpm nx run api:migrar` / `api:semear`  | aplica as migrações SQL de `supabase/migrations` e prepara o papel da aplicação / cria os dados de desenvolvimento |
-| `pnpm banco` / `pnpm banco:parar`        | sobe ou para o Supabase local (`pnpm supabase db reset` zera o banco de desenvolvimento)                           |
-| `pnpm nx graph`                          | grafo de dependências                                                                                              |
+| Comando                                  | O que faz                                                                                                                                                   |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                               | `nx serve` do `barbertime`, do `business-center` e da `api` juntos                                                                                          |
+| `pnpm verificar`                         | lint + testes + build de todos os projetos                                                                                                                  |
+| `pnpm test` / `pnpm lint` / `pnpm build` | cada etapa isolada                                                                                                                                          |
+| `pnpm format`                            | Prettier no workspace                                                                                                                                       |
+| `pnpm nx run ui-tokens:gerar`            | regera os tokens a partir de `docs/identidade-visual/tokens.json`                                                                                           |
+| `pnpm verificar:tudo`                    | verificar + testes de integração da API (precisa do Supabase local de pé)                                                                                   |
+| `pnpm verificar:layout`                  | testes de regressão de layout no Chromium (celular, tablet e desktop), com o `pnpm dev` no ar e semeado; capturas em `apps/e2e-layout/capturas/` (ADR 0020) |
+| `pnpm navegador`                         | prepara o Chromium do Playwright uma vez (no WSL sem `sudo`, extrai as bibliotecas em `~/.cache/pw-libs`)                                                   |
+| `pnpm nx run api:migrar` / `api:semear`  | aplica as migrações SQL de `supabase/migrations` e prepara o papel da aplicação / cria os dados de desenvolvimento                                          |
+| `pnpm banco` / `pnpm banco:parar`        | sobe ou para o Supabase local (`pnpm supabase db reset` zera o banco de desenvolvimento)                                                                    |
+| `pnpm nx graph`                          | grafo de dependências                                                                                                                                       |
 
 ## Estrutura
 

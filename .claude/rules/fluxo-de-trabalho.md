@@ -23,7 +23,7 @@ Os hooks em `.claude/settings.json` (scripts em `.claude/hooks/`) **garantem** p
    - Configuração do Claude Code (hooks, permissões): skill `update-config`.
    - Git, apagar arquivos, branches ou histórico: skill `git-guardrails`.
 5. **Implementar com testes.** Regras de negócio no `@barbertime/dominio`. API com RLS e permissões (ADRs 0009 a 0011). Teste novo para cada regra.
-6. **Verificar.** `pnpm verificar` (lint, testes, build); com banco ou API envolvidos, `pnpm verificar:tudo`. Não declarar pronto com falha.
+6. **Verificar.** `pnpm verificar` (lint, testes, build); com banco ou API envolvidos, `pnpm verificar:tudo`. Mudança de UI (`.vue`, `libs/ui-*`, tokens): também `pnpm verificar:layout` (Playwright, ADR 0020), com o `pnpm dev` no ar, e olhar as capturas de `apps/e2e-layout/capturas/`. Tela nova ganha spec de layout. Não declarar pronto com falha.
 7. **Revisar.** Antes de abrir PR ou juntar na `main`, rode o plugin de revisão (`/code-review`) sobre o diff.
 8. **Segurança (bloqueante).** Com tudo em stage (`git add`), carregue a skill `security-review` e revise o diff. Com achado aberto, corrija e revise de novo. Só sem achados, rode `.claude/hooks/registrar-security-review.sh`. **O hook nega `git commit`** sem a skill na sessão ou se o stage mudou depois do registro. Rota nova ou alterada segue o ADR 0014: parâmetros tipados, schema quando recebe corpo e limite próprio quando é pública ou trata credenciais.
 9. **Fechar.**

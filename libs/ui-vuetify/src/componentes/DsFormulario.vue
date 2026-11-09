@@ -35,6 +35,8 @@ defineExpose({
 <style scoped>
 .ds-formulario {
   display: grid;
+  /* Coluna que encolhe: abas e campos largos não alargam a página (ADR 0020). */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--esp-3);
 }
 </style>

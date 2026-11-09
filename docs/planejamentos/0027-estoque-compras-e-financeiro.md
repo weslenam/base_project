@@ -175,7 +175,7 @@ As telas usam só os componentes `Ds*` (skill `design-system`). Um componente no
 - **Saldo guardado em `produtos.saldo`** e atualizado na mesma transação de cada movimento, com `for update` no produto. A soma dos movimentos fica como auditoria e é conferida em teste.
 - **Último custo** é o custo da compra mais recente, conforme o esclarecimento acima.
 - **Candidatas a ADR:**
-  - ADR 0018, "Estoque por movimentos com saldo materializado";
+  - ADR 0021, "Estoque por movimentos com saldo materializado" (era 0018, número que ficou com o Business Center);
   - ADR 0019, "Movimentos de caixa (sangria e suprimento) vindos do financeiro".
   - Numeração ajustada em 2026-11-08: 0015 a 0017 ficaram para o Supabase (planejamento 0025).
 - **Rotas novas seguem o ADR 0014:** parâmetros tipados, schema em todo corpo e mensagens em pt-BR.
@@ -191,7 +191,7 @@ As telas usam só os componentes `Ds*` (skill `design-system`). Um componente no
 - [ ] 7. Caixa: saídas e entradas no resumo e no fechamento.
 - [ ] 8. Telas: produtos, estoque, fornecedores, compras, ficha técnica, contas, cadastros, previsão e caixa, mais menu e rotas. _(Parte 1 concluída: produtos, estoque, fornecedores, compras, ficha técnica, comanda sem consumíveis, menu e rotas.)_
 - [ ] 9. Testes de integração e de tela dos critérios de aceite. _(Parte 1 concluída: critérios 1, 2, 3, 7 e 8 em `apps/api/src/integracao/estoque.spec.js` e telas em `apps/barbertime/src/telas/estoque.spec.js`.)_
-- [ ] 10. ADRs 0018 e 0019 e índices.
+- [ ] 10. ADRs 0019 e 0021 e índices.
 - [ ] 11. `pnpm verificar:tudo`, `/code-review`, `security-review` e commit.
 
 ## Riscos e pendências

@@ -151,8 +151,11 @@ const menuAberto = ref(null);
   padding-inline-start: var(--esp-6) !important;
 }
 .ds-layout__icone {
-  margin-inline-end: var(--esp-3);
   color: inherit;
+}
+/* Espaço entre ícone e texto: o padrão do Vuetify (32px) afasta demais. */
+.ds-layout__menu :deep(.v-list-item__spacer) {
+  inline-size: var(--esp-3) !important;
 }
 .ds-layout__conteudo {
   font-family: var(--font-sans);

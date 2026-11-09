@@ -33,3 +33,4 @@
 | [0029](0029-correcoes-da-revisao-do-business-center-e-estoque.md) | Correções da revisão do Business Center e do estoque                          | Concluído                | 2026-11-08 |
 | [0030](0030-menu-lateral-com-grupos-e-icones.md)                  | Menu lateral com grupos, ícones e recuo                                       | Concluído                | 2026-11-08 |
 | [0031](0031-indicadores-do-business-center.md)                    | Cartões de indicador e responsividade do painel do Business Center            | Concluído                | 2026-11-08 |
+| [0032](0032-testes-de-layout-com-playwright.md)                   | Testes de layout com Playwright                                               | Concluído                | 2026-11-08 |

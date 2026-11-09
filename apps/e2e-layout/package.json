@@ -1,0 +1,21 @@
+{
+  "name": "@barbertime/e2e-layout",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "e2e-layout",
+    "tags": [
+      "type:e2e",
+      "scope:front"
+    ],
+    "targets": {
+      "e2e": {
+        "command": "playwright test",
+        "options": {
+          "cwd": "apps/e2e-layout"
+        }
+      }
+    }
+  }
+}

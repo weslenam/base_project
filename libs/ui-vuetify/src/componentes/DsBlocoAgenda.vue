@@ -56,6 +56,9 @@ const rotuloEstado = computed(() => ROTULOS_DE_ESTADO[props.estado]);
 <style scoped>
 /* Referência: .bt-bloco */
 .ds-bloco {
+  /* Contêiner do texto só para leitor de tela (.ds-bloco__estado): sem isto ele
+     escapa do quadro com rolagem e alarga a página no celular (ADR 0020). */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;

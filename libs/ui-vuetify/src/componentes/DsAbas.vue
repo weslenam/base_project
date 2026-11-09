@@ -73,11 +73,18 @@ function aoTeclar(evento, indice) {
 .ds-abas__lista {
   display: flex;
   gap: var(--esp-1);
-  border-bottom: 2px solid var(--linha);
+  /* No celular as abas rolam de lado em vez de alargar a página. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  /* Linha de base como sombra interna: o sublinhado da aba ativa cobre a linha
+     sem margem negativa (que criaria rolagem vertical). */
+  box-shadow: inset 0 -2px 0 var(--linha);
 }
 .ds-abas__aba {
+  flex-shrink: 0;
+  white-space: nowrap;
   min-height: 44px;
-  margin-bottom: -2px;
   padding: 0 var(--esp-4);
   border: 0;
   border-bottom: 3px solid transparent;

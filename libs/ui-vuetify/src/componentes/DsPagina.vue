@@ -26,6 +26,9 @@ defineProps({
 <style scoped>
 .ds-pagina {
   display: grid;
+  /* Coluna que encolhe: conteúdo largo (tabelas) rola dentro dele mesmo em vez
+     de alargar a página no celular (ADR 0020). */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--esp-4);
   /* Ocupa a largura disponível (planejamento 0018): agenda e caixa usam tudo;
      formulários limitam a própria largura. */

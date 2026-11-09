@@ -16,6 +16,8 @@
     "format": "nx format:write",
     "verificar": "nx run-many -t lint,test,build",
     "verificar:tudo": "nx run-many -t lint,test,build && nx run api:integracao",
+    "verificar:layout": "nx run e2e-layout:e2e",
+    "navegador": "bash scripts/preparar-navegador.sh",
     "banco": "supabase start && nx run api:migrar && nx run api:semear",
     "banco:parar": "supabase stop",
     "banco:compose": "docker compose up -d --wait postgres redis mailpit && nx run api:semear"
@@ -31,6 +33,7 @@
     "@nx/vue": "24.0.1",
     "@nx/web": "24.0.1",
     "@nx/workspace": "24.0.1",
+    "@playwright/test": "^1.65.0",
     "@swc/helpers": "~0.5.18",
     "@types/node": "^22.0.0",
     "@typescript-eslint/parser": "^8.58.0",

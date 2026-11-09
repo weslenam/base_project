@@ -77,6 +77,7 @@ onMounted(async () => {
     <div class="filtros">
       <DsEscolha
         v-model="selo"
+        class="filtros__situacao"
         :opcoes="opcoesDeSelo"
         rotulo="Situação das barbearias"
       />
@@ -117,6 +118,11 @@ onMounted(async () => {
   align-items: center;
   gap: var(--esp-4);
   margin-block-end: var(--esp-4);
+}
+/* Base flexível: sem ela o flex encolhe o grid de opções a uma coluna só. */
+.filtros__situacao {
+  flex: 1 1 32rem;
+  min-inline-size: 0;
 }
 .nome {
   display: block;

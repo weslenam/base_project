@@ -1,0 +1,5 @@
+# Saídas do Playwright (ADR 0020): capturas para revisão, nunca versionadas.
+capturas/
+test-results/
+playwright-report/
+.estado/
