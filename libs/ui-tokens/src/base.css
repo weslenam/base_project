@@ -1,0 +1,60 @@
+/*
+ * Base tipográfica e classes de apoio do design system (ADR 0003).
+ * Usam só tokens. Telas usam estas classes ou CSS scoped, nunca utilitárias do framework.
+ */
+html,
+body {
+  margin: 0;
+  background: var(--concreto);
+  color: var(--grafite);
+  font: var(--tipo-corpo);
+}
+
+.ds-display,
+.ds-titulo,
+.ds-subtitulo {
+  margin: 0;
+  text-transform: uppercase;
+}
+.ds-display {
+  font: var(--tipo-display);
+  letter-spacing: var(--tipo-display-espacamento);
+}
+.ds-titulo {
+  font: var(--tipo-titulo);
+  letter-spacing: var(--tipo-titulo-espacamento);
+}
+.ds-subtitulo {
+  font: var(--tipo-subtitulo);
+  letter-spacing: var(--tipo-subtitulo-espacamento);
+}
+.ds-rotulo {
+  font: var(--tipo-rotulo);
+  letter-spacing: var(--tipo-rotulo-espacamento);
+  text-transform: uppercase;
+  color: var(--grafite-suave);
+}
+.ds-corpo-lg {
+  font: var(--tipo-corpo-lg);
+}
+.ds-corpo-sm {
+  font: var(--tipo-corpo-sm);
+}
+.ds-suave {
+  color: var(--grafite-suave);
+}
+.ds-hora,
+.ds-valor {
+  font-variant-numeric: tabular-nums;
+}
+.ds-hora {
+  font: var(--tipo-hora);
+}
+.ds-valor {
+  font: var(--tipo-valor);
+}
+
+:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}

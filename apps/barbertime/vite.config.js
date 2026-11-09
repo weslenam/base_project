@@ -20,9 +20,10 @@ export default defineConfig(() => ({
   },
   server: {
     port: 4200,
-    host: 'localhost',
+    // No Docker (ADR 0002): VITE_HOST=0.0.0.0 e API_URL=http://api:3333.
+    host: process.env.VITE_HOST || 'localhost',
     proxy: {
-      '/api': 'http://localhost:3333',
+      '/api': process.env.API_URL || 'http://localhost:3333',
     },
   },
   preview: {
@@ -40,6 +41,8 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['src/testes/setup.js'],
+    server: { deps: { inline: ['vuetify'] } },
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs}'],
     reporters: ['default'],
     coverage: {

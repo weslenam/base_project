@@ -17,5 +17,12 @@
   "main": "./src/index.js",
   "devDependencies": {
     "@barbertime/ui-contrato": "workspace:*"
+  },
+  "dependencies": {
+    "@barbertime/ui-tokens": "workspace:*",
+    "@barbertime/ui-utils": "workspace:*",
+    "@mdi/js": "7.4.47",
+    "qrcode": "1.5.4",
+    "vuetify": "4.3.0"
   }
 }

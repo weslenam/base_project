@@ -1,17 +1,88 @@
-/*
- * Tokens provisórios do esqueleto. A identidade visual definitiva
- * (paleta, tema escuro) entra aqui, nunca nos componentes.
- */
+/* GERADO por libs/ui-tokens/scripts/gerar-tokens.mjs a partir de docs/identidade-visual/tokens.json. Não edite. */
+
 :root {
-  --ds-fonte-base: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: "Big Shoulders", "Big Shoulders Display", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-sans: Barlow, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  --ds-cor-fundo: #ffffff;
-  --ds-cor-texto: #1f2328;
-  --ds-cor-primaria: #1f6feb;
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-6: 24px;
+  --esp-8: 32px;
+  --esp-12: 48px;
 
-  --ds-espaco-sm: 0.5rem;
-  --ds-espaco-md: 1rem;
-  --ds-espaco-lg: 1.5rem;
+  --raio-0: 0px;
+  --raio-sm: 2px;
+  --raio-md: 4px;
+  --raio-pilula: 999px;
 
-  --ds-raio-md: 0.5rem;
+  --tipo-display: 800 64px/60px var(--font-display);
+  --tipo-display-espacamento: 0.01em;
+  --tipo-titulo: 800 36px/36px var(--font-display);
+  --tipo-titulo-espacamento: 0.01em;
+  --tipo-subtitulo: 700 24px/28px var(--font-display);
+  --tipo-subtitulo-espacamento: 0.02em;
+  --tipo-corpo-lg: 400 18px/28px var(--font-sans);
+  --tipo-corpo-lg-espacamento: normal;
+  --tipo-corpo: 400 16px/24px var(--font-sans);
+  --tipo-corpo-espacamento: normal;
+  --tipo-corpo-sm: 400 14px/20px var(--font-sans);
+  --tipo-corpo-sm-espacamento: normal;
+  --tipo-rotulo: 600 12px/16px var(--font-sans);
+  --tipo-rotulo-espacamento: 0.08em;
+  --tipo-botao: 600 15px/20px var(--font-sans);
+  --tipo-botao-espacamento: 0.04em;
+  --tipo-hora: 500 15px/20px var(--font-mono);
+  --tipo-hora-espacamento: normal;
+  --tipo-valor: 500 16px/24px var(--font-mono);
+  --tipo-valor-espacamento: normal;
+
+  /* tema claro (padrão) */
+  --concreto: #e8e6e2;
+  --placa: #f7f6f4;
+  --placa-funda: #dcd9d3;
+  --linha: #c4bfb6;
+  --linha-forte: #857f76;
+  --grafite: #1d2023;
+  --grafite-suave: #565a5f;
+  --cobre: #a14f24;
+  --cobre-escuro: #7f3b19;
+  --cobre-suave: #f6e8de;
+  --sobre-cobre: #ffffff;
+  --ambar: #d4961f;
+  --sobre-ambar: #1d2023;
+  --aco: #3f5b6b;
+  --aco-suave: #d6e0e5;
+  --sucesso: #1f6b4a;
+  --sucesso-suave: #d3eadf;
+  --perigo: #a3301f;
+  --perigo-suave: #f5d9d3;
+  --foco: #a14f24;
+  --sombra-placa: 0 1px 0 #c4bfb6, 0 2px 6px rgba(29,32,35,0.08);
+}
+
+[data-theme='dark'] {
+  --concreto: #141618;
+  --placa: #1f2225;
+  --placa-funda: #2a2e32;
+  --linha: #3a3f44;
+  --linha-forte: #6b7178;
+  --grafite: #ecebe8;
+  --grafite-suave: #a5a9ae;
+  --cobre: #de8f5e;
+  --cobre-escuro: #f0ab80;
+  --cobre-suave: #3b2518;
+  --sobre-cobre: #1d2023;
+  --ambar: #e8b04a;
+  --sobre-ambar: #1d2023;
+  --aco: #93b0c0;
+  --aco-suave: #22313a;
+  --sucesso: #6cc79a;
+  --sucesso-suave: #163326;
+  --perigo: #f2836f;
+  --perigo-suave: #3d1b15;
+  --foco: #e8b04a;
+  --sombra-placa: 0 1px 0 #000000, 0 2px 8px rgba(0,0,0,0.4);
 }

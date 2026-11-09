@@ -1,4 +1,4 @@
-import { formatarData, formatarMoeda } from './formatacao.js';
+import { formatarData, formatarDiaCurto, formatarMoeda } from './formatacao.js';
 
 describe('formatarData', () => {
   it('formata em dd/mm/aaaa', () => {
@@ -19,4 +19,15 @@ describe('formatarMoeda', () => {
   it.each([null, undefined, '', 'abc'])('retorna vazio para %s', (v) => {
     expect(formatarMoeda(v)).toBe('');
   });
+});
+
+describe('formatarDiaCurto', () => {
+  it.each([
+    ['2026-11-08', 'Dom, 8/11'],
+    ['2026-11-07', 'Sáb, 7/11'],
+    ['2026-01-05', 'Seg, 5/1'],
+    ['', ''],
+  ])('%s → %s', (iso, esperado) =>
+    expect(formatarDiaCurto(iso)).toBe(esperado),
+  );
 });

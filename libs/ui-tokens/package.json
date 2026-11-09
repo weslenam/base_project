@@ -13,7 +13,27 @@
     "tags": [
       "type:ui",
       "scope:front"
-    ]
+    ],
+    "targets": {
+      "gerar": {
+        "command": "node scripts/gerar-tokens.mjs",
+        "options": {
+          "cwd": "libs/ui-tokens"
+        },
+        "inputs": [
+          "{workspaceRoot}/docs/identidade-visual/tokens.json",
+          "{projectRoot}/scripts/**/*"
+        ],
+        "outputs": [
+          "{projectRoot}/src/tokens.css",
+          "{projectRoot}/src/tokens.js"
+        ]
+      }
+    }
   },
-  "dependencies": {}
+  "dependencies": {
+    "@fontsource/barlow": "5.3.0",
+    "@fontsource/big-shoulders": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0"
+  }
 }

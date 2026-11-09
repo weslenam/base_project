@@ -1,8 +1,0 @@
-/* Estilos globais do app. Use apenas tokens de @barbertime/ui-tokens. */
-html,
-body {
-  margin: 0;
-  font-family: var(--ds-fonte-base);
-  color: var(--ds-cor-texto);
-  background: var(--ds-cor-fundo);
-}

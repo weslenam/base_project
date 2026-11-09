@@ -1,5 +1,4 @@
 import '@barbertime/ui-tokens';
-import './styles.css';
 import { createApp } from 'vue';
 import { instalarUi } from '@barbertime/ui';
 import App from './app/App.vue';

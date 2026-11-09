@@ -1,0 +1,5 @@
+# Fim de linha LF em tudo (ADR 0002)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary

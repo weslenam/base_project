@@ -1,0 +1,241 @@
+/* BarberTime — estilos dos componentes de referência. Cores, raios e espaços vêm só dos tokens. */
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders:opsz,wght@10..72,600..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&display=swap');
+
+body {
+  margin: 0;
+  background: var(--concreto);
+  color: var(--grafite);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 24px;
+}
+.bt-pad {
+  padding: var(--esp-4);
+}
+.bt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+  align-items: center;
+  padding: var(--esp-4);
+}
+.bt-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+.bt-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+  margin: 0;
+}
+.bt-rotulo {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--grafite-suave);
+}
+.bt-hora,
+.bt-valor {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.bt-suave {
+  color: var(--grafite-suave);
+}
+
+/* Botão */
+.bt-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  min-height: 44px;
+  padding: 0 var(--esp-4);
+  border: 2px solid transparent;
+  border-radius: var(--raio-sm);
+  font: 600 15px/20px var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.bt-botao:focus-visible,
+.bt-horario:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+.bt-botao--primario {
+  background: var(--cobre);
+  color: var(--sobre-cobre);
+}
+.bt-botao--primario:hover {
+  background: var(--cobre-escuro);
+}
+.bt-botao--secundario {
+  background: transparent;
+  color: var(--grafite);
+  border-color: var(--linha-forte);
+}
+.bt-botao--secundario:hover {
+  background: var(--placa-funda);
+}
+.bt-botao--fantasma {
+  background: transparent;
+  color: var(--cobre);
+  padding: 0 var(--esp-2);
+}
+.bt-botao--perigo {
+  background: transparent;
+  color: var(--perigo);
+  border-color: var(--perigo);
+}
+.bt-botao--pequeno {
+  min-height: 32px;
+  padding: 0 var(--esp-3);
+  font-size: 13px;
+}
+.bt-botao[disabled] {
+  background: var(--placa-funda);
+  color: var(--grafite-suave);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+/* Selo de status: sempre palavra + marca, nunca só cor */
+.bt-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  padding: 2px var(--esp-2);
+  border-radius: var(--raio-pilula);
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bt-selo::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--raio-pilula);
+  background: currentColor;
+}
+.bt-selo--confirmado {
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+}
+.bt-selo--pendente {
+  background: var(--aco-suave);
+  color: var(--aco);
+}
+.bt-selo--assinante {
+  background: var(--cobre-suave);
+  color: var(--cobre);
+}
+.bt-selo--fila {
+  background: var(--ambar);
+  color: var(--sobre-ambar);
+}
+.bt-selo--faltou {
+  background: var(--perigo-suave);
+  color: var(--perigo);
+}
+.bt-selo--neutro {
+  background: var(--placa-funda);
+  color: var(--grafite-suave);
+}
+
+/* Horários (slots) */
+.bt-horarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: var(--esp-2);
+}
+.bt-horario {
+  min-height: 44px;
+  border: 2px solid var(--linha-forte);
+  border-radius: var(--raio-sm);
+  background: var(--placa);
+  color: var(--grafite);
+  font: 500 15px/20px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.bt-horario:hover {
+  border-color: var(--cobre);
+}
+.bt-horario[aria-pressed='true'] {
+  background: var(--cobre);
+  border-color: var(--cobre);
+  color: var(--sobre-cobre);
+}
+.bt-horario[disabled] {
+  background: var(--placa-funda);
+  border-color: transparent;
+  color: var(--grafite-suave);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* Cartão */
+.bt-cartao {
+  background: var(--placa);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-md);
+  box-shadow: var(--sombra-placa);
+}
+
+/* Bloco de agendamento na agenda */
+.bt-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--esp-2) var(--esp-3);
+  border-radius: var(--raio-sm);
+  background: var(--placa);
+  border: 1px solid var(--linha);
+  border-top: 4px solid var(--grafite);
+  min-width: 0;
+}
+.bt-bloco__cliente {
+  font: 600 15px/20px var(--font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bt-bloco__servico {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--grafite-suave);
+}
+.bt-bloco--confirmado {
+  border-top-color: var(--sucesso);
+}
+.bt-bloco--pendente {
+  border-top-color: var(--aco);
+}
+.bt-bloco--assinante {
+  border-top-color: var(--cobre);
+}
+.bt-bloco--encaixe {
+  border-top-color: var(--ambar);
+}
+.bt-bloco--bloqueado {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--placa-funda) 0 6px,
+    var(--concreto) 6px 12px
+  );
+  border-top-color: var(--linha-forte);
+  color: var(--grafite-suave);
+}
