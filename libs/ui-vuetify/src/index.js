@@ -13,6 +13,7 @@ export { default as DsDialogo } from './componentes/DsDialogo.vue';
 export { default as DsIcone } from './componentes/DsIcone.vue';
 export { default as DsSelo } from './componentes/DsSelo.vue';
 export { default as DsCartao } from './componentes/DsCartao.vue';
+export { default as DsIndicador } from './componentes/DsIndicador.vue';
 export { default as DsHorarios } from './componentes/DsHorarios.vue';
 export { default as DsBlocoAgenda } from './componentes/DsBlocoAgenda.vue';
 export { default as DsInputTelefone } from './componentes/DsInputTelefone.vue';

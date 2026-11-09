@@ -15,6 +15,7 @@ export { testarUseTema } from './useTema.contrato.js';
 export { testarDsIcone } from './DsIcone.contrato.js';
 export { testarDsSelo } from './DsSelo.contrato.js';
 export { testarDsCartao } from './DsCartao.contrato.js';
+export { testarDsIndicador } from './DsIndicador.contrato.js';
 export { testarDsHorarios } from './DsHorarios.contrato.js';
 export { testarDsBlocoAgenda } from './DsBlocoAgenda.contrato.js';
 export {

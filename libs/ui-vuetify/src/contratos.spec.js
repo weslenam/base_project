@@ -13,6 +13,7 @@ import {
   testarDsIcone,
   testarDsSelo,
   testarDsCartao,
+  testarDsIndicador,
   testarDsHorarios,
   testarDsBlocoAgenda,
   testarDsInputTelefone,
@@ -45,6 +46,7 @@ import {
   NOMES_DE_ICONES,
   DsSelo,
   DsCartao,
+  DsIndicador,
   DsHorarios,
   DsBlocoAgenda,
   DsInputTelefone,
@@ -80,6 +82,7 @@ describe('Vuetify: DsIcone', () =>
   testarDsIcone({ DsIcone, NOMES_DE_ICONES }, montar));
 describe('Vuetify: DsSelo', () => testarDsSelo(DsSelo, montar));
 describe('Vuetify: DsCartao', () => testarDsCartao(DsCartao, montar));
+describe('Vuetify: DsIndicador', () => testarDsIndicador(DsIndicador, montar));
 describe('Vuetify: DsHorarios', () => testarDsHorarios(DsHorarios, montar));
 describe('Vuetify: DsBlocoAgenda', () =>
   testarDsBlocoAgenda(DsBlocoAgenda, montar));

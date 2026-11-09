@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import {
   DsBotao,
   DsCartao,
+  DsIndicador,
   DsPagina,
   DsSelo,
   DsTabela,
@@ -35,12 +36,6 @@ async function carregar() {
 onMounted(carregar);
 
 const selo = computed(() => (p.value ? SELOS[p.value.barbearia.selo] : null));
-
-const variacaoTexto = (v) =>
-  v === null || v === undefined
-    ? 'sem base no mês anterior'
-    : `${v > 0 ? '+' : ''}${String(v).replace('.', ',')}% vs mês anterior`;
-const tendencia = (v) => (v > 0 ? 'sobe' : v < 0 ? 'cai' : 'igual');
 
 const indicadores = computed(() => {
   if (!p.value) return [];
@@ -217,38 +212,33 @@ const acoesDoModulo = (m) =>
       </div>
 
       <section class="grade grade--indicadores" aria-label="Indicadores do mês">
-        <DsCartao v-for="i in indicadores" :key="i.titulo" :titulo="i.titulo">
-          <p class="ds-display">{{ i.valor }}</p>
-          <p :class="['variacao', `variacao--${tendencia(i.variacao)}`]">
-            {{ variacaoTexto(i.variacao) }}
-          </p>
-        </DsCartao>
-        <DsCartao titulo="Clientes">
-          <p class="ds-display">{{ p.clientes.total }}</p>
-          <p class="ds-corpo-sm ds-suave">
-            {{ p.clientes.novos }} novos · {{ p.clientes.atendidos }} atendidos
-            no mês
-          </p>
-        </DsCartao>
-        <DsCartao titulo="Agendamentos do mês">
-          <p class="ds-display">{{ p.agendamentos.marcados }}</p>
-          <p class="ds-corpo-sm ds-suave">
-            {{ p.agendamentos.noShow }} faltas ·
-            {{ p.agendamentos.cancelados }} cancelados
-          </p>
-        </DsCartao>
-        <DsCartao titulo="Caixa atual">
-          <template v-if="p.caixa">
-            <p class="ds-display">{{ formatarMoeda(p.caixa.totalRecebido) }}</p>
-            <p class="ds-corpo-sm ds-suave">
-              Aberto em {{ formatarData(`${p.caixa.data}T12:00:00`) }} às
-              {{ p.caixa.abertoAs }} · {{ p.caixa.pagas }} pagas,
-              {{ p.caixa.abertas }} abertas ·
-              {{ formatarMoeda(p.caixa.dinheiroEsperado) }} em dinheiro
-            </p>
-          </template>
-          <p v-else class="ds-corpo-sm ds-suave">Caixa fechado.</p>
-        </DsCartao>
+        <DsIndicador
+          v-for="i in indicadores"
+          :key="i.titulo"
+          :rotulo="i.titulo"
+          :valor="i.valor"
+          :variacao="i.variacao"
+          comparacao="mês anterior"
+        />
+        <DsIndicador
+          rotulo="Clientes"
+          :valor="p.clientes.total"
+          :detalhe="`${p.clientes.novos} novos · ${p.clientes.atendidos} atendidos no mês`"
+        />
+        <DsIndicador
+          rotulo="Agendamentos do mês"
+          :valor="p.agendamentos.marcados"
+          :detalhe="`${p.agendamentos.noShow} faltas · ${p.agendamentos.cancelados} cancelados`"
+        />
+        <DsIndicador
+          rotulo="Caixa atual"
+          :valor="p.caixa ? formatarMoeda(p.caixa.totalRecebido) : 'Fechado'"
+          :detalhe="
+            p.caixa
+              ? `Aberto em ${formatarData(`${p.caixa.data}T12:00:00`)} às ${p.caixa.abertoAs} · ${p.caixa.pagas} pagas, ${p.caixa.abertas} abertas · ${formatarMoeda(p.caixa.dinheiroEsperado)} em dinheiro`
+              : 'Nenhum caixa aberto.'
+          "
+        />
       </section>
 
       <DsCartao titulo="Faturamento por dia">
@@ -373,23 +363,17 @@ const acoesDoModulo = (m) =>
   margin-block: var(--esp-4);
 }
 .grade--indicadores {
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
 }
 .grade--metade {
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+}
+/* Filhos da grade podem encolher (tabelas e textos longos não estouram). */
+.grade > * {
+  min-inline-size: 0;
 }
 .grade p {
   margin: 0;
-}
-.variacao {
-  font: var(--tipo-corpo-sm);
-  color: var(--grafite-suave);
-}
-.variacao--sobe {
-  color: var(--sucesso);
-}
-.variacao--cai {
-  color: var(--perigo);
 }
 .barras {
   display: flex;
