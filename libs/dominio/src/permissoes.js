@@ -44,6 +44,11 @@ export const PERMISSOES = Object.freeze([
     grupo: 'Caixa',
     descricao: 'Abrir o caixa, lançar e receber comandas',
   },
+  {
+    chave: 'caixa.abrir',
+    grupo: 'Caixa',
+    descricao: 'Abrir o caixa do dia (troco inicial)',
+  },
   { chave: 'caixa.fechar', grupo: 'Caixa', descricao: 'Fechar o caixa do dia' },
   {
     chave: 'catalogo.gerenciar',
@@ -157,6 +162,7 @@ export const PAPEIS_PADRAO = Object.freeze([
       'clientes.ver',
       'clientes.editar',
       'caixa.operar',
+      'caixa.abrir',
       'pacotes.vender',
       'estoque.ver',
     ],

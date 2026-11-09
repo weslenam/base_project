@@ -18,6 +18,12 @@
   - Tela inicial? → **Balcão.**
   - Mini-spec → "sim esta aprovado".
 
+### Solicitações relacionadas
+
+> esta tela no computador não ficou boa porque acrescentou uma linha na tela toda que podemos otimizar, preciso de um feedback de como podemos melhorar essa navegação (2026-11-09)
+
+- Opções apresentadas: abas no cabeçalho, botões segmentados ou faixa mais fina → **Abas no cabeçalho.**
+
 ## Objetivo
 
 O Barbeiro alterna entre Balcão e Agenda por abas, sem menu lateral. No Balcão ajuda no atendimento (check-in, avulso, receber), mas só inicia e finaliza os próprios atendimentos.
@@ -65,3 +71,4 @@ O Barbeiro alterna entre Balcão e Agenda por abas, sem menu lateral. No Balcão
 
 - 2026-11-09 — Plano criado e aprovado pelo Weslen.
 - 2026-11-09 — Implementado. Acréscimo: pausa só a própria (mesma lógica de iniciar). O painel do Balcão expõe `usuarioId` de cada barbeiro para a tela esconder as ações. Login sem "volta" vai para `/`, que leva o Barbeiro ao Balcão (o guarda evita laço de redirecionamento, pego no `verificar:layout`). Verificado: `pnpm verificar`, `api:integracao` (116, inclui `balcaoBarbeiro.spec.js`) e `verificar:layout` (81).
+- 2026-11-09 — Ajuste pedido pelo Weslen: no PC e no tablet, as abas foram para dentro do cabeçalho, na mesma linha do nome da barbearia. A faixa extra (~48px) sumiu, e a aba ativa fica sublinhada na borda do cabeçalho. No celular, a barra continua no rodapé. Branch `feat/0036-abas-no-cabecalho`.

@@ -60,7 +60,12 @@ export default async function (fastify) {
   );
   fastify.post(
     '/caixa/abrir',
-    { ...operar, schema: corpo({ valorInicial: escalar() }) },
+    // Abrir o caixa tem permissão própria: o Barbeiro opera, mas não abre
+    // (planejamento 0039).
+    {
+      preHandler: fastify.exigir('caixa.abrir'),
+      schema: corpo({ valorInicial: escalar() }),
+    },
     (req) => na(req, (c) => abrirCaixa(c, barbearia(req), req.body ?? {})),
   );
   fastify.post(

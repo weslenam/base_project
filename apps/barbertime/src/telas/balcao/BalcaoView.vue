@@ -72,6 +72,9 @@ const pode = (acao, alvo = {}) =>
     acao,
     alvo,
   );
+const podeAbrirCaixa = computed(() =>
+  Boolean(sessao.value?.permissoes?.includes('caixa.abrir')),
+);
 const contaDoBarbeiro = (id) =>
   painel.value?.barbeiros.find((b) => b.id === id)?.usuarioId ?? null;
 const podeIniciar = (f) =>
@@ -170,10 +173,16 @@ const servicos = computed(() => painel.value?.servicos ?? []);
     </template>
 
     <DsCartao v-if="painel && !painel.caixaAberto" titulo="Caixa fechado">
-      <p class="ds-corpo-sm">
+      <!-- Abrir o caixa tem permissão própria; o Barbeiro só pede
+           (planejamento 0039). -->
+      <p v-if="!podeAbrirCaixa" class="ds-corpo-sm">
+        O caixa de hoje ainda não foi aberto. Peça à recepção ou ao gerente
+        para abrir; depois dá para registrar avulsos e fazer check-in.
+      </p>
+      <p v-else class="ds-corpo-sm">
         Para registrar avulsos e fazer check-in, abra o caixa de hoje.
       </p>
-      <div class="abrir">
+      <div v-if="podeAbrirCaixa" class="abrir">
         <DsInputMoeda v-model="trocoInicial" rotulo="Troco inicial" />
         <DsBotao :carregando="ocupado === 'caixa'" @click="abrirCaixa">
           Abrir caixa

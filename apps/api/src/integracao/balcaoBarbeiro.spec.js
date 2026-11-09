@@ -117,6 +117,17 @@ describe('Barbeiro no Balcão', () => {
     expect((await acao(barbeiro, queLancou.id, 'desistir')).status).toBe(200);
   });
 
+  // Planejamento 0039: abrir o caixa tem permissão própria.
+  it('o Barbeiro não abre o caixa; a Recepção abre', async () => {
+    const { barbeiro, recepcao } = await montada();
+    const abrir = (quem) =>
+      quem.n.post('/api/caixa/abrir', { valorInicial: 10 });
+    expect((await abrir(barbeiro)).status).toBe(403);
+    // O caixa já foi aberto na montagem: a Recepção passa da permissão e
+    // esbarra só no "já aberto".
+    expect((await abrir(recepcao)).status).not.toBe(403);
+  });
+
   it('pausa só a própria agenda', async () => {
     const { barbeiro, marcos, leo } = await montada();
     const pausar = (b) =>

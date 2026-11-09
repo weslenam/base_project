@@ -66,26 +66,34 @@ const menuAberto = ref(null);
     <div class="ds-layout__marca">
       <slot name="marca" />
     </div>
-    <VAppBarTitle class="ds-layout__titulo">{{ titulo }}</VAppBarTitle>
+    <VAppBarTitle
+      :class="[
+        'ds-layout__titulo',
+        { 'ds-layout__titulo--com-abas': abas.length && !celular },
+      ]"
+      >{{ titulo }}</VAppBarTitle
+    >
+    <!-- PC e tablet: abas na mesma linha do título, sem faixa extra; a aba
+         ativa fica sublinhada na borda do cabeçalho (planejamento 0036). -->
+    <VTabs
+      v-if="abas.length && !celular"
+      class="ds-layout__abas"
+      aria-label="Navegação principal"
+      color="primary"
+      height="64"
+    >
+      <VTab
+        v-for="aba in abas"
+        :key="aba.rota"
+        :to="aba.rota"
+        class="ds-layout__aba"
+      >
+        <DsIcone v-if="aba.icone" :nome="aba.icone" class="ds-layout__icone" />
+        {{ aba.titulo }}
+      </VTab>
+    </VTabs>
     <template #append>
       <slot name="cabecalho-acoes" />
-    </template>
-    <template v-if="abas.length && !celular" #extension>
-      <VTabs
-        class="ds-layout__abas"
-        aria-label="Navegação principal"
-        color="primary"
-      >
-        <VTab
-          v-for="aba in abas"
-          :key="aba.rota"
-          :to="aba.rota"
-          class="ds-layout__aba"
-        >
-          <DsIcone v-if="aba.icone" :nome="aba.icone" class="ds-layout__icone" />
-          {{ aba.titulo }}
-        </VTab>
-      </VTabs>
     </template>
   </VAppBar>
 
@@ -202,13 +210,19 @@ const menuAberto = ref(null);
 .ds-layout__conteudo {
   font-family: var(--font-sans);
 }
-.ds-layout__abas,
+.ds-layout__titulo--com-abas {
+  /* Com abas, o título não empurra as abas para a direita. */
+  flex: 0 0 auto;
+  margin-inline-end: var(--esp-6);
+}
+.ds-layout__abas {
+  align-self: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .ds-layout__rodape {
   background: var(--placa) !important;
   border-top: 1px solid var(--linha);
-}
-.ds-layout__abas {
-  width: 100%;
 }
 .ds-layout__aba {
   gap: var(--esp-2);
