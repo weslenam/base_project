@@ -49,6 +49,10 @@ export default async function (fastify) {
   const fidelidade = (req) => ({
     ativo: req.contexto.modulosAtivos.includes('fidelidade'),
   });
+  // Usar pacote na comanda (e vender) só com o módulo ativo (planejamento 0034).
+  const pacotes = (req) => ({
+    ativo: req.contexto.modulosAtivos.includes('pacotes'),
+  });
   const verCliente = {
     preHandler: fastify.exigirAlguma('clientes.ver', 'caixa.operar'),
   };
@@ -88,6 +92,7 @@ export default async function (fastify) {
     return na(req, (c) =>
       salvarComanda(c, barbearia(req), req.body ?? {}, {
         fidelidade: fidelidade(req),
+        pacotes: pacotes(req),
       }),
     );
   });
@@ -97,7 +102,7 @@ export default async function (fastify) {
         c,
         barbearia(req),
         { ...req.body, id: Number(req.params.id) },
-        { fidelidade: fidelidade(req) },
+        { fidelidade: fidelidade(req), pacotes: pacotes(req) },
       ),
     ),
   );

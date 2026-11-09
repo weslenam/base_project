@@ -10,6 +10,8 @@ import {
 } from '../pacotes/descricao.js';
 
 const aberto = defineModel({ type: Boolean, default: false });
+/** Renovação (planejamento 0034): o pacote vem fixo; só se escolhe quem vendeu. */
+const props = defineProps({ renovacao: { type: Object, default: null } });
 const emit = defineEmits(['vender']);
 
 const pacotes = ref([]);
@@ -19,7 +21,7 @@ const barbeiroId = ref(null);
 
 watch(aberto, async (abriu) => {
   if (!abriu) return;
-  pacoteId.value = null;
+  pacoteId.value = props.renovacao?.pacoteId ?? null;
   barbeiroId.value = null;
   [pacotes.value, barbeiros.value] = await Promise.all([
     api.pacotes.listar(),
@@ -47,10 +49,19 @@ function confirmar() {
 </script>
 
 <template>
-  <DsDialogo v-model="aberto" titulo="Vender pacote" largura="md" fechavel>
+  <DsDialogo
+    v-model="aberto"
+    :titulo="renovacao ? 'Renovar pacote' : 'Vender pacote'"
+    largura="md"
+    fechavel
+  >
     <div class="vender">
+      <p v-if="renovacao" class="ds-corpo">
+        <strong>{{ escolhido?.nome }}</strong>
+        <template v-if="escolhido"> · {{ descreverPreco(escolhido) }}</template>
+      </p>
       <DsEscolha
-        v-if="opcoesPacotes.length <= 4"
+        v-else-if="opcoesPacotes.length <= 4"
         v-model="pacoteId"
         :opcoes="opcoesPacotes"
         rotulo="Pacote"
@@ -80,14 +91,20 @@ function confirmar() {
         rotulo="Quem vendeu"
         :opcoes="opcoesBarbeiros"
       />
-      <p class="ds-corpo-sm ds-suave">
+      <p v-if="renovacao" class="ds-corpo-sm ds-suave">
+        Abre uma comanda no caixa com a renovação. O novo mês começa
+        {{ renovacao.inicio }}, quando a comanda for paga.
+      </p>
+      <p v-else class="ds-corpo-sm ds-suave">
         Abre uma comanda no caixa com o pacote. Ele passa a valer quando a
         comanda for paga.
       </p>
     </div>
     <template #acoes>
       <DsBotao :desabilitado="!pacoteId || !barbeiroId" @click="confirmar">
-        Vender e ir para o caixa
+        {{
+          renovacao ? 'Renovar e ir para o caixa' : 'Vender e ir para o caixa'
+        }}
       </DsBotao>
     </template>
   </DsDialogo>

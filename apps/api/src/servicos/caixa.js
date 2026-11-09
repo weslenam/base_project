@@ -8,10 +8,18 @@ import { conflito, invalido, naoEncontrado } from '../infra/erros.js';
 import { agora } from './agenda.js';
 import { baixarComanda } from './estoque.js';
 import { conferirResgate, fidelidadeAoReceber } from './fidelidade.js';
+import {
+  buscarPacote,
+  conferirUsos,
+  conferirVendaPendente,
+  pacotesAoCancelar,
+  pacotesAoReceber,
+} from './pacotes.js';
 
 // Caixa do dia e comandas (planejamento 0020, fase 1). A comanda nasce no
 // check-in ou na entrada na fila e acompanha o atendimento até o pagamento.
-// Fidelidade (crédito e resgate) no planejamento 0034; pacotes na etapa B dele.
+// Fidelidade (crédito e resgate) e pacotes (venda, uso e renovação) no
+// planejamento 0034.
 
 const SELECT_CAIXA = `
   select id, data, valor_inicial as "valorInicial", aberto, aberto_as as "abertoAs",
@@ -162,16 +170,48 @@ async function exigirBarbeiro(c, id) {
  * Itens com nome e preço do catálogo no momento da venda (base da comissão
  * futura). Nome e preço nunca vêm de quem chama a API.
  */
-async function normalizarItens(c, itens = [], barbeiroId) {
+async function normalizarItens(c, itens = [], barbeiroId, pacotes) {
   const normalizados = [];
   const conferidos = new Set(barbeiroId ? [barbeiroId] : []);
   for (const i of itens) {
     // O item do prêmio da fidelidade é montado pelo servidor (conferirResgate).
     if (i.premio) continue;
-    if (i.tipo === 'pacote' || i.assinaturaId)
-      throw invalido(
-        'Pacotes ainda não estão disponíveis nesta versão do caixa.',
+    const doItem = i.barbeiroId ? Number(i.barbeiroId) : null;
+    if (doItem && !conferidos.has(doItem)) {
+      await exigirBarbeiro(c, doItem);
+      conferidos.add(doItem);
+    }
+    if ((i.tipo === 'pacote' || i.assinaturaId) && !pacotes.ativo)
+      throw invalido('O módulo de pacotes não está ativo nesta barbearia.');
+    // Pacote só entra pela venda ou pela renovação (rotas de assinaturas), com
+    // o preço do catálogo; salvo de novo, fica como foi vendido (issue #22).
+    if (i.tipo === 'pacote') {
+      const ja = pacotes.anteriores.findIndex(
+        (x) => x.refId === Number(i.refId),
       );
+      if (ja >= 0) {
+        const [anterior] = pacotes.anteriores.splice(ja, 1);
+        normalizados.push({
+          ...anterior,
+          barbeiroId: doItem ?? anterior.barbeiroId ?? barbeiroId ?? null,
+        });
+        continue;
+      }
+      if (!pacotes.venda)
+        throw invalido(
+          'Pacote entra na comanda só pela venda, no cadastro do cliente.',
+        );
+      const pacote = await buscarPacote(c, i.refId);
+      normalizados.push({
+        tipo: 'pacote',
+        refId: pacote.id,
+        nome: `Pacote: ${pacote.nome}`,
+        preco: Number(pacote.preco),
+        quantidade: 1,
+        barbeiroId: doItem ?? barbeiroId ?? null,
+      });
+      continue;
+    }
     const produto = i.tipo === 'produto';
     const {
       rows: [ref],
@@ -182,10 +222,19 @@ async function normalizarItens(c, itens = [], barbeiroId) {
     );
     if (!ref)
       throw invalido(`${produto ? 'Produto' : 'Serviço'} não encontrado.`);
-    const doItem = i.barbeiroId ? Number(i.barbeiroId) : null;
-    if (doItem && !conferidos.has(doItem)) {
-      await exigirBarbeiro(c, doItem);
-      conferidos.add(doItem);
+    // Serviço usado por pacote: sai por R$ 0, ligado à assinatura; o uso é
+    // conferido em conferirUsos (salvar) e gravado ao receber.
+    if (!produto && i.assinaturaId) {
+      normalizados.push({
+        tipo: 'servico',
+        refId: ref.id,
+        nome: `${ref.nome} (pacote)`,
+        preco: 0,
+        quantidade: 1,
+        barbeiroId: doItem ?? barbeiroId ?? null,
+        assinaturaId: Number(i.assinaturaId),
+      });
+      continue;
     }
     normalizados.push({
       tipo: produto ? 'produto' : 'servico',
@@ -207,7 +256,7 @@ export async function salvarComanda(
   c,
   barbeariaId,
   dados,
-  { fidelidade = { ativo: false } } = {},
+  { fidelidade = { ativo: false }, pacotes = { ativo: false } } = {},
 ) {
   const caixa = await exigirCaixaAberto(c);
   const barbeiroId = dados.barbeiroId ? Number(dados.barbeiroId) : null;
@@ -231,7 +280,14 @@ export async function salvarComanda(
     if (['desistiu', 'no_show', 'cancelado', 'pago'].includes(a.estado))
       throw invalido('Esse atendimento já foi encerrado.');
   }
-  const itens = await normalizarItens(c, dados.itens, barbeiroId);
+  // Itens de pacote já na comanda (venda ou renovação): os únicos aceitos de volta.
+  const anteriores = dados.id
+    ? (await obterComanda(c, dados.id)).itens.filter((i) => i.tipo === 'pacote')
+    : [];
+  const itens = await normalizarItens(c, dados.itens, barbeiroId, {
+    ...pacotes,
+    anteriores,
+  });
   const desconto = Number(dados.desconto || 0);
   if (!Number.isFinite(desconto))
     throw invalido('Informe o desconto em reais.');
@@ -245,6 +301,8 @@ export async function salvarComanda(
     );
     if (!r.rowCount) throw invalido('Cliente não encontrado.');
   }
+  await conferirUsos(c, itens, clienteId, agora().data);
+  if (dados.id) await conferirVendaPendente(c, dados.id, itens, clienteId);
   // Módulo desligado: o resgate pedido antes cai ao salvar, para a comanda
   // aberta não ficar travada (planejamento 0037).
   const premioFidelidade = fidelidade.ativo && Boolean(dados.premioFidelidade);
@@ -333,6 +391,8 @@ export async function receberComanda(
     );
   }
   if (barbeariaId) await baixarComanda(c, barbeariaId, cm, usuarioId);
+  // Pacotes (planejamento 0034, etapa B): usos e ativação da venda.
+  if (barbeariaId) await pacotesAoReceber(c, barbeariaId, cm, agora().data);
   // Fidelidade (planejamento 0034): gastos do resgate e créditos, na mesma transação.
   const creditos = barbeariaId
     ? await fidelidadeAoReceber(c, barbeariaId, cm, {
@@ -350,6 +410,7 @@ export async function cancelarComanda(c, id) {
   await c.query("update comandas set estado = 'cancelada' where id = $1", [
     cm.id,
   ]);
+  await pacotesAoCancelar(c, cm.id);
   return obterComanda(c, cm.id);
 }
 

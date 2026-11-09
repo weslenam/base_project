@@ -148,3 +148,16 @@ export function renovarAssinatura(pacote, assinatura) {
     ...vigenciaDoPacote(pacote, somarDias(assinatura.fim, 1)),
   };
 }
+
+/**
+ * Vigência do ciclo renovado, contada quando a renovação é paga (planejamento
+ * 0034, etapa B): ainda em vigor, começa no dia seguinte ao fim do atual (o
+ * cliente não perde dias); já vencido, começa no dia do pagamento. Só o pacote
+ * recorrente renova: o de compra única é vendido de novo (null).
+ */
+export function cicloDaRenovacao(pacote, anterior, hoje) {
+  if (pacote.tipo !== 'recorrente') return null;
+  const inicio =
+    anterior.fim && anterior.fim >= hoje ? somarDias(anterior.fim, 1) : hoje;
+  return vigenciaDoPacote(pacote, inicio);
+}

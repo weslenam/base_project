@@ -95,7 +95,7 @@ export const PERMISSOES = Object.freeze([
   {
     chave: 'pacotes.vender',
     grupo: 'Pacotes',
-    descricao: 'Vender pacotes e usá-los no balcão',
+    descricao: 'Vender e renovar pacotes (usar na comanda é caixa.operar)',
     modulo: 'pacotes',
   },
   {

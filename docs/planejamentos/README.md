@@ -35,7 +35,7 @@
 | [0031](0031-indicadores-do-business-center.md)                    | Cartões de indicador e responsividade do painel do Business Center            | Concluído                | 2026-11-08 |
 | [0032](0032-testes-de-layout-com-playwright.md)                   | Testes de layout com Playwright                                               | Concluído                | 2026-11-08 |
 | [0033](0033-papeis-explicados-com-historias.md)                   | Papéis explicados com histórias                                               | Concluído                | 2026-11-08 |
-| [0034](0034-fidelidade-e-pacotes-no-banco.md)                     | Fidelidade e pacotes no banco, com resgate na comanda                         | Em andamento             | 2026-11-08 |
+| [0034](0034-fidelidade-e-pacotes-no-banco.md)                     | Fidelidade e pacotes no banco, com resgate na comanda                         | Concluído                | 2026-11-08 |
 | [0035](0035-barbeiro-ajuda-na-agenda-sem-menu.md)                 | Barbeiro ajuda na agenda, sem menu                                            | Concluído                | 2026-11-09 |
 | [0036](0036-barbeiro-com-abas-balcao-e-agenda.md)                | Barbeiro com abas Balcão e Agenda                                             | Concluído                | 2026-11-09 |
 | [0037](0037-correcoes-da-revisao-fidelidade-e-barbeiro.md)       | Correções da revisão (fidelidade e Barbeiro)                                  | Concluído                | 2026-11-09 |

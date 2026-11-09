@@ -4,6 +4,7 @@ import {
   motivoParaUsarCashback,
   motivoParaUsarPremio,
   FIDELIDADE_PADRAO,
+  cicloDaRenovacao,
   podeUsarPacote,
   saldoDeFidelidade,
   saldoDoPacote,
@@ -249,11 +250,21 @@ export function criarApi({ agora = () => new Date() } = {}) {
 
   function completarAssinatura(a) {
     const pacote = pacoteDa(a);
+    // Renovação pedida ou paga deste ciclo (planejamento 0034, etapa B).
+    const renovacao = banco.assinaturas.find(
+      (x) => x.renovacaoDe === a.id && x.estado !== 'cancelada',
+    );
     return {
       ...a,
+      renovacao: renovacao?.estado ?? null,
       pacote,
       saldo: a.inicio ? saldoDoPacote(pacote, a) : [],
       vigente: a.estado === 'ativa' && a.inicio <= hoje() && hoje() <= a.fim,
+      aComecar: a.estado === 'ativa' && a.inicio > hoje(),
+      renovaEm:
+        a.estado === 'ativa' && pacote.tipo === 'recorrente' && a.fim >= hoje()
+          ? cicloDaRenovacao(pacote, a, hoje()).inicio
+          : null,
     };
   }
 
@@ -832,9 +843,14 @@ export function criarApi({ agora = () => new Date() } = {}) {
         for (const a of banco.assinaturas.filter(
           (x) => x.comandaVendaId === comanda.id,
         )) {
+          const anterior = banco.assinaturas.find(
+            (x) => x.id === a.renovacaoDe,
+          );
           Object.assign(a, {
             estado: 'ativa',
-            ...vigenciaDoPacote(pacoteDa(a), hoje()),
+            ...(anterior
+              ? cicloDaRenovacao(pacoteDa(a), anterior, hoje())
+              : vigenciaDoPacote(pacoteDa(a), hoje())),
           });
         }
         // Estoque (planejamento 0027): revenda e fichas técnicas, com o módulo ativo.
@@ -1329,6 +1345,47 @@ export function criarApi({ agora = () => new Date() } = {}) {
           pacoteId: pacote.id,
           estado: 'aguardando_pagamento',
           comandaVendaId: comanda.id,
+          inicio: null,
+          fim: null,
+          usos: [],
+        };
+        banco.assinaturas.push(assinatura);
+        return {
+          assinatura: copia(completarAssinatura(assinatura)),
+          comandaId: comanda.id,
+        };
+      },
+      /** Renova o pacote mensal: nova assinatura ligada à anterior, paga no caixa. */
+      async renovar(id, { barbeiroId } = {}) {
+        const anterior = buscar('assinaturas', id, 'Pacote do cliente');
+        const pacote = pacoteDa(anterior);
+        if (anterior.estado !== 'ativa')
+          throw new ErroDeNegocio('Só dá para renovar um pacote já pago.');
+        if (pacote.tipo !== 'recorrente')
+          throw new ErroDeNegocio(
+            'Só o pacote mensal é renovado. Venda o pacote de novo ao cliente.',
+          );
+        const pendente = banco.assinaturas.find(
+          (x) => x.renovacaoDe === anterior.id && x.estado !== 'cancelada',
+        );
+        if (pendente)
+          throw new ErroDeNegocio(
+            pendente.estado === 'ativa'
+              ? 'Este ciclo já foi renovado.'
+              : 'Já existe uma renovação aguardando pagamento no caixa.',
+          );
+        const comanda = await api.comandas.salvar({
+          clienteId: anterior.clienteId,
+          barbeiroId,
+          itens: [{ tipo: 'pacote', refId: pacote.id }],
+        });
+        const assinatura = {
+          id: proximoId(banco.assinaturas),
+          clienteId: anterior.clienteId,
+          pacoteId: pacote.id,
+          estado: 'aguardando_pagamento',
+          comandaVendaId: comanda.id,
+          renovacaoDe: anterior.id,
           inicio: null,
           fim: null,
           usos: [],
