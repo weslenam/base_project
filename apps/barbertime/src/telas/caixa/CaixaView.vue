@@ -147,6 +147,14 @@ const formas = FORMAS_DE_PAGAMENTO;
             {{ formatarMoeda(caixa.resumo.porForma[f.valor]) }}
           </p>
         </div>
+        <!-- Cashback abate como desconto: aparece, mas não entra na gaveta
+             (planejamento 0037). -->
+        <div v-if="caixa.resumo.cashback" class="resumo__forma">
+          <p class="ds-rotulo">Cashback usado</p>
+          <p class="ds-valor">
+            {{ formatarMoeda(caixa.resumo.cashback) }}
+          </p>
+        </div>
         <div class="resumo__forma">
           <p class="ds-rotulo">Na gaveta</p>
           <p class="ds-valor">

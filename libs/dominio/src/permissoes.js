@@ -187,7 +187,8 @@ export const podeMarcarNaAgenda = (permissoes = []) =>
  * Pode levar este item da agenda para `estado` (confirmado, atendido, faltou,
  * cancelado)? Planejamento 0035. Com `agenda.gerenciar`, sempre. Com
  * `agenda.ajudar`: confirmar, cancelar e remover bloqueio só no que a pessoa
- * criou; atendido e faltou também nos atendimentos em que ela é o barbeiro.
+ * criou; faltou também nos atendimentos em que ela é o barbeiro; atendido só
+ * nos próprios atendimentos, como "finalizar" no Balcão (planejamento 0037).
  * Se a transição em si é válida, quem decide é o ciclo do atendimento.
  *
  * @param {{ usuarioId: number, permissoes: string[] }} quem
@@ -201,25 +202,26 @@ export function podeAgirNaAgenda(quem, item, estado) {
   const criou = item?.criadoPor != null && item.criadoPor === quem.usuarioId;
   if (item?.bloqueio) return criou;
   if (estado === 'confirmado' || estado === 'cancelado') return criou;
-  if (estado === 'atendido' || estado === 'faltou')
-    return (
-      criou ||
-      (item?.barbeiroUsuarioId != null &&
-        item.barbeiroUsuarioId === quem.usuarioId)
-    );
+  const naColuna =
+    item?.barbeiroUsuarioId != null &&
+    item.barbeiroUsuarioId === quem.usuarioId;
+  if (estado === 'atendido') return naColuna;
+  if (estado === 'faltou') return criou || naColuna;
   return false;
 }
 
 /**
  * Pode fazer `acao` no Balcão (planejamento 0036)? Com `agenda.gerenciar`,
  * tudo. Só com `caixa.operar` (Barbeiro): ver, check-in, avulso e receber em
- * qualquer atendimento; iniciar só consigo como barbeiro; finalizar e pausa só
- * os próprios; desistência e falta na própria coluna ou no que criou.
+ * qualquer atendimento; iniciar só consigo, e só o que já é dele ou avulso sem
+ * barbeiro ("Primeiro livre", planejamento 0037); finalizar e pausa só os
+ * próprios; desistência e falta na própria coluna ou no que criou.
  *
  * @param {{ usuarioId: number, permissoes: string[] }} quem
  * @param {'ver'|'checkin'|'avulso'|'receber'|'iniciar'|'finalizar'|'desistir'|'no_show'|'pausa'} acao
- * @param {{ barbeiroUsuarioId?: number|null, criadoPor?: number|null, destinoUsuarioId?: number|null }} alvo
- *   destinoUsuarioId: conta do barbeiro que vai atender (iniciar).
+ * @param {{ barbeiroId?: number|null, barbeiroUsuarioId?: number|null, criadoPor?: number|null, destinoUsuarioId?: number|null }} alvo
+ *   barbeiroId/barbeiroUsuarioId: barbeiro atual do atendimento (null = sem
+ *   barbeiro); destinoUsuarioId: conta de quem vai atender (iniciar).
  */
 export function podeAgirNoBalcao(quem, acao, alvo = {}) {
   const permissoes = quem?.permissoes ?? [];
@@ -234,7 +236,10 @@ export function podeAgirNoBalcao(quem, acao, alvo = {}) {
     case 'receber':
       return true;
     case 'iniciar':
-      return eu(alvo.destinoUsuarioId);
+      return (
+        eu(alvo.destinoUsuarioId) &&
+        (alvo.barbeiroId == null || eu(alvo.barbeiroUsuarioId))
+      );
     case 'finalizar':
     case 'pausa':
       return eu(alvo.barbeiroUsuarioId);

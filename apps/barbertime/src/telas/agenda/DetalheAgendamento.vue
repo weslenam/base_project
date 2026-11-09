@@ -13,12 +13,12 @@ import { formatarDiaCurto, formatarTelefone } from '@barbertime/ui-utils';
 import { podeAgirNaAgenda } from '@barbertime/dominio';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { semMenu, useSessao } from '../../sessao/sessao.js';
 import { seloDoEstado } from '../estados.js';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ id: { type: Number, default: null } });
-const emit = defineEmits(['alterado']);
+const emit = defineEmits(['alterado', 'comanda']);
 
 const { confirmar, advertir } = useDialogo();
 const notificar = useNotificacao();
@@ -114,7 +114,10 @@ async function abrirComanda() {
   );
   if (!comanda) return;
   aberto.value = false;
-  router.push({ path: '/caixa', query: { comanda: comanda.id } });
+  // Sem a tela Caixa (Barbeiro), a comanda abre na própria Agenda
+  // (planejamento 0037).
+  if (semMenu()) emit('comanda', comanda.id);
+  else router.push({ path: '/caixa', query: { comanda: comanda.id } });
 }
 
 async function removerBloqueio() {

@@ -245,8 +245,10 @@ export async function salvarComanda(
     );
     if (!r.rowCount) throw invalido('Cliente não encontrado.');
   }
-  const premioFidelidade = Boolean(dados.premioFidelidade);
-  const cashbackUsado = Number(dados.cashbackUsado || 0);
+  // Módulo desligado: o resgate pedido antes cai ao salvar, para a comanda
+  // aberta não ficar travada (planejamento 0037).
+  const premioFidelidade = fidelidade.ativo && Boolean(dados.premioFidelidade);
+  const cashbackUsado = fidelidade.ativo ? Number(dados.cashbackUsado || 0) : 0;
   if (!Number.isFinite(cashbackUsado) || cashbackUsado < 0)
     throw invalido('Informe o cashback em reais.');
   const { itemPremio } = await conferirResgate(

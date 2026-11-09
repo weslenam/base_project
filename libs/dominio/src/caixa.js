@@ -72,9 +72,14 @@ export function resumoDoCaixa({ valorInicial = 0, comandas = [] }) {
     FORMAS_DE_PAGAMENTO.map((f) => [f.valor, 0]),
   );
   let pagas = 0;
+  // Cashback (planejamento 0037): abate como desconto, fora da gaveta, mas
+  // aparece numa linha própria no resumo e no fechamento.
+  let cashback = 0;
   for (const c of comandas) {
     if (c.estado !== 'paga') continue;
-    porForma[c.forma] += emCentavos(totalDaComanda(c).total);
+    const t = totalDaComanda(c);
+    porForma[c.forma] += emCentavos(t.total);
+    cashback += emCentavos(t.cashback);
     pagas += 1;
   }
   const total = Object.values(porForma).reduce((a, b) => a + b, 0);
@@ -83,6 +88,7 @@ export function resumoDoCaixa({ valorInicial = 0, comandas = [] }) {
       Object.entries(porForma).map(([f, c]) => [f, emReais(c)]),
     ),
     totalRecebido: emReais(total),
+    cashback: emReais(cashback),
     dinheiroEsperado: emReais(emCentavos(valorInicial) + porForma.dinheiro),
     pagas,
     abertas: comandas.filter((c) => c.estado === 'aberta').length,

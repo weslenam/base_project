@@ -302,6 +302,27 @@ describe('painel da barbearia', () => {
     expect(p.auditoria.map((a) => a.acao)).not.toContain('ver_painel');
   });
 
+  // Planejamento 0037: o cashback abate como desconto também no painel.
+  it('cashback usado sai do faturamento e do dinheiro esperado', async () => {
+    const b = await barbeariaComMovimento();
+    await comoSuperusuario((c) =>
+      c.query(
+        `update comandas set cashback_usado = 10
+          where id = (select min(cm.id) from comandas cm
+                        join caixas cx on cx.id = cm.caixa_id
+                       where cm.barbearia_id = $1 and cm.estado = 'paga' and cx.aberto)`,
+        [b.id],
+      ),
+    );
+    const op = await novoOperador();
+    const { n } = await entrarComo(op);
+    const lista = (await n.get('/api/plataforma/barbearias')).corpo;
+    expect(lista.find((x) => x.id === b.id).faturamentoMes).toBe(230);
+    const p = (await n.get(`/api/plataforma/barbearias/${b.id}`)).corpo;
+    expect(p.faturamento.atual).toBe(230);
+    expect(p.caixa).toMatchObject({ totalRecebido: 230, dinheiroEsperado: 330 });
+  });
+
   it('barbearia inexistente: 404', async () => {
     const op = await novoOperador();
     const { n } = await entrarComo(op);

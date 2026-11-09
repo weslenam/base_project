@@ -130,8 +130,8 @@ async function painel(c, hoje) {
   await c.query('set transaction read only');
 
   const { rows: pagas } = await c.query(
-    `select cm.itens, cm.desconto, cm.forma, cm.estado, cm.cliente_id as "clienteId",
-            cx.data
+    `select cm.itens, cm.desconto, cm.cashback_usado as "cashbackUsado", cm.forma,
+            cm.estado, cm.cliente_id as "clienteId", cx.data
        from comandas cm join caixas cx on cx.id = cm.caixa_id
       where cm.estado = 'paga' and cx.data >= $1 and cx.data <= $2`,
     [anterior, hoje],
@@ -185,7 +185,8 @@ async function painel(c, hoje) {
   if (caixa.rows[0]) {
     const cx = caixa.rows[0];
     const { rows: doCaixa } = await c.query(
-      'select itens, desconto, forma, estado from comandas where caixa_id = $1',
+      // Cashback abate como desconto (planejamento 0037).
+      'select itens, desconto, cashback_usado as "cashbackUsado", forma, estado from comandas where caixa_id = $1',
       [cx.id],
     );
     const r = resumoDoCaixa({

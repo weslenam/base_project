@@ -204,12 +204,14 @@ describe('agenda: quem ajuda x quem gerencia', () => {
     }
   });
 
-  it('Barbeiro marca atendido e falta na coluna dele ou no que marcou', () => {
-    for (const estado of ['atendido', 'faltou']) {
-      expect(podeAgirNaAgenda(barbeiro, queEleMarcou, estado)).toBe(true);
-      expect(podeAgirNaAgenda(barbeiro, naColunaDele, estado)).toBe(true);
-      expect(podeAgirNaAgenda(barbeiro, deOutro, estado)).toBe(false);
-    }
+  it('Barbeiro marca falta na coluna dele ou no que marcou; atendido só na dele', () => {
+    expect(podeAgirNaAgenda(barbeiro, queEleMarcou, 'faltou')).toBe(true);
+    expect(podeAgirNaAgenda(barbeiro, naColunaDele, 'faltou')).toBe(true);
+    expect(podeAgirNaAgenda(barbeiro, deOutro, 'faltou')).toBe(false);
+    // Planejamento 0037: atendido segue o "finalizar" do Balcão.
+    expect(podeAgirNaAgenda(barbeiro, naColunaDele, 'atendido')).toBe(true);
+    expect(podeAgirNaAgenda(barbeiro, queEleMarcou, 'atendido')).toBe(false);
+    expect(podeAgirNaAgenda(barbeiro, deOutro, 'atendido')).toBe(false);
     expect(podeAgirNaAgenda(barbeiro, queEleMarcou, 'inventado')).toBe(false);
   });
 
@@ -249,16 +251,24 @@ describe('balcão: Barbeiro só age no que é seu', () => {
       expect(podeAgirNoBalcao(barbeiro, acao, {})).toBe(true);
   });
 
-  it('inicia só consigo como barbeiro', () => {
-    expect(podeAgirNoBalcao(barbeiro, 'iniciar', { destinoUsuarioId: 7 })).toBe(
-      true,
-    );
-    expect(podeAgirNoBalcao(barbeiro, 'iniciar', { destinoUsuarioId: 9 })).toBe(
-      false,
-    );
+  it('inicia só consigo: o que já é dele ou avulso sem barbeiro', () => {
+    const iniciar = (alvo) => podeAgirNoBalcao(barbeiro, 'iniciar', alvo);
+    // Avulso "Primeiro livre": pode puxar para si.
+    expect(iniciar({ barbeiroId: null, destinoUsuarioId: 7 })).toBe(true);
+    // Já é dele.
     expect(
-      podeAgirNoBalcao(barbeiro, 'iniciar', { destinoUsuarioId: null }),
+      iniciar({ barbeiroId: 1, barbeiroUsuarioId: 7, destinoUsuarioId: 7 }),
+    ).toBe(true);
+    // De um colega (planejamento 0037): não puxa para si.
+    expect(
+      iniciar({ barbeiroId: 2, barbeiroUsuarioId: 9, destinoUsuarioId: 7 }),
     ).toBe(false);
+    expect(
+      iniciar({ barbeiroId: 2, barbeiroUsuarioId: null, destinoUsuarioId: 7 }),
+    ).toBe(false);
+    // Com outro barbeiro atendendo, nunca.
+    expect(iniciar({ barbeiroId: null, destinoUsuarioId: 9 })).toBe(false);
+    expect(iniciar({ barbeiroId: null, destinoUsuarioId: null })).toBe(false);
   });
 
   it('finaliza e pausa só os próprios', () => {

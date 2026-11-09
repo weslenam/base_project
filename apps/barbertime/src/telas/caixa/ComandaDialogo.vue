@@ -67,14 +67,23 @@ watch(pacoteDisponivel, (p) => (usarPacote.value = Boolean(p)));
 // Fidelidade na comanda (planejamento 0034): saldo do cliente e resgate do
 // prêmio e do cashback. A API confere tudo de novo ao receber.
 const fidelidade = ref(null);
+let pedidoDeSaldo = 0;
 watch(
-  () => comanda.value?.clienteId,
-  async (id, antigo) => {
-    // Trocar de cliente desfaz o resgate que era do anterior.
-    if (antigo && id !== antigo && comanda.value?.estado === 'aberta') {
-      comanda.value.premioFidelidade = false;
-      comanda.value.cashbackUsado = 0;
+  () => [comanda.value, comanda.value?.clienteId],
+  async ([atual, id], [anterior, antigo] = []) => {
+    // Trocar de cliente NA MESMA comanda desfaz o resgate do anterior; abrir
+    // outra comanda (outro objeto) mantém o resgate dela (planejamento 0037).
+    if (
+      atual &&
+      atual === anterior &&
+      antigo &&
+      id !== antigo &&
+      atual.estado === 'aberta'
+    ) {
+      atual.premioFidelidade = false;
+      atual.cashbackUsado = 0;
     }
+    const pedido = ++pedidoDeSaldo;
     if (!id || !moduloAtivo('fidelidade')) {
       fidelidade.value = null;
       return;
@@ -83,7 +92,8 @@ watch(
       api.fidelidade.obterConfig(),
       api.fidelidade.saldo(id),
     ]);
-    fidelidade.value = { config, saldo };
+    // Resposta de um cliente que já não está escolhido: descarta.
+    if (pedido === pedidoDeSaldo) fidelidade.value = { config, saldo };
   },
 );
 const podeUsarPremio = computed(

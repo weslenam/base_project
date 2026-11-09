@@ -12,8 +12,13 @@ import { conflito, invalido } from '../infra/erros.js';
 // no contexto da barbearia (RLS). O extrato só recebe inserções: o saldo é a
 // soma, gastando primeiro o crédito que vence antes (domínio).
 
+// Prêmio de serviço excluído do catálogo volta vazio: a tela pede outro
+// (planejamento 0037).
 const SELECT_CONFIG = `
-  select selos_ativo, selos_necessarios, premio_servico_id, selos_validade_meses,
+  select selos_ativo, selos_necessarios, selos_validade_meses,
+         case when exists (select 1 from servicos s
+                            where s.id = premio_servico_id and s.excluido_em is null)
+              then premio_servico_id end as premio_servico_id,
          cashback_ativo, cashback_percentual, cashback_validade_dias
     from fidelidade_config`;
 

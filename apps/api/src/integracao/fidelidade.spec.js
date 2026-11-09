@@ -210,6 +210,8 @@ describe('resgate na comanda', () => {
     // O caixa só conta o dinheiro que entrou (50 + 48).
     const caixa = (await b.dono.get('/api/caixa')).corpo;
     expect(caixa.resumo.totalRecebido).toBe(98);
+    // Planejamento 0037: o cashback aparece numa linha própria, fora da gaveta.
+    expect(caixa.resumo.cashback).toBe(2);
   });
 
   it('o mesmo saldo não é gasto duas vezes em recebimentos simultâneos', async () => {
@@ -224,14 +226,67 @@ describe('resgate na comanda', () => {
     expect(saldo.cashback).toBeGreaterThanOrEqual(0);
   });
 
-  it('sem o módulo, a comanda recusa o resgate', async () => {
+  it('sem o módulo, o resgate pedido cai e a comanda segue', async () => {
     const b = await comFidelidade({ modulo: false });
-    const r = await b.comanda({ cashbackUsado: 1 });
-    expect(r.status).toBe(400);
-    expect(r.corpo.mensagem).toMatch(/Fidelidade não está ativo/);
+    const r = await b.comanda({ cashbackUsado: 1, premioFidelidade: true });
+    expect(r.status).toBe(201);
+    expect(r.corpo).toMatchObject({
+      cashbackUsado: 0,
+      premioFidelidade: false,
+      total: 50,
+    });
     // E a comanda comum segue sem crédito nenhum.
     const cm = (await b.comanda()).corpo;
     expect((await b.receber(cm)).corpo.creditos).toEqual([]);
+  });
+});
+
+describe('correções da revisão (planejamento 0037)', () => {
+  it('módulo desligado com resgate na comanda aberta: salvar limpa e receber passa', async () => {
+    const b = await comFidelidade();
+    await b.receber((await b.comanda()).corpo); // +2,50
+    const cm = (await b.comanda({ cashbackUsado: 2 })).corpo;
+    await comoSuperusuario((c) =>
+      c.query(
+        "update barbearia_modulos set estado = 'inativo' where barbearia_id = $1 and modulo = 'fidelidade'",
+        [b.id],
+      ),
+    );
+    const salva = await b.dono.put(`/api/comandas/${cm.id}`, {
+      ...cm,
+      cashbackUsado: 2,
+    });
+    expect(salva.status).toBe(200);
+    expect(salva.corpo.cashbackUsado).toBe(0);
+    expect((await b.receber(cm)).status).toBe(200);
+  });
+
+  it('configuração: meses fracionados e percentual pequeno demais dão 400', async () => {
+    const b = await comFidelidade();
+    const salvar = (selos, cashback) =>
+      b.dono.put('/api/fidelidade/config', { selos, cashback });
+    const selos = { ativo: true, necessarios: 10, premioServicoId: b.corte.id };
+    expect(
+      (await salvar({ ...selos, validadeMeses: 1.5 }, null)).status,
+    ).toBe(400);
+    expect(
+      (
+        await salvar(selos, {
+          ativo: true,
+          percentual: 0.001,
+          validadeDias: 90,
+        })
+      ).status,
+    ).toBe(400);
+  });
+
+  it('prêmio de serviço excluído volta vazio', async () => {
+    const b = await comFidelidade();
+    expect((await b.dono.delete(`/api/servicos/${b.corte.id}`)).status).toBe(
+      204,
+    );
+    const config = (await b.dono.get('/api/fidelidade/config')).corpo;
+    expect(config.selos.premioServicoId).toBeNull();
   });
 });
 

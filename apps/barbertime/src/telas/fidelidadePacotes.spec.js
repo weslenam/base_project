@@ -10,7 +10,8 @@ import {
   sessaoCom,
   texto,
 } from '../testes/apoio.js';
-import { CHAVES_DE_PERMISSAO } from '@barbertime/dominio';
+import { CHAVES_DE_PERMISSAO, permissoesDoPapel } from '@barbertime/dominio';
+import router from '../router';
 
 let app;
 beforeEach(() => api.reiniciar());
@@ -124,6 +125,21 @@ describe('na comanda', () => {
     const saldo = await api.fidelidade.saldo(1);
     expect(saldo.selos).toBe(8);
     expect(saldo.cashback).toBeLessThan(3.5);
+    // Planejamento 0037: o resumo do caixa mostra o cashback numa linha própria.
+    await esperar(() =>
+      expect(normalizar(texto())).toMatch(/Cashback usado\s*R\$\s3,50/),
+    );
+  });
+
+  // Planejamento 0037: o Barbeiro não tem a tela Caixa; a comanda abre na Agenda.
+  it('Barbeiro: "Abrir comanda" abre a comanda na própria Agenda', async () => {
+    app = await montarApp('/agenda', {
+      sessao: sessaoCom('Barbeiro', permissoesDoPapel('barbeiro')),
+    });
+    await clicarContendo('Rafael Souza');
+    await clicarContendo('Abrir comanda');
+    await esperar(() => expect(texto()).toContain('Salvar aberta'));
+    expect(router.currentRoute.value.path).toBe('/agenda');
   });
 
   it('receber credita selo e cashback, e a notificação conta ao balcão', async () => {

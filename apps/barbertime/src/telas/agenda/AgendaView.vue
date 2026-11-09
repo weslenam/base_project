@@ -14,6 +14,7 @@ import { useSessao } from '../../sessao/sessao.js';
 import NovoAgendamento from './NovoAgendamento.vue';
 import DetalheAgendamento from './DetalheAgendamento.vue';
 import BloquearHorario from './BloquearHorario.vue';
+import ComandaDialogo from '../caixa/ComandaDialogo.vue';
 
 const data = ref(hojeIso());
 const barbeiros = ref([]);
@@ -38,6 +39,12 @@ function bloquearHorario(barbeiroId = null) {
   bloqueioAberto.value = true;
 }
 const detalheAberto = ref(false);
+const comandaId = ref(null);
+const comandaAberta = ref(false);
+function abrirComanda(id) {
+  comandaId.value = id;
+  comandaAberta.value = true;
+}
 const selecionadoId = ref(null);
 
 async function carregar() {
@@ -179,7 +186,9 @@ function abrir(id) {
       :id="selecionadoId"
       v-model="detalheAberto"
       @alterado="carregar"
+      @comanda="abrirComanda"
     />
+    <ComandaDialogo :id="comandaId" v-model="comandaAberta" />
   </DsPagina>
 </template>
 

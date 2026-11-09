@@ -20,13 +20,19 @@ export function validarConfigFidelidade({ selos, cashback }) {
     }
     if (!selos.premioServicoId)
       return 'Escolha o serviço que o cliente ganha ao completar os selos.';
-    if (selos.validadeMeses != null && !(selos.validadeMeses >= 1)) {
+    if (
+      selos.validadeMeses != null &&
+      !(Number.isInteger(selos.validadeMeses) && selos.validadeMeses >= 1)
+    ) {
       return 'A validade dos selos precisa ser de pelo menos 1 mês (ou sem validade).';
     }
   }
   if (cashback?.ativo) {
-    if (!(cashback.percentual > 0 && cashback.percentual <= 50)) {
-      return 'O cashback precisa ficar entre 0,1% e 50%.';
+    // Até 2 casas, como a coluna numeric(5,2) guarda (planejamento 0037).
+    const p = cashback.percentual;
+    const duasCasas = Math.abs(Math.round(p * 100) - p * 100) < 1e-6;
+    if (!(p >= 0.1 && p <= 50 && duasCasas)) {
+      return 'O cashback precisa ficar entre 0,1% e 50%, com até 2 casas decimais.';
     }
     if (
       !(Number.isInteger(cashback.validadeDias) && cashback.validadeDias >= 1)

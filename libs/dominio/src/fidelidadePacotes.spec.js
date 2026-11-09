@@ -46,6 +46,23 @@ describe('datas auxiliares', () => {
 });
 
 describe('fidelidade', () => {
+  // Planejamento 0037: o que o banco recusaria vira 400, não 500.
+  it('validade em meses inteiros e percentual com até 2 casas', () => {
+    const comSelos = (validadeMeses) => ({
+      ...config,
+      selos: { ...config.selos, validadeMeses },
+    });
+    expect(validarConfigFidelidade(comSelos(1.5))).toContain('1 mês');
+    expect(validarConfigFidelidade(comSelos(3))).toBeNull();
+    const comCashback = (percentual) => ({
+      ...config,
+      cashback: { ativo: true, percentual, validadeDias: 90 },
+    });
+    expect(validarConfigFidelidade(comCashback(0.001))).toContain('0,1%');
+    expect(validarConfigFidelidade(comCashback(2.555))).toContain('0,1%');
+    expect(validarConfigFidelidade(comCashback(2.55))).toBeNull();
+  });
+
   it('validação da configuração', () => {
     expect(validarConfigFidelidade(FIDELIDADE_PADRAO)).toBeNull();
     expect(validarConfigFidelidade(config)).toBeNull();

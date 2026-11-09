@@ -59,6 +59,11 @@ async function fechar() {
         <dt>{{ f.rotulo }}</dt>
         <dd class="ds-valor">{{ formatarMoeda(resumo.porForma[f.valor]) }}</dd>
       </div>
+      <!-- Cashback: abatido, fora da gaveta (planejamento 0037). -->
+      <div v-if="resumo.cashback">
+        <dt>Cashback usado (abatido)</dt>
+        <dd class="ds-valor">{{ formatarMoeda(resumo.cashback) }}</dd>
+      </div>
       <div class="conferencia__total">
         <dt>Total recebido</dt>
         <dd class="ds-valor">{{ formatarMoeda(resumo.totalRecebido) }}</dd>

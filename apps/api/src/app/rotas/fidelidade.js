@@ -1,8 +1,8 @@
+import { saldoDeFidelidade } from '@barbertime/dominio';
 import { agora } from '../../servicos/agenda.js';
 import {
   extratoDoCliente,
   obterConfig,
-  saldoDoCliente,
   salvarConfig,
 } from '../../servicos/fidelidade.js';
 import { corpo, escalar, inteiro, logico } from '../esquemas.js';
@@ -57,11 +57,13 @@ export default async function (fastify) {
     },
     (req) =>
       na(req, async (c) => {
-        const id = Number(req.params.id);
-        const [saldo, extrato] = await Promise.all([
-          saldoDoCliente(c, id, agora().data),
-          extratoDoCliente(c, id),
-        ]);
+        // Um só extrato: o saldo é calculado sobre ele (planejamento 0037).
+        const extrato = await extratoDoCliente(c, Number(req.params.id));
+        const saldo = saldoDeFidelidade(
+          extrato,
+          await obterConfig(c),
+          agora().data,
+        );
         return { saldo, extrato };
       }),
   );

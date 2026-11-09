@@ -77,11 +77,18 @@ describe('Barbeiro no Balcão', () => {
     const dele = await avulso(recepcao, marcos);
 
     expect((await acao(barbeiro, doLeo.id, 'iniciar')).status).toBe(403);
+    // Planejamento 0037: não puxa para si o cliente de um colega...
     expect(
       (await acao(barbeiro, doLeo.id, 'iniciar', { barbeiroId: marcos.id }))
         .status,
+    ).toBe(403);
+    // ...mas puxa o avulso sem barbeiro ("Primeiro livre").
+    const livre = await avulso(recepcao, null);
+    expect(
+      (await acao(barbeiro, livre.id, 'iniciar', { barbeiroId: marcos.id }))
+        .status,
     ).toBe(200);
-    expect((await acao(barbeiro, doLeo.id, 'finalizar')).status).toBe(200);
+    expect((await acao(barbeiro, livre.id, 'finalizar')).status).toBe(200);
 
     // O de Léo, iniciado pela recepção: o Barbeiro não finaliza.
     const outro = await avulso(recepcao, leo);

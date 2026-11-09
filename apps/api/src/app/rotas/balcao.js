@@ -40,7 +40,8 @@ export default async function (fastify) {
 
   // Quem só opera o caixa (Barbeiro) age no que é seu (planejamento 0036).
   const MOTIVOS = {
-    iniciar: 'Você só pode iniciar atendimentos com você mesmo.',
+    iniciar:
+      'Você só pode iniciar, com você mesmo, os seus atendimentos ou avulsos sem barbeiro.',
     finalizar: 'Você só pode finalizar os seus atendimentos.',
     desistir:
       'Você só pode marcar desistência nos seus atendimentos ou nos que você lançou.',
@@ -295,7 +296,11 @@ export default async function (fastify) {
         const barbeiroId = Number(req.body?.barbeiroId ?? a.barbeiroId);
         if (!barbeiroId) throw invalido('Escolha quem vai atender.');
         const barbeiro = await buscarBarbeiro(c, barbeiroId, { travar: true });
-        exigirNoBalcao(req, 'iniciar', { destinoUsuarioId: barbeiro.usuarioId });
+        exigirNoBalcao(req, 'iniciar', {
+          barbeiroId: a.barbeiroId,
+          barbeiroUsuarioId: a.barbeiroUsuarioId,
+          destinoUsuarioId: barbeiro.usuarioId,
+        });
         if (barbeiro.emPausa) throw conflito(`${barbeiro.nome} está em pausa.`);
         const ocupado = await c.query(
           "select 1 from atendimentos where barbeiro_id = $1 and estado = 'em_atendimento'",

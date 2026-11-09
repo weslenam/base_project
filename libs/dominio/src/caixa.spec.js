@@ -103,6 +103,28 @@ describe('resumoDoCaixa', () => {
     expect(r).toMatchObject({ dinheiroEsperado: 175, pagas: 3, abertas: 1 });
   });
 
+  // Planejamento 0037: R$50 com R$10 de cashback e R$40 em dinheiro.
+  it('cashback abate como desconto: fora da gaveta, numa linha própria', () => {
+    const r = resumoDoCaixa({
+      valorInicial: 0,
+      comandas: [
+        {
+          estado: 'paga',
+          forma: 'dinheiro',
+          itens: [{ preco: 50 }],
+          desconto: 0,
+          cashbackUsado: 10,
+        },
+      ],
+    });
+    expect(r).toMatchObject({
+      totalRecebido: 40,
+      dinheiroEsperado: 40,
+      cashback: 10,
+    });
+    expect(r.porForma.dinheiro).toBe(40);
+  });
+
   it('tem uma entrada para cada forma de pagamento', () => {
     expect(Object.keys(resumoDoCaixa({}).porForma)).toEqual(
       FORMAS_DE_PAGAMENTO.map((f) => f.valor),
