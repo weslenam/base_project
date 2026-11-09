@@ -16,6 +16,7 @@ import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
 import { FORMAS_DE_PAGAMENTO, hojeIso } from '@barbertime/dominio';
 import { api } from '../../dados/api.js';
 import { useAcao } from '../../dados/useAcao.js';
+import { useSessao } from '../../sessao/sessao.js';
 import ComandaDialogo from './ComandaDialogo.vue';
 import FecharCaixa from './FecharCaixa.vue';
 import { rotuloDaForma, seloDaComanda } from './rotulos.js';
@@ -24,6 +25,9 @@ const route = useRoute();
 const router = useRouter();
 const notificar = useNotificacao();
 const executar = useAcao();
+// Abrir o caixa tem permissão própria (planejamento 0039, #19).
+const { pode } = useSessao();
+const podeAbrirCaixa = computed(() => pode('caixa.abrir'));
 
 const caixa = ref(undefined);
 const comandas = ref([]);
@@ -93,7 +97,11 @@ const formas = FORMAS_DE_PAGAMENTO;
     </template>
 
     <!-- Sem caixa hoje: abrir -->
-    <DsCartao v-if="caixa === null" titulo="Abrir o caixa" class="abrir">
+    <DsCartao
+      v-if="caixa === null && podeAbrirCaixa"
+      titulo="Abrir o caixa"
+      class="abrir"
+    >
       <p class="ds-suave">
         Informe o troco que está na gaveta para começar o dia.
       </p>
@@ -103,6 +111,12 @@ const formas = FORMAS_DE_PAGAMENTO;
       <template #acoes>
         <DsBotao formulario="form-abrir-caixa">Abrir caixa</DsBotao>
       </template>
+    </DsCartao>
+    <DsCartao v-else-if="caixa === null" titulo="Caixa fechado" class="abrir">
+      <p class="ds-suave">
+        O caixa de hoje ainda não foi aberto. Peça à recepção ou ao gerente para
+        abrir.
+      </p>
     </DsCartao>
 
     <template v-else-if="caixa">

@@ -16,13 +16,34 @@ test.describe('app logado como Barbeiro', () => {
 
   test('agenda pela aba', async ({ page, conferirLayout }) => {
     await page.goto('/balcao');
-    await page
-      .getByLabel('Navegação principal')
-      .getByText('Agenda')
-      .click();
+    await page.getByLabel('Navegação principal').getByText('Agenda').click();
     await expect(page).toHaveURL(/\/agenda$/);
     await expect(page.getByText('Novo agendamento')).toBeVisible();
     await conferirLayout('app-barbeiro-agenda');
+  });
+
+  test('#18 (guarda): nome longo da barbearia não esconde as abas', async ({
+    page,
+    conferirLayout,
+  }, info) => {
+    test.skip(
+      info.project.name === 'celular',
+      'no celular as abas ficam no rodapé',
+    );
+    await page.route('**/api/auth/eu', async (rota) => {
+      const resposta = await rota.fetch();
+      const sessao = await resposta.json();
+      sessao.barbearia.nome =
+        'Barbearia e Salão do Zé Carlos da Vila Madalena e Pinheiros';
+      await rota.fulfill({ response: resposta, json: sessao });
+    });
+    // Tablet estreito (o menor tamanho em que as abas ficam no cabeçalho).
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.goto('/balcao');
+    const nav = page.getByLabel('Navegação principal');
+    await expect(nav.getByText('Balcão')).toBeInViewport({ ratio: 1 });
+    await expect(nav.getByText('Agenda')).toBeInViewport({ ratio: 1 });
+    await conferirLayout('app-barbeiro-nome-longo');
   });
 
   test('outra tela volta para o balcão', async ({ page }) => {

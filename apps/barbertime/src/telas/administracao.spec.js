@@ -154,7 +154,7 @@ describe('hierarquia na tela de usuários (planejamento 0023)', () => {
     expect(texto()).not.toMatch(/caixa\.operar|agenda\.ver/);
     await clicarContendo('Recebe os clientes');
     await esperar(() => expect(texto()).toContain('Vai poder'));
-    expect(texto()).toContain('Abrir o caixa e receber as comandas');
+    expect(texto()).toContain('Lançar e receber as comandas');
     expect(texto()).toContain('Não vai poder');
     expect(texto()).toContain('Fechar o caixa no fim do dia');
   });

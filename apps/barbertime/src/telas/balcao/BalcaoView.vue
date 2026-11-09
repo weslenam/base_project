@@ -62,7 +62,7 @@ async function agir(id, chamada, mensagem) {
 // Só aparece o que a API vai aceitar (planejamento 0036): o Barbeiro inicia
 // consigo, finaliza e pausa os próprios, e marca desistência e falta na
 // própria coluna ou no que lançou.
-const { sessao } = useSessao();
+const { sessao, pode: temPermissao } = useSessao();
 const pode = (acao, alvo = {}) =>
   podeAgirNoBalcao(
     {
@@ -72,9 +72,7 @@ const pode = (acao, alvo = {}) =>
     acao,
     alvo,
   );
-const podeAbrirCaixa = computed(() =>
-  Boolean(sessao.value?.permissoes?.includes('caixa.abrir')),
-);
+const podeAbrirCaixa = computed(() => temPermissao('caixa.abrir'));
 const contaDoBarbeiro = (id) =>
   painel.value?.barbeiros.find((b) => b.id === id)?.usuarioId ?? null;
 const podeIniciar = (f) =>
@@ -175,19 +173,21 @@ const servicos = computed(() => painel.value?.servicos ?? []);
     <DsCartao v-if="painel && !painel.caixaAberto" titulo="Caixa fechado">
       <!-- Abrir o caixa tem permissão própria; o Barbeiro só pede
            (planejamento 0039). -->
-      <p v-if="!podeAbrirCaixa" class="ds-corpo-sm">
-        O caixa de hoje ainda não foi aberto. Peça à recepção ou ao gerente
-        para abrir; depois dá para registrar avulsos e fazer check-in.
-      </p>
+      <template v-if="podeAbrirCaixa">
+        <p class="ds-corpo-sm">
+          Para registrar avulsos e fazer check-in, abra o caixa de hoje.
+        </p>
+        <div class="abrir">
+          <DsInputMoeda v-model="trocoInicial" rotulo="Troco inicial" />
+          <DsBotao :carregando="ocupado === 'caixa'" @click="abrirCaixa">
+            Abrir caixa
+          </DsBotao>
+        </div>
+      </template>
       <p v-else class="ds-corpo-sm">
-        Para registrar avulsos e fazer check-in, abra o caixa de hoje.
+        O caixa de hoje ainda não foi aberto. Peça à recepção ou ao gerente para
+        abrir; depois dá para registrar avulsos e fazer check-in.
       </p>
-      <div v-if="podeAbrirCaixa" class="abrir">
-        <DsInputMoeda v-model="trocoInicial" rotulo="Troco inicial" />
-        <DsBotao :carregando="ocupado === 'caixa'" @click="abrirCaixa">
-          Abrir caixa
-        </DsBotao>
-      </div>
     </DsCartao>
 
     <div v-if="painel" class="balcao">
@@ -216,7 +216,9 @@ const servicos = computed(() => painel.value?.servicos ?? []);
           </p>
           <div class="barbeiro__acoes">
             <DsBotao
-              v-if="b.atual && pode('finalizar', { barbeiroUsuarioId: b.usuarioId })"
+              v-if="
+                b.atual && pode('finalizar', { barbeiroUsuarioId: b.usuarioId })
+              "
               tamanho="sm"
               :carregando="ocupado === b.atual.id"
               @click="finalizar(b)"

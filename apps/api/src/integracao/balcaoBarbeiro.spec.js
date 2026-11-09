@@ -99,9 +99,12 @@ describe('Barbeiro no Balcão', () => {
     expect((await acao(barbeiro, dele.id, 'finalizar')).status).toBe(200);
     const { comandaId } = (await recepcao.n.get(`/api/agendamentos/${dele.id}`))
       .corpo;
-    const recebida = await barbeiro.n.post(`/api/comandas/${comandaId}/receber`, {
-      forma: 'dinheiro',
-    });
+    const recebida = await barbeiro.n.post(
+      `/api/comandas/${comandaId}/receber`,
+      {
+        forma: 'dinheiro',
+      },
+    );
     expect(recebida.status).toBe(200);
   });
 
@@ -125,7 +128,7 @@ describe('Barbeiro no Balcão', () => {
     expect((await abrir(barbeiro)).status).toBe(403);
     // O caixa já foi aberto na montagem: a Recepção passa da permissão e
     // esbarra só no "já aberto".
-    expect((await abrir(recepcao)).status).not.toBe(403);
+    expect((await abrir(recepcao)).status).toBe(409);
   });
 
   it('pausa só a própria agenda', async () => {
