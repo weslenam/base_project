@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useDisplay } from 'vuetify';
 import DsIcone from './DsIcone.vue';
 import {
   VAppBar,
@@ -8,7 +9,10 @@ import {
 } from 'vuetify/components/VAppBar';
 import { VDivider } from 'vuetify/components/VDivider';
 import { VList, VListItem, VListSubheader } from 'vuetify/components/VList';
+import { VBottomNavigation } from 'vuetify/components/VBottomNavigation';
+import { VBtn } from 'vuetify/components/VBtn';
 import { VMain } from 'vuetify/components/VMain';
+import { VTab, VTabs } from 'vuetify/components/VTabs';
 import { VNavigationDrawer } from 'vuetify/components/VNavigationDrawer';
 
 const props = defineProps({
@@ -21,7 +25,15 @@ const props = defineProps({
   itensMenu: { type: Array, default: () => [] },
   /** [{ titulo, icone? }]: ícone do título de cada grupo (pelo nome). */
   grupos: { type: Array, default: () => [] },
+  /**
+   * [{ titulo, rota, icone? }]: navegação por abas no lugar do menu lateral.
+   * Abaixo do cabeçalho no PC e no tablet; barra fixa no rodapé no celular.
+   */
+  abas: { type: Array, default: () => [] },
 });
+
+// Celular: abas no rodapé, ao alcance do polegar.
+const { xs: celular } = useDisplay();
 
 // Seções do menu: itens seguidos com o mesmo grupo (ou sem grupo) juntos.
 const secoes = computed(() => {
@@ -57,6 +69,23 @@ const menuAberto = ref(null);
     <VAppBarTitle class="ds-layout__titulo">{{ titulo }}</VAppBarTitle>
     <template #append>
       <slot name="cabecalho-acoes" />
+    </template>
+    <template v-if="abas.length && !celular" #extension>
+      <VTabs
+        class="ds-layout__abas"
+        aria-label="Navegação principal"
+        color="primary"
+      >
+        <VTab
+          v-for="aba in abas"
+          :key="aba.rota"
+          :to="aba.rota"
+          class="ds-layout__aba"
+        >
+          <DsIcone v-if="aba.icone" :nome="aba.icone" class="ds-layout__icone" />
+          {{ aba.titulo }}
+        </VTab>
+      </VTabs>
     </template>
   </VAppBar>
 
@@ -99,6 +128,19 @@ const menuAberto = ref(null);
   <VMain class="ds-layout__conteudo">
     <slot />
   </VMain>
+
+  <VBottomNavigation
+    v-if="abas.length && celular"
+    class="ds-layout__rodape"
+    aria-label="Navegação principal"
+    color="primary"
+    grow
+  >
+    <VBtn v-for="aba in abas" :key="aba.rota" :to="aba.rota">
+      <DsIcone v-if="aba.icone" :nome="aba.icone" />
+      <span>{{ aba.titulo }}</span>
+    </VBtn>
+  </VBottomNavigation>
 </template>
 
 <style scoped>
@@ -159,5 +201,22 @@ const menuAberto = ref(null);
 }
 .ds-layout__conteudo {
   font-family: var(--font-sans);
+}
+.ds-layout__abas,
+.ds-layout__rodape {
+  background: var(--placa) !important;
+  border-top: 1px solid var(--linha);
+}
+.ds-layout__abas {
+  width: 100%;
+}
+.ds-layout__aba {
+  gap: var(--esp-2);
+  font: var(--tipo-botao);
+  letter-spacing: var(--tipo-botao-espacamento);
+}
+.ds-layout__rodape :deep(.v-btn) {
+  font: var(--tipo-rotulo);
+  letter-spacing: var(--tipo-rotulo-espacamento);
 }
 </style>

@@ -33,6 +33,7 @@ export {
   permissoesPorGrupo,
   podeMarcarNaAgenda,
   podeAgirNaAgenda,
+  podeAgirNoBalcao,
   papelSemMenu,
 } from './permissoes.js';
 export {

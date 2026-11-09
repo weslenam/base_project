@@ -63,7 +63,7 @@ const ROTEIROS = Object.freeze({
   },
   barbeiro: {
     resumo: 'Atende os clientes e ajuda a cuidar da agenda',
-    limites: ['caixa.operar', 'clientes.excluir', 'relatorios.ver'],
+    limites: ['caixa.fechar', 'clientes.excluir', 'relatorios.ver'],
   },
 });
 

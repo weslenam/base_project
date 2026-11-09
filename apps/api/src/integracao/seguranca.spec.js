@@ -365,6 +365,7 @@ describe('escalada de privilégio: hierarquia fixa (ADR 0010)', () => {
       'agenda.ajudar',
       'clientes.ver',
       'clientes.editar',
+      'caixa.operar',
     ]);
     expect((await pessoas.barbeiro.n.get('/api/barbearia')).status).toBe(403);
   });

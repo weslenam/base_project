@@ -4,11 +4,12 @@ import {
   ordenarFila,
   paraHora,
   paraMinutos,
+  podeAgirNoBalcao,
   podeTransitar,
   situacaoDosBarbeiros,
   sugerirEncaixe,
 } from '@barbertime/dominio';
-import { conflito, invalido } from '../../infra/erros.js';
+import { conflito, invalido, proibido } from '../../infra/erros.js';
 import {
   SELECT_ATENDIMENTO,
   agora,
@@ -37,6 +38,21 @@ export default async function (fastify) {
   };
   const na = (req, fn) => fastify.naBarbearia(req, fn);
 
+  // Quem só opera o caixa (Barbeiro) age no que é seu (planejamento 0036).
+  const MOTIVOS = {
+    iniciar: 'Você só pode iniciar atendimentos com você mesmo.',
+    finalizar: 'Você só pode finalizar os seus atendimentos.',
+    desistir:
+      'Você só pode marcar desistência nos seus atendimentos ou nos que você lançou.',
+    no_show:
+      'Você só pode marcar falta nos seus atendimentos ou nos que você lançou.',
+    pausa: 'Você só pode pausar a sua própria agenda.',
+  };
+  function exigirNoBalcao(req, acao, alvo) {
+    if (!podeAgirNoBalcao(req.contexto, acao, alvo))
+      throw proibido(MOTIVOS[acao] ?? 'Sem permissão para essa ação.');
+  }
+
   async function configDoBalcao(req) {
     const { rows } = await fastify.db.query(
       'select configuracoes from barbearias where id = $1',
@@ -49,7 +65,8 @@ export default async function (fastify) {
   async function estadoDoDia(c, config) {
     const { data, hora } = agora();
     const { rows: barbeiros } = await c.query(
-      `select id, nome, inicio, fim, em_pausa as "emPausa" from barbeiros
+      `select id, nome, inicio, fim, em_pausa as "emPausa",
+              usuario_id as "usuarioId" from barbeiros
         where excluido_em is null order by id`,
     );
     const { rows } = await c.query(
@@ -133,6 +150,9 @@ export default async function (fastify) {
         caixaAberto: Boolean(caixa?.aberto),
         barbeiros: d.situacao.map((s) => ({
           ...s,
+          // Conta ligada ao barbeiro: a tela mostra a quem só opera o caixa
+          // (Barbeiro) apenas as ações sobre si mesmo (planejamento 0036).
+          usuarioId: d.barbeiros.find((b) => b.id === s.id)?.usuarioId ?? null,
           atual: s.atual && {
             id: s.atual.id,
             clienteNome: s.atual.clienteNome,
@@ -223,8 +243,8 @@ export default async function (fastify) {
           rows: [novo],
         } = await c.query(
           `insert into atendimentos
-           (barbearia_id, origem, canal, data, duracao, barbeiro_id, servico_id, cliente_id, cliente_nome, estado, chegou_em)
-         values ($1, 'avulso', 'balcao', $2, $3, $4, $5, $6, $7, 'na_fila', now()) returning id`,
+           (barbearia_id, origem, canal, data, duracao, barbeiro_id, servico_id, cliente_id, cliente_nome, estado, chegou_em, criado_por)
+         values ($1, 'avulso', 'balcao', $2, $3, $4, $5, $6, $7, 'na_fila', now(), $8) returning id`,
           [
             req.contexto.barbeariaId,
             agora().data,
@@ -233,6 +253,7 @@ export default async function (fastify) {
             servico.id,
             clienteId,
             clienteId ? null : String(nome ?? '').trim() || null,
+            req.contexto.usuarioId,
           ],
         );
         const a = await buscarAtendimento(c, novo.id);
@@ -274,6 +295,7 @@ export default async function (fastify) {
         const barbeiroId = Number(req.body?.barbeiroId ?? a.barbeiroId);
         if (!barbeiroId) throw invalido('Escolha quem vai atender.');
         const barbeiro = await buscarBarbeiro(c, barbeiroId, { travar: true });
+        exigirNoBalcao(req, 'iniciar', { destinoUsuarioId: barbeiro.usuarioId });
         if (barbeiro.emPausa) throw conflito(`${barbeiro.nome} está em pausa.`);
         const ocupado = await c.query(
           "select 1 from atendimentos where barbeiro_id = $1 and estado = 'em_atendimento'",
@@ -360,6 +382,7 @@ export default async function (fastify) {
   fastify.post('/atendimentos/:id/finalizar', operar, (req) =>
     na(req, async (c) => {
       const a = await buscarAtendimento(c, req.params.id, { travar: true });
+      exigirNoBalcao(req, 'finalizar', a);
       await transitar(c, a, 'finalizado', ', finalizado_em = now()');
       return buscarAtendimento(c, a.id);
     }),
@@ -368,6 +391,7 @@ export default async function (fastify) {
   fastify.post('/atendimentos/:id/desistir', operar, (req) =>
     na(req, async (c) => {
       const a = await buscarAtendimento(c, req.params.id, { travar: true });
+      exigirNoBalcao(req, 'desistir', a);
       await transitar(c, a, 'desistiu');
       if (a.comandaId && a.comandaEstado === 'aberta')
         await cancelarComanda(c, a.comandaId);
@@ -378,6 +402,7 @@ export default async function (fastify) {
   fastify.post('/atendimentos/:id/no-show', operar, (req) =>
     na(req, async (c) => {
       const a = await buscarAtendimento(c, req.params.id, { travar: true });
+      exigirNoBalcao(req, 'no_show', a);
       await transitar(c, a, 'no_show');
       return buscarAtendimento(c, a.id);
     }),
@@ -390,6 +415,7 @@ export default async function (fastify) {
     (req) =>
       na(req, async (c) => {
         const b = await buscarBarbeiro(c, req.params.id);
+        exigirNoBalcao(req, 'pausa', { barbeiroUsuarioId: b.usuarioId });
         await c.query('update barbeiros set em_pausa = $2 where id = $1', [
           b.id,
           Boolean(req.body?.emPausa),

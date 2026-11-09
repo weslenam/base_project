@@ -19,7 +19,7 @@ async function aoEnviar() {
   entrando.value = true;
   try {
     await entrar(email.value, senha.value);
-    router.replace(String(route.query.volta || '/agenda'));
+    router.replace(String(route.query.volta || '/'));
   } catch (e) {
     erro.value = e.message;
   } finally {

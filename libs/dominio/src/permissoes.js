@@ -166,13 +166,14 @@ export const PAPEIS_PADRAO = Object.freeze([
     nome: 'Barbeiro',
     nivel: 4,
     protegido: true,
-    // Só a Agenda, sem menu (planejamento 0035).
+    // Sem menu lateral: abas Balcão e Agenda (planejamentos 0035 e 0036).
     semMenu: true,
     permissoes: [
       'agenda.ver',
       'agenda.ajudar',
       'clientes.ver',
       'clientes.editar',
+      'caixa.operar',
     ],
   },
 ]);
@@ -207,6 +208,42 @@ export function podeAgirNaAgenda(quem, item, estado) {
         item.barbeiroUsuarioId === quem.usuarioId)
     );
   return false;
+}
+
+/**
+ * Pode fazer `acao` no Balcão (planejamento 0036)? Com `agenda.gerenciar`,
+ * tudo. Só com `caixa.operar` (Barbeiro): ver, check-in, avulso e receber em
+ * qualquer atendimento; iniciar só consigo como barbeiro; finalizar e pausa só
+ * os próprios; desistência e falta na própria coluna ou no que criou.
+ *
+ * @param {{ usuarioId: number, permissoes: string[] }} quem
+ * @param {'ver'|'checkin'|'avulso'|'receber'|'iniciar'|'finalizar'|'desistir'|'no_show'|'pausa'} acao
+ * @param {{ barbeiroUsuarioId?: number|null, criadoPor?: number|null, destinoUsuarioId?: number|null }} alvo
+ *   destinoUsuarioId: conta do barbeiro que vai atender (iniciar).
+ */
+export function podeAgirNoBalcao(quem, acao, alvo = {}) {
+  const permissoes = quem?.permissoes ?? [];
+  if (permissoes.includes('agenda.gerenciar')) return true;
+  if (!permissoes.includes('caixa.operar') || quem.usuarioId == null)
+    return false;
+  const eu = (id) => id != null && id === quem.usuarioId;
+  switch (acao) {
+    case 'ver':
+    case 'checkin':
+    case 'avulso':
+    case 'receber':
+      return true;
+    case 'iniciar':
+      return eu(alvo.destinoUsuarioId);
+    case 'finalizar':
+    case 'pausa':
+      return eu(alvo.barbeiroUsuarioId);
+    case 'desistir':
+    case 'no_show':
+      return eu(alvo.barbeiroUsuarioId) || eu(alvo.criadoPor);
+    default:
+      return false;
+  }
 }
 
 /** Permissões fora do catálogo (para recusar com 400). */

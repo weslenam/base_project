@@ -90,4 +90,21 @@ export function testarDsLayout({ DsApp, DsLayout }, montar) {
     const w = montarLayout({ titulo: 'BarberTime' }, { marca: () => 'LOGO' });
     await esperar(() => expect(w.text()).toContain('LOGO'));
   });
+
+  it('abas: navegação no lugar do menu lateral', async () => {
+    const abas = [
+      { titulo: 'Balcão', rota: '/balcao', icone: 'fila' },
+      { titulo: 'Agenda', rota: '/agenda', icone: 'agenda' },
+    ];
+    const w = montarLayout({ titulo: 'BarberTime', abas });
+    await esperar(() => {
+      expect(w.text()).toContain('Balcão');
+      expect(w.text()).toContain('Agenda');
+    });
+    expect(w.find('[aria-label="Navegação principal"]').exists()).toBe(true);
+    // Sem itens de menu, não há sanduíche nem gaveta.
+    expect(w.find('[aria-label="Abrir menu"]').exists()).toBe(false);
+    expect(w.find('[aria-label="Menu principal"]').exists()).toBe(false);
+  });
 }
+

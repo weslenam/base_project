@@ -175,17 +175,25 @@ describe('menu e telas pelo papel', () => {
     expect(texto()).toContain('não permite abrir essa tela');
   });
 
-  // Planejamento 0035: o Barbeiro usa só a Agenda, sem menu sanduíche.
-  it('Barbeiro fica sem menu: outra tela volta para a Agenda; Perfil abre', async () => {
+  // Planejamentos 0035 e 0036: o Barbeiro usa abas (Balcão e Agenda), sem
+  // menu sanduíche; entra pelo Balcão.
+  it('Barbeiro fica sem menu: outra tela volta para o Balcão; Agenda e Perfil abrem', async () => {
     const barbeiro = sessaoCom('Barbeiro', permissoesDoPapel('barbeiro'));
+    simularApi({ 'GET /api/balcao': null });
     app = await montarApp('/clientes', { sessao: barbeiro });
     await esperar(() =>
-      expect(router.currentRoute.value.path).toBe('/agenda'),
+      expect(router.currentRoute.value.path).toBe('/balcao'),
     );
-    await esperar(() => expect(texto()).toContain('Novo agendamento'));
-    expect(texto()).toContain('Bloquear horário');
     expect(menu()).toEqual([]);
     expect(document.querySelector('[aria-label="Abrir menu"]')).toBeNull();
+
+    await router.push('/');
+    await esperar(() =>
+      expect(router.currentRoute.value.path).toBe('/balcao'),
+    );
+    await router.push('/agenda');
+    await esperar(() => expect(texto()).toContain('Novo agendamento'));
+    expect(texto()).toContain('Bloquear horário');
 
     await router.push('/perfil');
     await esperar(() =>

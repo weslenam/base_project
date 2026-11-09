@@ -37,3 +37,4 @@
 | [0033](0033-papeis-explicados-com-historias.md)                   | Papéis explicados com histórias                                               | Concluído                | 2026-11-08 |
 | [0034](0034-fidelidade-e-pacotes-no-banco.md)                     | Fidelidade e pacotes no banco, com resgate na comanda                         | Em andamento             | 2026-11-08 |
 | [0035](0035-barbeiro-ajuda-na-agenda-sem-menu.md)                 | Barbeiro ajuda na agenda, sem menu                                            | Concluído                | 2026-11-09 |
+| [0036](0036-barbeiro-com-abas-balcao-e-agenda.md)                | Barbeiro com abas Balcão e Agenda                                             | Concluído                | 2026-11-09 |

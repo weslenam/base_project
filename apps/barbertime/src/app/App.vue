@@ -4,7 +4,11 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { DsApp, DsBotao, DsLayout } from '@barbertime/ui';
 import Marca from './Marca.vue';
 import { rotas, rotaPermitida } from '../router';
-import { semMenu as papelSemMenu, useSessao } from '../sessao/sessao.js';
+import {
+  ABAS_SEM_MENU,
+  semMenu as papelSemMenu,
+  useSessao,
+} from '../sessao/sessao.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -52,6 +56,7 @@ async function aoSair() {
       :titulo="sessao?.barbearia?.nome ?? 'BarberTime'"
       :itens-menu="itensMenu"
       :grupos="gruposMenu"
+      :abas="sessao && papelSemMenu() ? ABAS_SEM_MENU : []"
     >
       <template #marca>
         <Marca />

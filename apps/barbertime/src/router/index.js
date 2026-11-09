@@ -231,8 +231,14 @@ router.beforeEach(async (to) => {
   if (to.meta.publica || to.meta.semLayout) return true;
   if (!sessaoCarregada()) await carregarSessao();
   if (!temSessao()) return { name: 'entrar', query: { volta: to.fullPath } };
-  // Papel sem menu (Barbeiro): só a Agenda e o Perfil (planejamento 0035).
-  if (semMenu() && !ROTAS_SEM_MENU.includes(to.path)) return '/agenda';
+  // Papel sem menu (Barbeiro): abas Balcão e Agenda, mais o Perfil; entra
+  // pelo Balcão (planejamentos 0035 e 0036).
+  if (semMenu()) {
+    // '/' redireciona para a Agenda; para o Barbeiro, a inicial é o Balcão.
+    if (to.path === '/agenda' && to.redirectedFrom?.path === '/')
+      return '/balcao';
+    if (!ROTAS_SEM_MENU.includes(to.path)) return '/balcao';
+  }
   if (!rotaPermitida(to.meta))
     return { name: 'sem-acesso', query: { de: to.fullPath } };
   return true;

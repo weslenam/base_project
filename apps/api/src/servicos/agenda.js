@@ -92,7 +92,8 @@ export async function buscarBarbeiro(c, id, { travar = false } = {}) {
   const {
     rows: [b],
   } = await c.query(
-    `select id, nome, inicio, fim, comissao, em_pausa as "emPausa" from barbeiros
+    `select id, nome, inicio, fim, comissao, em_pausa as "emPausa",
+            usuario_id as "usuarioId" from barbeiros
       where id = $1 and excluido_em is null ${travar ? 'for update' : ''}`,
     [Number(id)],
   );

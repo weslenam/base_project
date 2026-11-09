@@ -11,8 +11,10 @@ import {
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
+import { podeAgirNoBalcao } from '@barbertime/dominio';
 import { balcao } from '../../dados/balcao.js';
 import { useAcao } from '../../dados/useAcao.js';
+import { useSessao } from '../../sessao/sessao.js';
 import ComandaDialogo from '../caixa/ComandaDialogo.vue';
 import AvulsoDialogo from './AvulsoDialogo.vue';
 
@@ -56,6 +58,26 @@ async function agir(id, chamada, mensagem) {
   await carregar();
   return r;
 }
+
+// Só aparece o que a API vai aceitar (planejamento 0036): o Barbeiro inicia
+// consigo, finaliza e pausa os próprios, e marca desistência e falta na
+// própria coluna ou no que lançou.
+const { sessao } = useSessao();
+const pode = (acao, alvo = {}) =>
+  podeAgirNoBalcao(
+    {
+      usuarioId: sessao.value?.usuario?.id,
+      permissoes: sessao.value?.permissoes,
+    },
+    acao,
+    alvo,
+  );
+const contaDoBarbeiro = (id) =>
+  painel.value?.barbeiros.find((b) => b.id === id)?.usuarioId ?? null;
+const podeIniciar = (f) =>
+  pode('iniciar', {
+    destinoUsuarioId: contaDoBarbeiro(f.barbeiroSugeridoId ?? f.barbeiroId),
+  });
 
 const nomeDoBarbeiro = (id) =>
   painel.value?.barbeiros.find((b) => b.id === id)?.nome ?? 'Primeiro livre';
@@ -185,7 +207,7 @@ const servicos = computed(() => painel.value?.servicos ?? []);
           </p>
           <div class="barbeiro__acoes">
             <DsBotao
-              v-if="b.atual"
+              v-if="b.atual && pode('finalizar', { barbeiroUsuarioId: b.usuarioId })"
               tamanho="sm"
               :carregando="ocupado === b.atual.id"
               @click="finalizar(b)"
@@ -193,6 +215,7 @@ const servicos = computed(() => painel.value?.servicos ?? []);
               Finalizar
             </DsBotao>
             <DsBotao
+              v-if="pode('pausa', { barbeiroUsuarioId: b.usuarioId })"
               variante="fantasma"
               tamanho="sm"
               :carregando="ocupado === `p${b.id}`"
@@ -245,6 +268,7 @@ const servicos = computed(() => painel.value?.servicos ?? []);
             </span>
             <span class="item__acoes">
               <DsBotao
+                v-if="podeIniciar(f)"
                 tamanho="sm"
                 :desabilitado="!f.podeAgora"
                 :carregando="ocupado === f.id"
@@ -252,7 +276,12 @@ const servicos = computed(() => painel.value?.servicos ?? []);
               >
                 Iniciar
               </DsBotao>
-              <DsBotao variante="fantasma" tamanho="sm" @click="desistir(f)">
+              <DsBotao
+                v-if="pode('desistir', f)"
+                variante="fantasma"
+                tamanho="sm"
+                @click="desistir(f)"
+              >
                 Desistiu
               </DsBotao>
             </span>
@@ -305,6 +334,7 @@ const servicos = computed(() => painel.value?.servicos ?? []);
                   Chegou
                 </DsBotao>
                 <DsBotao
+                  v-if="pode('no_show', p)"
                   variante="fantasma"
                   tamanho="sm"
                   @click="marcarFalta(p)"

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { permissoesDoPapel } from '@barbertime/dominio';
 import {
+  sessaoCom,
   clicar,
   clicarContendo,
   esperar,
@@ -176,5 +178,34 @@ describe('balcão', () => {
     await esperar(() =>
       expect(chamadas.some((c) => c.url === '/api/caixa/abrir')).toBe(true),
     );
+  });
+});
+
+// Planejamento 0036: o Barbeiro (conta 9 = João) só vê as ações sobre si.
+describe('balcão do Barbeiro', () => {
+  it('finaliza e pausa só o próprio; não inicia a fila sugerida a outro', async () => {
+    const painel = PAINEL();
+    painel.barbeiros[0].usuarioId = 9;
+    painel.barbeiros[1].usuarioId = 3;
+    simularApi({ 'GET /api/balcao': painel });
+    app = await montarApp('/balcao', {
+      sessao: sessaoCom('Barbeiro', permissoesDoPapel('barbeiro')),
+    });
+    await esperar(() =>
+      expect(texto()).toContain('Pode começar agora com Léo'),
+    );
+    const agora = (nome) =>
+      document.querySelector(`article[aria-label="${nome}"]`).textContent;
+    expect(agora('João')).toContain('Finalizar');
+    expect(agora('João')).toContain('Pausa');
+    expect(agora('Léo')).not.toContain('Pausa');
+    const fila = document.querySelector('ol[aria-label="Fila"]').textContent;
+    expect(fila).not.toContain('Iniciar');
+    expect(fila).not.toContain('Desistiu');
+    // Check-in e as abas Balcão / Agenda continuam.
+    expect(texto()).toContain('Check-in');
+    const abas = document.querySelector('[aria-label="Navegação principal"]');
+    expect(abas.textContent).toContain('Balcão');
+    expect(abas.textContent).toContain('Agenda');
   });
 });

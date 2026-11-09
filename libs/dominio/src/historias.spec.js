@@ -38,7 +38,8 @@ describe('histórias dos papéis', () => {
     expect(barbeiro.pode).toContain(
       'Ajudar na agenda: marcar e bloquear horários, e cancelar só o que você marcou',
     );
-    expect(barbeiro.naoPode).toContain('Abrir o caixa e receber as comandas');
+    expect(barbeiro.pode).toContain('Abrir o caixa e receber as comandas');
+    expect(barbeiro.naoPode).toContain('Fechar o caixa no fim do dia');
     expect(barbeiro.naoPode.length).toBeLessThanOrEqual(4);
 
     const dono = historiaDoPapel('dono', []);

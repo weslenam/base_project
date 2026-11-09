@@ -35,9 +35,16 @@ export const pode = (...permissoes) =>
   permissoes.every((p) => estado.dados?.permissoes?.includes(p));
 export const podeAlguma = (...permissoes) =>
   permissoes.some((p) => estado.dados?.permissoes?.includes(p));
-/** Papel que usa o app sem menu: só a Agenda e o Perfil (planejamento 0035). */
+/**
+ * Papel sem menu lateral (Barbeiro): abas Balcão e Agenda, mais o Perfil
+ * (planejamentos 0035 e 0036). Entra pela primeira aba.
+ */
 export const semMenu = () => papelSemMenu(estado.dados?.papel?.chave);
-export const ROTAS_SEM_MENU = ['/agenda', '/perfil'];
+export const ABAS_SEM_MENU = [
+  { titulo: 'Balcão', rota: '/balcao', icone: 'fila' },
+  { titulo: 'Agenda', rota: '/agenda', icone: 'agenda' },
+];
+export const ROTAS_SEM_MENU = [...ABAS_SEM_MENU.map((a) => a.rota), '/perfil'];
 export const moduloAtivo = (chave) =>
   Boolean(estado.dados?.modulosAtivos?.includes(chave));
 

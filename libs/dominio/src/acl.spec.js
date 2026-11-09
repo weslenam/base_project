@@ -9,6 +9,7 @@ import {
   permissoesPorGrupo,
   podeAgirSobre,
   podeAgirNaAgenda,
+  podeAgirNoBalcao,
   podeMarcarNaAgenda,
   papelSemMenu,
 } from './permissoes.js';
@@ -41,6 +42,7 @@ describe('permissões', () => {
       'agenda.ajudar',
       'clientes.ver',
       'clientes.editar',
+      'caixa.operar',
     ]);
     expect(papel('recepcao')).toContain('pacotes.vender');
     expect(papel('recepcao')).not.toContain('pacotes.gerenciar');
@@ -234,5 +236,63 @@ describe('agenda: quem ajuda x quem gerencia', () => {
       ),
     ).toBe(false);
     expect(podeAgirNaAgenda(null, queEleMarcou, 'cancelado')).toBe(false);
+  });
+});
+
+// Planejamento 0036: o Barbeiro no Balcão.
+describe('balcão: Barbeiro só age no que é seu', () => {
+  const barbeiro = { usuarioId: 7, permissoes: permissoesDoPapel('barbeiro') };
+  const recepcao = { usuarioId: 3, permissoes: permissoesDoPapel('recepcao') };
+
+  it('vê, faz check-in, lança avulso e recebe', () => {
+    for (const acao of ['ver', 'checkin', 'avulso', 'receber'])
+      expect(podeAgirNoBalcao(barbeiro, acao, {})).toBe(true);
+  });
+
+  it('inicia só consigo como barbeiro', () => {
+    expect(podeAgirNoBalcao(barbeiro, 'iniciar', { destinoUsuarioId: 7 })).toBe(
+      true,
+    );
+    expect(podeAgirNoBalcao(barbeiro, 'iniciar', { destinoUsuarioId: 9 })).toBe(
+      false,
+    );
+    expect(
+      podeAgirNoBalcao(barbeiro, 'iniciar', { destinoUsuarioId: null }),
+    ).toBe(false);
+  });
+
+  it('finaliza e pausa só os próprios', () => {
+    for (const acao of ['finalizar', 'pausa']) {
+      expect(podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 7 })).toBe(
+        true,
+      );
+      expect(
+        podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 9, criadoPor: 7 }),
+      ).toBe(false);
+    }
+  });
+
+  it('desistência e falta na coluna dele ou no que lançou', () => {
+    for (const acao of ['desistir', 'no_show']) {
+      expect(podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 7 })).toBe(
+        true,
+      );
+      expect(
+        podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 9, criadoPor: 7 }),
+      ).toBe(true);
+      expect(
+        podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 9, criadoPor: 3 }),
+      ).toBe(false);
+    }
+  });
+
+  it('quem gerencia age em tudo; sem caixa nem agenda, nada', () => {
+    expect(podeAgirNoBalcao(recepcao, 'finalizar', { barbeiroUsuarioId: 9 })).toBe(
+      true,
+    );
+    expect(
+      podeAgirNoBalcao({ usuarioId: 7, permissoes: ['agenda.ver'] }, 'ver'),
+    ).toBe(false);
+    expect(podeAgirNoBalcao(barbeiro, 'inventada', {})).toBe(false);
   });
 });

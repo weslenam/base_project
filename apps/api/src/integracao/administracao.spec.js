@@ -114,6 +114,7 @@ describe('ACL dentro da barbearia', () => {
       'agenda.ajudar',
       'clientes.ver',
       'clientes.editar',
+      'caixa.operar',
     ]);
     // Não se cria, edita nem exclui papel.
     const recepcao = papeis.find((p) => p.chave === 'recepcao');
