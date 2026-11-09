@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../dados/api.js';
 import {
   clicar,
@@ -6,12 +6,14 @@ import {
   esperar,
   montarApp,
   preencher,
+  sessaoCom,
   texto,
 } from '../testes/apoio.js';
 
 let app;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
+  vi.restoreAllMocks();
   app?.unmount();
   document.body.innerHTML = '';
 });
@@ -127,5 +129,24 @@ describe('agenda → comanda', () => {
     await esperar(() => expect(texto()).toMatch(/Comanda #\d+/));
     expect(texto()).toContain('Corte + barba');
     expect(normalizar(texto())).toContain('Receber R$ 70,00');
+  });
+});
+
+describe('abrir o caixa (planejamento 0039)', () => {
+  it('#19: sem caixa.abrir, a tela Caixa não oferece abrir o caixa', async () => {
+    vi.spyOn(api.caixa, 'obterDoDia').mockResolvedValue(null);
+    app = await montarApp('/caixa', {
+      sessao: sessaoCom('Recepção', ['caixa.operar']),
+    });
+    await esperar(() => expect(texto()).toContain('Peça à recepção'));
+    expect(texto()).not.toContain('Abrir caixa');
+  });
+
+  it('com caixa.abrir, a tela Caixa oferece abrir o caixa', async () => {
+    vi.spyOn(api.caixa, 'obterDoDia').mockResolvedValue(null);
+    app = await montarApp('/caixa', {
+      sessao: sessaoCom('Recepção', ['caixa.operar', 'caixa.abrir']),
+    });
+    await esperar(() => expect(texto()).toContain('Abrir caixa'));
   });
 });

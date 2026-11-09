@@ -202,8 +202,6 @@ describe('balcão do Barbeiro', () => {
     const fila = document.querySelector('ol[aria-label="Fila"]').textContent;
     expect(fila).not.toContain('Iniciar');
     expect(fila).not.toContain('Desistiu');
-    // Planejamento 0039: com o caixa fechado, o Barbeiro não vê "Abrir caixa".
-    expect(texto()).not.toContain('Peça à recepção');
     // Check-in e as abas Balcão / Agenda continuam.
     expect(texto()).toContain('Check-in');
     const abas = document.querySelector('[aria-label="Navegação principal"]');
