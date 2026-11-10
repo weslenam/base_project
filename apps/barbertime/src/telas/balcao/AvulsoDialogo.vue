@@ -9,8 +9,8 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarMoeda, validarTelefone } from '@barbertime/ui-utils';
-import { balcao } from '../../dados/balcao.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { balcao } from '../../dados/balcao.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 // Avulso em até 3 toques (especificação docs/atendimento/balcao.md):
 // 1. serviço · 2. barbeiro ("Primeiro livre" é o padrão) · 3. WhatsApp ou pular.

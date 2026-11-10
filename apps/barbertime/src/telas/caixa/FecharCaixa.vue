@@ -10,8 +10,8 @@ import {
 } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
 import { diferencaDeCaixa, FORMAS_DE_PAGAMENTO } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ caixa: { type: Object, required: true } });

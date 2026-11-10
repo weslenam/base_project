@@ -1,4 +1,6 @@
 import { somarDias, vigenciaDoPacote } from '@barbertime/dominio';
+import type { ItemComanda } from '@barbertime/dominio';
+import type { Banco } from './banco.ts';
 
 /**
  * Dados de exemplo (planejamento 0006). Somem ao recarregar a página.
@@ -28,7 +30,12 @@ const PACOTES = [
   },
 ];
 
-const servico = (refId, nome, preco, barbeiroId) => ({
+const servico = (
+  refId: number,
+  nome: string,
+  preco: number,
+  barbeiroId: number,
+): ItemComanda => ({
   tipo: 'servico',
   refId,
   nome,
@@ -36,7 +43,12 @@ const servico = (refId, nome, preco, barbeiroId) => ({
   quantidade: 1,
   barbeiroId,
 });
-const produto = (refId, nome, preco, barbeiroId) => ({
+const produto = (
+  refId: number,
+  nome: string,
+  preco: number,
+  barbeiroId: number,
+): ItemComanda => ({
   tipo: 'produto',
   refId,
   nome,
@@ -45,13 +57,13 @@ const produto = (refId, nome, preco, barbeiroId) => ({
   barbeiroId,
 });
 const paga = (
-  id,
-  caixaId,
-  hora,
-  clienteId,
-  barbeiroId,
-  forma,
-  itens,
+  id: number,
+  caixaId: number,
+  hora: string,
+  clienteId: number,
+  barbeiroId: number,
+  forma: string,
+  itens: ItemComanda[],
   desconto = 0,
 ) => ({
   id,
@@ -89,8 +101,8 @@ const HISTORICO_DE_COMANDAS = [
   paga(10, 7, '10:30', 1, 1, 'pix', [servico(1, 'Corte', 45, 1)]),
 ];
 
-export function criarDadosDeExemplo(hoje) {
-  const dia = (n) => somarDias(hoje, n);
+export function criarDadosDeExemplo(hoje: string): Banco {
+  const dia = (n: number) => somarDias(hoje, n);
   return {
     barbearia: {
       id: 1,
@@ -119,12 +131,15 @@ export function criarDadosDeExemplo(hoje) {
       { id: 4, nome: 'Pigmentação', duracao: 40, preco: 60 },
     ],
     // Campos de estoque (planejamento 0027): saldo só muda por movimento.
-    produtos: [
-      ['Pomada modeladora', 39.9, 10, 6, 3, 18.5],
-      ['Óleo para barba', 34.9, 10, 1, 2, 15],
-      ['Shampoo anticaspa', 29.9, 8, 4, 2, 12],
-      ['Cera em pó', 44.9, 10, 0, 0, null],
-    ].map(([nome, preco, comissao, saldo, estoqueMinimo, ultimoCusto], i) => ({
+    // nome, preço, comissão, saldo, estoque mínimo e último custo
+    produtos: (
+      [
+        ['Pomada modeladora', 39.9, 10, 6, 3, 18.5],
+        ['Óleo para barba', 34.9, 10, 1, 2, 15],
+        ['Shampoo anticaspa', 29.9, 8, 4, 2, 12],
+        ['Cera em pó', 44.9, 10, 0, 0, null],
+      ] as [string, number, number, number, number, number | null][]
+    ).map(([nome, preco, comissao, saldo, estoqueMinimo, ultimoCusto], i) => ({
       id: i + 1,
       nome,
       preco,

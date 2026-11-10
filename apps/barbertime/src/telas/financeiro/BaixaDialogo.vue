@@ -11,8 +11,8 @@ import {
 } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
 import { FORMAS_DE_BAIXA, hojeIso } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 // Baixa de uma conta (planejamento 0027, parte 2): data, valor pago (pode
 // diferir do previsto) e forma. "Dinheiro do caixa" sai ou entra na gaveta do

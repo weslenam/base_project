@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { api } from '../dados/api.js';
+import { api } from '../dados/api.ts';
 import {
   clicar,
   clicarContendo,
@@ -9,7 +9,7 @@ import {
   preencher,
   sessaoCom,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 import { CHAVES_DE_PERMISSAO, permissoesDoPapel } from '@barbertime/dominio';
 import router from '../router';
 

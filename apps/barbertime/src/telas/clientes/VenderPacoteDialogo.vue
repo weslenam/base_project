@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { DsBotao, DsDialogo, DsEscolha, DsSelect } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 import {
   descreverItens,
   descreverLimites,

@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso } from '@barbertime/dominio';
 import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
 import type { ServidorDeTeste } from './apoio.ts';
-import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
-import type { Servico } from '../app/rotas/cadastros.contratos.ts';
+import type { PapelDaBarbearia } from '@barbertime/contratos';
+import type { Servico } from '@barbertime/contratos';
 
 type Horario = { hora: string; disponivel: boolean };
 

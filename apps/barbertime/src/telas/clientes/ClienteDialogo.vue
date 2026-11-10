@@ -14,8 +14,8 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 import { seloDoEstado } from '../estados.js';
 import { rotuloDaForma, seloDaComanda } from '../caixa/rotulos.js';
 import FidelidadeEPacotesCliente from './FidelidadeEPacotesCliente.vue';

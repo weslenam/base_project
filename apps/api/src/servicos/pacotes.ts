@@ -13,7 +13,7 @@ import type {
   AssinaturaDoCliente,
   PacoteDoCatalogo,
   PodeUsarPacote,
-} from './pacotes.contratos.ts';
+} from '@barbertime/contratos';
 
 // Pacotes e assinaturas no banco (planejamento 0034, etapa B; regras do 0015).
 // Tudo roda no contexto da barbearia (RLS). A venda e a renovação abrem uma

@@ -37,6 +37,11 @@ export default [
               sourceTag: 'scope:back',
               onlyDependOnLibsWithTags: ['scope:back', 'scope:shared'],
             },
+            // Código comum (domínio, contratos) só depende de código comum.
+            {
+              sourceTag: 'scope:shared',
+              onlyDependOnLibsWithTags: ['scope:shared'],
+            },
             // Libs de UI só dependem de outras libs de UI.
             { sourceTag: 'type:ui', onlyDependOnLibsWithTags: ['type:ui'] },
           ],

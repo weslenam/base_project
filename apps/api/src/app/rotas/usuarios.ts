@@ -11,18 +11,7 @@ import type { Conexao } from '../../infra/banco.ts';
 import { validarNovoUsuario } from '../../servicos/barbearias.ts';
 import type { DadosDeNovoUsuario } from '../../servicos/barbearias.ts';
 import { TAM, corpo, inteiro, logico, texto } from '../esquemas.ts';
-
-/** Pessoa com acesso à barbearia (`GET /usuarios` e respostas das ações). */
-export interface UsuarioDaBarbearia {
-  id: number;
-  nome: string;
-  email: string;
-  ativo: boolean;
-  papelId: number;
-  papelNome: string;
-  papelChave: string;
-  dono: boolean;
-}
+import type { UsuarioDaBarbearia } from '@barbertime/contratos';
 
 /** Usuários com vínculo nesta barbearia (a RLS limita os vínculos). */
 const listar = (c: Conexao) =>

@@ -31,6 +31,7 @@ import {
   TAM,
   texto,
 } from '../esquemas.ts';
+import type { AgendamentoPublico, PaginaPublica } from '@barbertime/contratos';
 
 /**
  * Página pública de agendamento (planejamento 0019, ADR 0013). Sem sessão.
@@ -38,31 +39,6 @@ import {
  * 404, para não revelar que a barbearia existe.
  */
 const NAO_ENCONTRADA = 'Barbearia não encontrada.';
-
-/** `GET /publico/:slug`: tudo que a página precisa para começar. */
-export interface PaginaPublica {
-  barbearia: {
-    nome: string;
-    slug: string;
-    contato: ConfigBarbearia['contato'];
-    funcionamento: ConfigBarbearia['funcionamento'];
-    agendamento: ConfigBarbearia['agendamento'];
-  };
-  servicos: { id: number; nome: string; duracao: number; preco: number }[];
-  barbeiros: { id: number; nome: string; inicio: string; fim: string }[];
-  hoje: string;
-}
-
-/** `POST /publico/:slug/agendamentos`: só o necessário para a confirmação. */
-export interface AgendamentoPublico {
-  id: number;
-  data: unknown;
-  inicio: unknown;
-  fim: unknown;
-  servicoNome: unknown;
-  barbeiroNome: unknown;
-  primeiroNome: string | null;
-}
 
 interface LinhaDaBarbeariaPublica {
   id: number;

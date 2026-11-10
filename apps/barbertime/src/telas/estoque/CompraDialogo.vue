@@ -9,9 +9,9 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { pode } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { pode } from '../../sessao/sessao.ts';
 import { formatarDataIso, formatarQuantidade } from './rotulos.js';
 
 // Detalhe da compra: itens, totais, parcelas e cancelamento.

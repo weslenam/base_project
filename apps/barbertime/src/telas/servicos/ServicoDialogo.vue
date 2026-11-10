@@ -10,9 +10,9 @@ import {
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { moduloAtivo, pode } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { moduloAtivo, pode } from '../../sessao/sessao.ts';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ id: { type: Number, default: null } });

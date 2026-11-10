@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { api } from '../dados/api.js';
+import { api } from '../dados/api.ts';
 import {
   campo,
   clicar,
@@ -8,7 +8,7 @@ import {
   montarApp,
   preencher,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 
 let app;
 beforeEach(() => api.reiniciar());

@@ -1,9 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsSelo, DsTabela } from '@barbertime/ui';
-import { administracao } from '../../dados/administracao.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { administracao } from '../../dados/administracao.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import UsuarioDialogo from './UsuarioDialogo.vue';
 
 const executar = useAcao();

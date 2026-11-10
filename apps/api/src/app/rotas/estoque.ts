@@ -23,7 +23,7 @@ import type {
   Fornecedor,
   ItemDaFicha,
   MovimentoDeEstoque,
-} from '../../servicos/estoque.contratos.ts';
+} from '@barbertime/contratos';
 import {
   TAM,
   campoData,

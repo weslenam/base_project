@@ -8,7 +8,7 @@ import type { Baixa, ItemComanda, Valor } from '@barbertime/dominio';
 import { sql } from 'kysely';
 import { conflito, invalido, naoEncontrado } from '../infra/erros.ts';
 import type { Conexao } from '../infra/banco.ts';
-import type { Compra, ProdutoNoEstoque } from './estoque.contratos.ts';
+import type { Compra, ProdutoNoEstoque } from '@barbertime/contratos';
 
 // Estoque e compras (planejamento 0027, parte 1). Sempre numa transação com RLS (c).
 // O saldo fica em produtos.saldo e muda só aqui, junto com o movimento.

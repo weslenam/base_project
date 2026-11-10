@@ -5,12 +5,13 @@ import type pg from 'pg';
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify';
 import type { Conexao, ExecutorSql } from '../infra/banco.ts';
 import type { NomeDoLimite } from '../seguranca/limites.ts';
+import type { PapelDaSessao } from '@barbertime/contratos';
 
 /** Contexto da barbearia, carregado uma vez por requisição autenticada. */
 export interface ContextoDaBarbearia {
   usuarioId: number;
   barbeariaId: number;
-  papel: { id: number; nome: string; chave: string };
+  papel: PapelDaSessao;
   modulosAtivos: string[];
   /** Permissões efetivas: as do papel, menos as de módulo inativo (ADR 0011). */
   permissoes: string[];

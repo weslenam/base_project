@@ -1,14 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { DsApp, DsBotao, DsLayout } from '@barbertime/ui';
+import type { GrupoDoMenu, ItemDoMenu } from '@barbertime/ui';
 import Marca from './Marca.vue';
 import { rotas, rotaPermitida } from '../router';
 import {
   ABAS_SEM_MENU,
   semMenu as papelSemMenu,
   useSessao,
-} from '../sessao/sessao.js';
+} from '../sessao/sessao.ts';
 
 const route = useRoute();
 const router = useRouter();
@@ -19,7 +20,7 @@ const semMenu = computed(() =>
 );
 
 // Ícone do título de cada grupo do menu (planejamento 0030).
-const gruposMenu = [
+const gruposMenu: GrupoDoMenu[] = [
   { titulo: 'Operação', icone: 'fila' },
   { titulo: 'Cadastros', icone: 'componentes' },
   { titulo: 'Estoque', icone: 'estoque' },
@@ -31,16 +32,20 @@ const gruposMenu = [
 // O link da página pública fica em Configurações > Página pública (planejamento
 // 0019): no modo "só com o link" ele exige o código, que a sessão não conhece.
 // Papel sem menu (Barbeiro, planejamento 0035): o DsLayout some com o sanduíche.
-const itensMenu = computed(() => {
+const itensMenu = computed<ItemDoMenu[]>(() => {
   if (!sessao.value || papelSemMenu()) return [];
-  return rotas
-    .filter((r) => r.meta?.menu && rotaPermitida(r.meta))
-    .map((r) => ({
-      titulo: r.meta.menu.titulo,
-      rota: r.path,
-      icone: r.meta.menu.icone,
-      grupo: r.meta.menu.grupo,
-    }));
+  return rotas.flatMap((r) => {
+    const menu = r.meta?.menu;
+    if (!menu || !rotaPermitida(r.meta)) return [];
+    return [
+      {
+        titulo: menu.titulo,
+        rota: r.path,
+        icone: menu.icone,
+        grupo: menu.grupo,
+      },
+    ];
+  });
 });
 
 async function aoSair() {

@@ -3,9 +3,9 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { DsBotao, DsSelo, useNotificacao } from '@barbertime/ui';
 import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import VenderPacoteDialogo from './VenderPacoteDialogo.vue';
 
 /** Saldo de fidelidade e pacotes do cliente (planejamento 0015). */

@@ -18,8 +18,8 @@ import {
   validarTelefone,
 } from '@barbertime/ui-utils';
 import { hojeIso, somarDias } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { ErroDeNegocio } from '../../dados/erros.js';
+import { api } from '../../dados/api.ts';
+import { ErroDeNegocio } from '../../dados/erros.ts';
 
 // Página do cliente final (planejamentos 0006 e 0014): uma etapa por vez, sem rolagem,
 // cartão "Seu agendamento" ao lado em telas largas e saudação a quem já é cliente.

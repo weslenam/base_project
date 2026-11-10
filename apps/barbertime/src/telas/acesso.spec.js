@@ -10,7 +10,7 @@ import {
   sessaoCom,
   simularApi,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 
 let app;
 afterEach(() => {
@@ -181,24 +181,18 @@ describe('menu e telas pelo papel', () => {
     const barbeiro = sessaoCom('Barbeiro', permissoesDoPapel('barbeiro'));
     simularApi({ 'GET /api/balcao': null });
     app = await montarApp('/clientes', { sessao: barbeiro });
-    await esperar(() =>
-      expect(router.currentRoute.value.path).toBe('/balcao'),
-    );
+    await esperar(() => expect(router.currentRoute.value.path).toBe('/balcao'));
     expect(menu()).toEqual([]);
     expect(document.querySelector('[aria-label="Abrir menu"]')).toBeNull();
 
     await router.push('/');
-    await esperar(() =>
-      expect(router.currentRoute.value.path).toBe('/balcao'),
-    );
+    await esperar(() => expect(router.currentRoute.value.path).toBe('/balcao'));
     await router.push('/agenda');
     await esperar(() => expect(texto()).toContain('Novo agendamento'));
     expect(texto()).toContain('Bloquear horário');
 
     await router.push('/perfil');
-    await esperar(() =>
-      expect(router.currentRoute.value.path).toBe('/perfil'),
-    );
+    await esperar(() => expect(router.currentRoute.value.path).toBe('/perfil'));
   });
 
   it('Página pública só aparece com o módulo de agendamento online ativo', async () => {

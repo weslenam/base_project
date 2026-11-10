@@ -1,8 +1,8 @@
 import { useDialogo, useNotificacao } from '@barbertime/ui';
 import { useRouter } from 'vue-router';
-import { ErroDeNegocio } from './erros.js';
-import { ErroDeSessao } from './http.js';
-import { definirSessao } from '../sessao/sessao.js';
+import { ErroDeNegocio } from './erros.ts';
+import { ErroDeSessao } from './http.ts';
+import { definirSessao } from '../sessao/sessao.ts';
 
 /**
  * Executa uma chamada à API mostrando a recusa de negócio no diálogo de negação.
@@ -12,7 +12,9 @@ export function useAcao() {
   const { negar } = useDialogo();
   const notificar = useNotificacao();
   const router = useRouter();
-  return async function executar(chamada) {
+  return async function executar<T>(
+    chamada: () => Promise<T>,
+  ): Promise<T | undefined> {
     try {
       return await chamada();
     } catch (erro) {

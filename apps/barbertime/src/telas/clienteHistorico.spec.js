@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { api } from '../dados/api.js';
-import { clicarContendo, esperar, montarApp, texto } from '../testes/apoio.js';
+import { api } from '../dados/api.ts';
+import { clicarContendo, esperar, montarApp, texto } from '../testes/apoio.ts';
 
 let app;
 beforeEach(() => api.reiniciar());

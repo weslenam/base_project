@@ -23,7 +23,7 @@ import type {
   ComandaDoCaixa,
   ComandasDoCliente,
   ResumoDoCliente,
-} from '../../servicos/caixa.contratos.ts';
+} from '@barbertime/contratos';
 import {
   corpo,
   escalar,

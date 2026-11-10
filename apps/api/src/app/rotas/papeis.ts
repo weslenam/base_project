@@ -1,18 +1,7 @@
 import { nivelDoPapel, permissoesDoPapel } from '@barbertime/dominio';
 import { sql } from 'kysely';
 import type { FastifyInstance } from 'fastify';
-
-/** Papel como a tela de usuários e papéis o recebe (`GET /papeis`). */
-export interface PapelDaBarbearia {
-  id: number;
-  chave: string;
-  nome: string;
-  /** Quantas pessoas têm o papel nesta barbearia. */
-  usuarios: number;
-  nivel: number | null;
-  protegido: true;
-  permissoes: string[];
-}
+import type { PapelDaBarbearia } from '@barbertime/contratos';
 
 /**
  * Papéis: só leitura (ADR 0010, planejamento 0023). A hierarquia é fixa

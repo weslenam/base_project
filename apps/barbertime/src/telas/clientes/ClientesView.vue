@@ -9,7 +9,7 @@ import {
   DsTabela,
 } from '@barbertime/ui';
 import { formatarData, formatarTelefone } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 import ClienteDialogo from './ClienteDialogo.vue';
 
 const busca = ref('');

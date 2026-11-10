@@ -34,7 +34,11 @@ export { default as DsTextarea } from './componentes/DsTextarea.vue';
 export { NOMES_DE_ICONES } from './icones.ts';
 export type { NomeDoIcone } from './icones.ts';
 export type {
+  Aba,
+  AbaDeNavegacao,
   ColunaDaTabela,
+  GrupoDoMenu,
+  ItemDoMenu,
   OpcaoDeEscolha,
   OpcaoDeHorario,
   OpcaoDeSelect,

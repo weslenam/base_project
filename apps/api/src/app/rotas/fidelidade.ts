@@ -8,7 +8,7 @@ import {
   salvarConfig,
 } from '../../servicos/fidelidade.ts';
 import type { DadosDaFidelidade } from '../../servicos/fidelidade.ts';
-import type { FidelidadeDoCliente } from '../../servicos/fidelidade.contratos.ts';
+import type { FidelidadeDoCliente } from '@barbertime/contratos';
 import { corpo, escalar, inteiro, logico } from '../esquemas.ts';
 
 // Fidelidade no banco (planejamento 0034, etapa A). Tudo exige o módulo

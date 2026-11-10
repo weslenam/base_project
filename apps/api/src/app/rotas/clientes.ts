@@ -5,22 +5,9 @@ import type { Conexao } from '../../infra/banco.ts';
 import { SELECT_ATENDIMENTO, agora, comEstado } from '../../servicos/agenda.ts';
 import type { LinhaDeAtendimento } from '../../servicos/agenda.ts';
 import { TAM, corpo, query, texto } from '../esquemas.ts';
+import type { ClienteComResumo } from '@barbertime/contratos';
 
 // Clientes da barbearia (planejamento 0019).
-
-/** Cliente com o resumo de atendimentos (`GET /clientes` e `/clientes/:id`). */
-export interface ClienteComResumo {
-  id: number;
-  nome: string;
-  telefone: string | null;
-  cpf: string | null;
-  observacoes: string;
-  /** Atendimentos finalizados ou pagos. */
-  atendimentos: number;
-  faltas: number;
-  /** Data (AAAA-MM-DD) do último atendimento finalizado ou pago. */
-  ultimaVisita: string | null;
-}
 
 interface CorpoDoCliente {
   nome?: string | null;

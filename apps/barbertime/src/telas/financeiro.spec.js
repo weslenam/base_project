@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CHAVES_DE_MODULO, CHAVES_DE_PERMISSAO } from '@barbertime/dominio';
-import { api } from '../dados/api.js';
+import { api } from '../dados/api.ts';
 import {
   botoes,
   clicar,
@@ -10,7 +10,7 @@ import {
   preencher,
   sessaoCom,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 
 // Planejamento 0027, parte 2, fatia 2A: contas a pagar e a receber,
 // categorias e a baixa com dinheiro do caixa.

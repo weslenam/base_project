@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { DsBotao, DsDialogo, DsInput, useNotificacao } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 import { formatarQuantidade } from './rotulos.js';
 
 // Inventário (planejamento 0027): a contagem física define o saldo novo, e

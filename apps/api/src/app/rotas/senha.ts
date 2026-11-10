@@ -1,12 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { chaves } from '../../seguranca/limites.ts';
 import { corpo, TAM, texto } from '../esquemas.ts';
-
-/** Resposta de `POST /auth/esqueci` e `POST /auth/redefinir`. */
-export interface RespostaDaSenha {
-  ok: true;
-  mensagem: string;
-}
+import type { RespostaDaSenha } from '@barbertime/contratos';
 
 /**
  * "Esqueci a senha" (planejamento 0023, ADRs 0010 e 0014). Ninguém troca a senha

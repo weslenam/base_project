@@ -8,7 +8,7 @@ import {
   montarApp,
   simularApi,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 
 // Planejamento 0020 (fase 1): tela do Balcão com a API simulada.
 

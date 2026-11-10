@@ -12,9 +12,9 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import { ROTULO_DA_FORMA, seloDaSituacao } from './rotulos.js';
 import BaixaDialogo from './BaixaDialogo.vue';
 

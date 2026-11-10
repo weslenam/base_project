@@ -29,7 +29,7 @@ import {
   atendimentosOnde,
   obterAtendimento,
 } from '../../servicos/atendimentos.ts';
-import type { AtendimentoNaAgenda } from '../../servicos/agenda.contratos.ts';
+import type { AtendimentoNaAgenda } from '@barbertime/contratos';
 import {
   cancelarComanda,
   comandaDoAtendimento,

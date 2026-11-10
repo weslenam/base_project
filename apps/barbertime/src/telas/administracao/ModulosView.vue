@@ -8,9 +8,9 @@ import {
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
-import { administracao } from '../../dados/administracao.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { carregarSessao, useSessao } from '../../sessao/sessao.js';
+import { administracao } from '../../dados/administracao.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { carregarSessao, useSessao } from '../../sessao/sessao.ts';
 
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();

@@ -9,7 +9,7 @@ import {
   sessaoCom,
   simularApi,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 import { MODULOS, PAPEIS_PADRAO } from '@barbertime/dominio';
 
 let app;

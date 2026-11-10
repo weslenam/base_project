@@ -8,8 +8,8 @@ import {
   DsSelect,
   useNotificacao,
 } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({

@@ -10,8 +10,8 @@ import {
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 // Categoria do financeiro (planejamento 0027, parte 2). Com conta lançada,
 // não se exclui: só se desativa (some da escolha nas contas novas).

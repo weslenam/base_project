@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { moduloAtivo } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { moduloAtivo } from '../../sessao/sessao.ts';
 import { ROTULO_DO_TIPO, formatarQuantidade } from '../estoque/rotulos.js';
 import ProdutoDialogo from './ProdutoDialogo.vue';
 

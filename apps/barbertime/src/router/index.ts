@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import type { RouteMeta, RouteRecordRaw } from 'vue-router';
+import type { NomeDoIcone } from '@barbertime/ui';
 import {
   ROTAS_SEM_MENU,
   carregarSessao,
@@ -7,7 +9,7 @@ import {
   semMenu,
   sessaoCarregada,
   temSessao,
-} from '../sessao/sessao.js';
+} from '../sessao/sessao.ts';
 
 /**
  * Rotas. meta:
@@ -16,7 +18,17 @@ import {
  *  - permissoes: basta uma delas (ADR 0010); modulo: precisa estar ativo (ADR 0011)
  *  - menu: { titulo, icone, grupo } para aparecer no menu lateral (grupo vira subtítulo)
  */
-export const rotas = [
+declare module 'vue-router' {
+  interface RouteMeta {
+    publica?: boolean;
+    semLayout?: boolean;
+    permissoes?: string[];
+    modulo?: string;
+    menu?: { titulo: string; icone: NomeDoIcone; grupo?: string };
+  }
+}
+
+export const rotas: RouteRecordRaw[] = [
   { path: '/', redirect: '/agenda' },
   {
     // Balcão (planejamento 0020): avulso + agendado, fila e encaixe.
@@ -235,7 +247,7 @@ export const rotas = [
 ];
 
 /** A rota é permitida para a sessão atual? (usado no guarda e no menu) */
-export function rotaPermitida(meta = {}) {
+export function rotaPermitida(meta: RouteMeta = {}): boolean {
   if (meta.permissoes?.length && !podeAlguma(...meta.permissoes)) return false;
   if (meta.modulo && !moduloAtivo(meta.modulo)) return false;
   return true;

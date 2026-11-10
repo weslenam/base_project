@@ -12,9 +12,9 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { podeAgirNoBalcao } from '@barbertime/dominio';
-import { balcao } from '../../dados/balcao.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { balcao } from '../../dados/balcao.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import ComandaDialogo from '../caixa/ComandaDialogo.vue';
 import AvulsoDialogo from './AvulsoDialogo.vue';
 
