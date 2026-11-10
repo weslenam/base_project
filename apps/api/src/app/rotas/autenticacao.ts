@@ -1,11 +1,39 @@
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { chaves } from '../../seguranca/limites.ts';
 import { corpo, inteiro, TAM, texto } from '../esquemas.ts';
 import { invalido, naoAutenticado, proibido } from '../../infra/erros.ts';
-import { criarBarbearia } from '../../servicos/barbearias.js';
+import { criarBarbearia } from '../../servicos/barbearias.ts';
+import type { DadosDaBarbeariaNova } from '../../servicos/barbearias.ts';
 import { BARBEARIA_SUSPENSA } from '../../seguranca/autenticacao.ts';
+import type { ContextoDaBarbearia } from '../tipos-fastify.ts';
 
-async function dadosDaSessao(fastify, req) {
-  await fastify.autenticado(req);
+// `usuarios`, `sessoes` e as funções `barbearias_do_usuario` e
+// `usuario_em_barbearia_suspensa` são globais (sem barbearia na transação):
+// as consultas daqui usam o pool com o driver pg (planejamento 0040).
+
+/** Barbearia que o usuário pode abrir. */
+export interface BarbeariaDoUsuario {
+  id: number;
+  nome: string;
+  slug: string;
+}
+
+/** Resposta de entrar, `GET /auth/eu` e das trocas de barbearia e perfil. */
+export interface DadosDaSessao {
+  usuario: { id: number; nome: string; email: string } | undefined;
+  barbearia: BarbeariaDoUsuario | undefined;
+  barbearias: BarbeariaDoUsuario[];
+  papel: ContextoDaBarbearia['papel'];
+  permissoes: string[];
+  modulosAtivos: string[];
+}
+
+async function dadosDaSessao(
+  fastify: FastifyInstance,
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<DadosDaSessao> {
+  await fastify.autenticado(req, reply);
   const { usuarioId, barbeariaId, papel, permissoes, modulosAtivos } =
     req.contexto;
   const [
@@ -14,10 +42,11 @@ async function dadosDaSessao(fastify, req) {
     },
     { rows: barbearias },
   ] = await Promise.all([
-    fastify.db.query('select id, nome, email from usuarios where id = $1', [
-      usuarioId,
-    ]),
-    fastify.db.query(
+    fastify.db.query<{ id: number; nome: string; email: string }>(
+      'select id, nome, email from usuarios where id = $1',
+      [usuarioId],
+    ),
+    fastify.db.query<BarbeariaDoUsuario>(
       'select barbearia_id as id, nome, slug from barbearias_do_usuario($1)',
       [usuarioId],
     ),
@@ -32,7 +61,7 @@ async function dadosDaSessao(fastify, req) {
   };
 }
 
-export default async function (fastify) {
+export default async function (fastify: FastifyInstance) {
   // Sessão, senha e credenciais ficam na identidade (ADR 0016, planejamento 0025 S3).
   const identidade = fastify.identidade;
 
@@ -51,36 +80,45 @@ export default async function (fastify) {
       fastify.limitar('entrarPorEmail', chaves.email),
     ],
   };
-  fastify.post('/auth/entrar', entrar, async (req, reply) => {
+  fastify.post<{
+    Body:
+      | {
+          email?: string | null;
+          senha?: string | null;
+          barbeariaId?: number | null;
+        }
+      | undefined;
+  }>('/auth/entrar', entrar, async (req, reply) => {
     const { email, senha, barbeariaId } = req.body ?? {};
     // Mesma resposta e o mesmo tempo para e-mail inexistente e senha errada (ADR 0014).
     const usuarioId = await identidade.conferirCredenciais(email, senha);
     if (!usuarioId) {
       throw naoAutenticado('E-mail ou senha incorretos.');
     }
-    const { rows: barbearias } = await fastify.db.query(
+    const { rows: barbearias } = await fastify.db.query<{ id: number }>(
       'select barbearia_id as id from barbearias_do_usuario($1)',
       [usuarioId],
     );
-    if (!barbearias.length) {
+    const primeira = barbearias[0];
+    if (!primeira) {
       // A função só lista barbearias não suspensas (planejamento 0028).
       const {
-        rows: [{ suspensa }],
-      } = await fastify.db.query(
+        rows: [linha],
+      } = await fastify.db.query<{ suspensa: boolean | null }>(
         'select usuario_em_barbearia_suspensa($1) as suspensa',
         [usuarioId],
       );
       throw proibido(
-        suspensa
+        linha?.suspensa
           ? BARBEARIA_SUSPENSA
           : 'Seu acesso não está ativo em nenhuma barbearia.',
       );
     }
     const escolhida =
-      barbearias.find((b) => b.id === Number(barbeariaId)) ?? barbearias[0];
+      barbearias.find((b) => b.id === Number(barbeariaId)) ?? primeira;
 
     req.sessao = await identidade.abrirSessao(reply, usuarioId, escolhida.id);
-    return dadosDaSessao(fastify, req);
+    return dadosDaSessao(fastify, req, reply);
   });
 
   fastify.post('/auth/sair', async (req, reply) => {
@@ -89,13 +127,15 @@ export default async function (fastify) {
   });
 
   /** Quem sou eu: usuário, barbearia atual, papel, permissões e módulos ativos. */
-  fastify.get('/auth/eu', async (req) => dadosDaSessao(fastify, req));
+  fastify.get('/auth/eu', async (req, reply) =>
+    dadosDaSessao(fastify, req, reply),
+  );
 
   /** Trocar de barbearia (usuário com acesso a mais de uma). */
-  fastify.post(
+  fastify.post<{ Body: { barbeariaId?: number | null } | undefined }>(
     '/auth/barbearia',
     { schema: corpo({ barbeariaId: inteiro }) },
-    async (req) => {
+    async (req, reply) => {
       if (!req.sessao) throw naoAutenticado();
       const id = Number(req.body?.barbeariaId);
       const { rows } = await fastify.db.query(
@@ -105,17 +145,20 @@ export default async function (fastify) {
       if (!rows.length) throw proibido('Você não tem acesso a essa barbearia.');
       await identidade.trocarBarbearia(req.sessao, id);
       req.sessao.barbeariaId = id;
-      req.contexto = null;
-      return dadosDaSessao(fastify, req);
+      // Descarta o contexto da barbearia anterior: o `autenticado` do
+      // dadosDaSessao carrega o da nova. Vazio é o estado de antes da guarda
+      // (o tipo descreve o de depois dela, ver tipos-fastify.ts).
+      req.contexto = null as never;
+      return dadosDaSessao(fastify, req, reply);
     },
   );
 
   /** Meu perfil: o próprio usuário troca o nome. */
-  fastify.put(
+  fastify.put<{ Body: { nome?: string | null } | undefined }>(
     '/auth/perfil',
     { schema: corpo({ nome: texto(500) }) },
-    async (req) => {
-      await fastify.autenticado(req);
+    async (req, reply) => {
+      await fastify.autenticado(req, reply);
       const nome = String(req.body?.nome ?? '').trim();
       if (!nome) throw invalido('Informe o nome.');
       if (nome.length > 120)
@@ -124,7 +167,7 @@ export default async function (fastify) {
         req.contexto.usuarioId,
         nome,
       ]);
-      return dadosDaSessao(fastify, req);
+      return dadosDaSessao(fastify, req, reply);
     },
   );
 
@@ -139,8 +182,12 @@ export default async function (fastify) {
     }),
     preHandler: fastify.limitar('senhaPorIp', chaves.ip),
   };
-  fastify.put('/auth/senha', trocarSenha, async (req) => {
-    await fastify.autenticado(req);
+  fastify.put<{
+    Body: { senhaAtual?: string | null; novaSenha?: string | null } | undefined;
+  }>('/auth/senha', trocarSenha, async (req, reply) => {
+    await fastify.autenticado(req, reply);
+    // O `autenticado` já exige a sessão; sem ela, falha fechado.
+    if (!req.sessao) throw naoAutenticado();
     const { senhaAtual, novaSenha } = req.body ?? {};
     const encerradas = await identidade.trocarSenha(
       req.sessao,
@@ -166,13 +213,17 @@ export default async function (fastify) {
     }),
     preHandler: fastify.limitar('cadastroPorIp', chaves.ip),
   };
-  fastify.post('/barbearias', cadastro, async (req, reply) => {
-    const { barbearia, usuarioId } = await criarBarbearia(
-      fastify,
-      req.body ?? {},
-    );
-    req.sessao = await identidade.abrirSessao(reply, usuarioId, barbearia.id);
-    reply.code(201);
-    return dadosDaSessao(fastify, req);
-  });
+  fastify.post<{ Body: DadosDaBarbeariaNova | undefined }>(
+    '/barbearias',
+    cadastro,
+    async (req, reply) => {
+      const { barbearia, usuarioId } = await criarBarbearia(
+        fastify,
+        req.body ?? {},
+      );
+      req.sessao = await identidade.abrirSessao(reply, usuarioId, barbearia.id);
+      reply.code(201);
+      return dadosDaSessao(fastify, req, reply);
+    },
+  );
 }

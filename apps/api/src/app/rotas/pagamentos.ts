@@ -1,11 +1,18 @@
+import type { FastifyInstance } from 'fastify';
 import { invalido } from '../../infra/erros.ts';
-import { provedorSimulado } from '../../pagamentos/provedores.js';
+import { provedorSimulado } from '../../pagamentos/provedores.ts';
+import type { ProvedorDePagamento } from '../../pagamentos/provedores.ts';
 import { corpo, escalar, texto } from '../esquemas.ts';
+
+/** Opções da rota (os testes trocam o provedor). */
+export interface OpcoesDePagamentos {
+  provedor?: ProvedorDePagamento;
+}
 
 /** Módulo adicional "Pagamento online" (ADR 0011). Provedor real: a definir. */
 export default async function (
-  fastify,
-  { provedor = provedorSimulado() } = {},
+  fastify: FastifyInstance,
+  { provedor = provedorSimulado() }: OpcoesDePagamentos = {},
 ) {
   const acesso = {
     preHandler: [
@@ -14,7 +21,9 @@ export default async function (
     ],
   };
 
-  fastify.post(
+  fastify.post<{
+    Body: { valor?: string | null; descricao?: string | null } | undefined;
+  }>(
     '/pagamentos/cobrancas',
     {
       ...acesso,

@@ -8,12 +8,25 @@ import {
   novaBarbearia,
   unico,
 } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+import type { InjectOptions, LightMyRequestResponse } from 'fastify';
+import type { Mensagem } from '../infra/correio.ts';
+import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
+
+type Navegador = ReturnType<typeof navegador>;
+/** Requisição ao servidor com os limites reais, de um IP escolhido. */
+type Pedir = (
+  method: InjectOptions['method'],
+  url: string,
+  payload?: InjectOptions['payload'],
+  ip?: string,
+) => Promise<LightMyRequestResponse>;
 
 // Planejamento 0022 / ADR 0014: ataques contra a API real, com o banco.
 // `preparo` (limites folgados) monta os dados; `alvo` usa os limites REAIS.
 // Cada servidor tem seu próprio contador em memória; o banco é o mesmo.
 
-let preparo;
+let preparo: ServidorDeTeste;
 beforeAll(async () => {
   preparo = await criarServidor();
 });
@@ -23,7 +36,7 @@ let ipSeq = 0;
 const novoIp = () => `10.0.${Math.floor(++ipSeq / 250)}.${(ipSeq % 250) + 1}`;
 
 /** Servidor com os limites reais, novo a cada teste (contadores zerados). */
-async function comAlvo(fn) {
+async function comAlvo(fn: (pedir: Pedir) => Promise<void>) {
   const alvo = await criarServidor({ limites: LIMITES_PADRAO });
   try {
     await fn((method, url, payload, ip = '10.9.9.9') =>
@@ -72,7 +85,7 @@ async function publicada() {
 describe('força bruta no login', () => {
   it('5 erros na mesma conta: a 6ª tentativa recebe 429, mesmo com a senha certa', async () => {
     const { email } = await novaBarbearia(preparo);
-    await comAlvo(async (pedir) => {
+    await comAlvo(async (pedir: Pedir) => {
       for (let i = 0; i < LIMITES_PADRAO.entrarPorEmail.max; i++) {
         // IPs diferentes: o limite é da conta, não só do IP.
         const r = await pedir(
@@ -96,7 +109,7 @@ describe('força bruta no login', () => {
   });
 
   it('um IP tentando muitas contas recebe 429 depois do limite', async () => {
-    await comAlvo(async (pedir) => {
+    await comAlvo(async (pedir: Pedir) => {
       for (let i = 0; i < LIMITES_PADRAO.entrarPorIp.max; i++) {
         const r = await pedir('POST', '/api/auth/entrar', {
           email: `ninguem-${i}@teste.dev`,
@@ -114,13 +127,13 @@ describe('força bruta no login', () => {
 
   it('e-mail inexistente e senha errada levam o mesmo tempo (sem descoberta de contas)', async () => {
     const { email } = await novaBarbearia(preparo);
-    const tentar = (corpo) =>
+    const tentar = (corpo: object) =>
       preparo.inject({
         method: 'POST',
         url: '/api/auth/entrar',
         payload: corpo,
       });
-    const medir = async (corpo) => {
+    const medir = async (corpo: object) => {
       const tempos = [];
       for (let i = 0; i < 7; i++) {
         const t = performance.now();
@@ -145,7 +158,7 @@ describe('força bruta no login', () => {
 
 describe('cadastro em massa', () => {
   it('o 6º cadastro do mesmo IP na hora recebe 429', async () => {
-    await comAlvo(async (pedir) => {
+    await comAlvo(async (pedir: Pedir) => {
       for (let i = 0; i < LIMITES_PADRAO.cadastroPorIp.max; i++)
         expect((await pedir('POST', '/api/barbearias', {})).statusCode).toBe(
           400,
@@ -158,8 +171,9 @@ describe('cadastro em massa', () => {
 describe('varredura de telefones na página pública', () => {
   it('um IP: depois de 10 consultas, 429', async () => {
     const { slug } = await publicada();
-    await comAlvo(async (pedir) => {
-      const url = (t) => `/api/publico/${slug}/cliente?telefone=119${t}`;
+    await comAlvo(async (pedir: Pedir) => {
+      const url = (t: string) =>
+        `/api/publico/${slug}/cliente?telefone=119${t}`;
       for (let i = 0; i < LIMITES_PADRAO.reconhecerPorIp.max; i++)
         expect((await pedir('GET', url(String(10000000 + i)))).statusCode).toBe(
           200,
@@ -170,8 +184,9 @@ describe('varredura de telefones na página pública', () => {
 
   it('distribuída (um IP por consulta): a barbearia tem teto próprio', async () => {
     const { slug } = await publicada();
-    await comAlvo(async (pedir) => {
-      const url = (t) => `/api/publico/${slug}/cliente?telefone=119${t}`;
+    await comAlvo(async (pedir: Pedir) => {
+      const url = (t: string) =>
+        `/api/publico/${slug}/cliente?telefone=119${t}`;
       for (let i = 0; i < LIMITES_PADRAO.reconhecerPorBarbearia.max; i++)
         expect(
           (await pedir('GET', url(String(20000000 + i)), undefined, novoIp()))
@@ -186,7 +201,7 @@ describe('varredura de telefones na página pública', () => {
 
   it('agendar com o mesmo telefone: 3 por hora, mesmo vindo de IPs diferentes', async () => {
     const { slug, servico, barbeiro } = await publicada();
-    await comAlvo(async (pedir) => {
+    await comAlvo(async (pedir: Pedir) => {
       const corpo = {
         data: '2000-01-03', // passado: recusado pela regra, mas conta no limite
         inicio: '09:00',
@@ -253,9 +268,13 @@ describe('escalada de privilégio: hierarquia fixa (ADR 0010)', () => {
   async function equipe() {
     const b = await novaBarbearia(preparo);
     const papeis = Object.fromEntries(
-      (await b.dono.get('/api/papeis')).corpo.map((p) => [p.chave, p.id]),
+      (await b.dono.get('/api/papeis')).corpo.map((p: PapelDaBarbearia) => [
+        p.chave,
+        p.id,
+      ]),
     );
-    const pessoas = {};
+    const pessoas: Record<string, { id: number; n: Navegador; email: string }> =
+      {};
     for (const chave of ['gerente', 'recepcao', 'barbeiro']) {
       const email = `${unico(chave)}@teste.dev`;
       const r = await b.dono.post('/api/usuarios', {
@@ -372,9 +391,10 @@ describe('escalada de privilégio: hierarquia fixa (ADR 0010)', () => {
 });
 
 describe('esqueci a senha (planejamento 0023)', () => {
-  const tokenDoEmail = (msg) => msg.texto.match(/#t=([\w-]+)/)[1];
+  const tokenDoEmail = (msg: Mensagem | undefined) =>
+    msg!.texto.match(/#t=([\w-]+)/)![1];
   /** Token e e-mail saem depois da resposta: espera o próximo e-mail chegar. */
-  const esperarNovo = async (antes) => {
+  const esperarNovo = async (antes: number) => {
     for (let i = 0; i < 150 && preparo.caixaDeEntrada.length <= antes; i++)
       await new Promise((r) => setTimeout(r, 20));
   };
@@ -382,7 +402,7 @@ describe('esqueci a senha (planejamento 0023)', () => {
   it('mesma resposta exista o e-mail ou não; só a conta real recebe o link', async () => {
     const { email } = await novaBarbearia(preparo);
     const antes = preparo.caixaDeEntrada.length;
-    const pedir = (e) =>
+    const pedir = (e: string) =>
       preparo.inject({
         method: 'POST',
         url: '/api/auth/esqueci',
@@ -395,7 +415,7 @@ describe('esqueci a senha (planejamento 0023)', () => {
     expect(real.json()).toEqual(falso.json());
     await esperarNovo(antes);
     const novos = preparo.caixaDeEntrada.slice(antes);
-    expect(novos.map((m) => m.para)).toEqual([email]);
+    expect(novos.map((m: Mensagem) => m.para)).toEqual([email]);
     expect(novos[0].texto).toContain('http://app.teste/redefinir-senha#t=');
   });
 
@@ -415,7 +435,7 @@ describe('esqueci a senha (planejamento 0023)', () => {
     await pedir();
     await esperarNovo(antes);
     const token = tokenDoEmail(preparo.caixaDeEntrada.at(-1));
-    const redefinir = (t, senha = 'senha-nova-123') =>
+    const redefinir = (t: string, senha = 'senha-nova-123') =>
       preparo.inject({
         method: 'POST',
         url: '/api/auth/redefinir',
@@ -468,7 +488,7 @@ describe('esqueci a senha (planejamento 0023)', () => {
 
   it('pedidos em massa para a mesma conta: 429 depois de 3 por hora', async () => {
     const { email } = await novaBarbearia(preparo);
-    await comAlvo(async (pedir) => {
+    await comAlvo(async (pedir: Pedir) => {
       for (let i = 0; i < LIMITES_PADRAO.esqueciPorEmail.max; i++)
         expect(
           (await pedir('POST', '/api/auth/esqueci', { email }, novoIp()))

@@ -1,5 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
+/** Cobrança no provedor de pagamento. */
+export interface Cobranca {
+  id: string;
+  valor: number;
+  descricao: string;
+  status: string;
+  link: string;
+}
+
 /**
  * Interface de provedor de pagamento (ADR 0011). O gateway real (Asaas, Mercado Pago,
  * Pagar.me...) será escolhido depois e implementará o mesmo contrato:
@@ -7,8 +16,15 @@ import { randomUUID } from 'node:crypto';
  *   consultarCobranca(id) → { id, status }
  *   tratarWebhook(corpo, cabecalhos) → { id, status }
  */
-export function provedorSimulado() {
-  const cobrancas = new Map();
+export interface ProvedorDePagamento {
+  nome: string;
+  criarCobranca(dados: { valor: number; descricao: string }): Promise<Cobranca>;
+  consultarCobranca(id: string): Promise<Cobranca | null>;
+  tratarWebhook(corpo: unknown): Promise<Cobranca | null>;
+}
+
+export function provedorSimulado(): ProvedorDePagamento {
+  const cobrancas = new Map<string, Cobranca>();
   return {
     nome: 'simulado',
     async criarCobranca({ valor, descricao }) {
@@ -27,8 +43,9 @@ export function provedorSimulado() {
       return cobrancas.get(id) ?? null;
     },
     async tratarWebhook(corpo) {
-      const c = cobrancas.get(corpo?.id);
-      if (c) c.status = corpo.status;
+      const dados = corpo as { id?: string; status?: string } | null;
+      const c = dados?.id === undefined ? undefined : cobrancas.get(dados.id);
+      if (c) c.status = dados?.status as string;
       return c ?? null;
     },
   };

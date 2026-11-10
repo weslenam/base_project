@@ -7,19 +7,26 @@ import {
   novaBarbearia,
   unico,
 } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
+import type { ModuloDaBarbearia } from '../app/rotas/modulos.ts';
 
-let servidor;
+type Navegador = ReturnType<typeof navegador>;
+
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
 afterAll(() => servidor?.close());
 
-const papelPorChave = async (dono, chave) =>
-  (await dono.get('/api/papeis')).corpo.find((p) => p.chave === chave);
+const papelPorChave = async (dono: Navegador, chave: string) =>
+  (await dono.get('/api/papeis')).corpo.find(
+    (p: PapelDaBarbearia) => p.chave === chave,
+  );
 
 async function convidar(
-  dono,
-  chave,
+  dono: Navegador,
+  chave: string,
   { email = `${unico(chave)}@teste.dev`, senha = 'senha-segura' } = {},
 ) {
   const papel = await papelPorChave(dono, chave);
@@ -103,13 +110,15 @@ describe('ACL dentro da barbearia', () => {
   it('papéis fixos e só leitura: Dono, Gerente, Recepção e Barbeiro (ADR 0010)', async () => {
     const { dono } = await novaBarbearia(servidor);
     const papeis = (await dono.get('/api/papeis')).corpo;
-    expect(papeis.map((p) => [p.chave, p.nivel])).toEqual([
+    expect(papeis.map((p: PapelDaBarbearia) => [p.chave, p.nivel])).toEqual([
       ['dono', 1],
       ['gerente', 2],
       ['recepcao', 3],
       ['barbeiro', 4],
     ]);
-    expect(papeis.find((p) => p.chave === 'barbeiro').permissoes).toEqual([
+    expect(
+      papeis.find((p: PapelDaBarbearia) => p.chave === 'barbeiro').permissoes,
+    ).toEqual([
       'agenda.ver',
       'agenda.ajudar',
       'clientes.ver',
@@ -117,7 +126,9 @@ describe('ACL dentro da barbearia', () => {
       'caixa.operar',
     ]);
     // Não se cria, edita nem exclui papel.
-    const recepcao = papeis.find((p) => p.chave === 'recepcao');
+    const recepcao = papeis.find(
+      (p: PapelDaBarbearia) => p.chave === 'recepcao',
+    );
     expect(
       (await dono.post('/api/papeis', { nome: 'Caixa', permissoes: [] }))
         .status,
@@ -167,7 +178,7 @@ describe('isolamento entre barbearias (RLS)', () => {
     const b = await novaBarbearia(servidor, 'B');
     const papelDeB = await papelPorChave(b.dono, 'recepcao');
     const papeisVistosPorA = (await a.dono.get('/api/papeis')).corpo.map(
-      (p) => p.id,
+      (p: PapelDaBarbearia) => p.id,
     );
     expect(papeisVistosPorA).not.toContain(papelDeB.id);
     const r = await a.dono.put(`/api/papeis/${papelDeB.id}`, {
@@ -207,7 +218,9 @@ describe('módulos e serviço adicional', () => {
   it('incluso ativa; adicional precisa ser solicitado e confirmado', async () => {
     const { dono } = await novaBarbearia(servidor);
     const lista = (await dono.get('/api/modulos')).corpo;
-    expect(lista.find((m) => m.chave === 'pagamentos_online')).toMatchObject({
+    expect(
+      lista.find((m: ModuloDaBarbearia) => m.chave === 'pagamentos_online'),
+    ).toMatchObject({
       tipo: 'adicional',
       estado: 'inativo',
     });

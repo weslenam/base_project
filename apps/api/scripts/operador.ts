@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
 import { config } from '../src/infra/config.ts';
-import { criarOperador } from '../src/servicos/operadores.js';
+import { criarOperador } from '../src/servicos/operadores.ts';
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -52,7 +52,7 @@ try {
     process.exitCode = 1;
   }
 } catch (erro) {
-  console.error(erro.message);
+  console.error(erro instanceof Error ? erro.message : erro);
   process.exitCode = 1;
 } finally {
   await db.end();
