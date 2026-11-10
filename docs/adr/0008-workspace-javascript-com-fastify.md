@@ -1,6 +1,6 @@
 # ADR 0008: Workspace em JavaScript puro com API Fastify
 
-- **Status:** Aceito
+- **Status:** Substituído pelo [ADR 0022](0022-typescript-strict-e-kysely.md) (2026-11-09): o workspace passa a TypeScript strict; o Fastify continua
 - **Data:** 2026-11-07
 - **Relacionado:** [planejamento 0002](../planejamentos/0002-esqueleto-do-workspace.md)
 

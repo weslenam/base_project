@@ -16,7 +16,7 @@ Inspirado nas ideias de Andrej Karpathy: pensar antes, mudar pouco, verificar se
 - Altere o mínimo necessário. Nada de refatorar, renomear ou reformatar fora do escopo.
 - Preserve estilo, nomes e padrões do arquivo.
 - Não adicione dependências sem perguntar.
-- Sem TypeScript: o projeto é JavaScript.
+- TypeScript `strict` (ADR 0022): código novo em `.ts` ou `<script setup lang="ts">`, só sintaxe apagável (sem `enum`/`namespace`). Durante a conversão (planejamento 0040), não converter arquivo fora do escopo da tarefa.
 - Use os componentes Ds* do design system, nunca a biblioteca de UI (Vuetify, ADR 0007) direto nas telas.
 - Se notar outros problemas, anote ao final em vez de corrigir.
 

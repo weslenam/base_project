@@ -1,6 +1,6 @@
 # ADR 0009: Stack do backend: PostgreSQL, migrações, sessão e contexto da barbearia
 
-- **Status:** Aceito
+- **Status:** Aceito; a parte "SQL à mão, sem ORM" foi substituída pelo [ADR 0022](0022-typescript-strict-e-kysely.md) (Kysely), em 2026-11-09
 - **Data:** 2026-11-07
 - **Relacionado:** ADRs 0001 (multi-tenant), 0002 (Docker) e 0008 (Fastify); planejamento 0013
 

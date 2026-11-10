@@ -9,8 +9,8 @@ Decisões arquiteturais duradouras. O trabalho do dia a dia fica em `docs/planej
 | [0003](0003-identidade-visual-e-tokens.md)                       | Identidade visual industrial-urbana e tokens como fonte única           | Aceito                |
 | [0006](0006-preferencias-na-sessao-sincronizadas-com-banco.md)   | Preferências na sessão, sincronizadas com o banco                       | Aceito (reconstruído) |
 | [0007](0007-vuetify-substitui-quasar.md)                         | Vuetify substitui o Quasar                                              | Aceito (reconstruído) |
-| [0008](0008-workspace-javascript-com-fastify.md)                 | Workspace em JavaScript puro com API Fastify                            | Aceito                |
-| [0009](0009-stack-do-backend.md)                                 | Stack do backend: PostgreSQL, migrações, sessão e contexto da barbearia | Aceito                |
+| [0008](0008-workspace-javascript-com-fastify.md)                 | Workspace em JavaScript puro com API Fastify                            | Substituído (0022)    |
+| [0009](0009-stack-do-backend.md)                                 | Stack do backend: PostgreSQL, migrações, sessão e contexto da barbearia | Aceito (ORM: 0022)    |
 | [0010](0010-acl-por-papeis-dentro-da-barbearia.md)               | Controle de acesso por papéis dentro da barbearia                       | Aceito                |
 | [0011](0011-modulos-e-servicos-adicionais.md)                    | Módulos por barbearia e serviços adicionais (ex.: gateway de pagamento) | Aceito                |
 | [0012](0012-configuracoes-da-barbearia.md)                       | Configurações da barbearia como dados do negócio (JSONB)                | Aceito                |
@@ -21,8 +21,9 @@ Decisões arquiteturais duradouras. O trabalho do dia a dia fica em `docs/planej
 | [0017](0017-schema-app-e-postgrest-fechado.md)                   | Schema `app` não exposto e PostgREST fechado ao front                   | Aceito                |
 | [0018](0018-business-center-e-operadores-da-plataforma.md)       | Business Center e operadores da plataforma (2FA, RLS, auditoria)        | Aceito                |
 | [0020](0020-testes-de-layout-com-playwright.md)                  | Testes de layout com Playwright (Chromium)                              | Aceito                |
+| [0022](0022-typescript-strict-e-kysely.md)                       | TypeScript strict e Kysely no acesso ao banco                           | Aceito                |
 
-**Números 0004 e 0005:** livres. Os ADRs 0006 e 0007 mantêm os números do protótipo Agenda porque as regras e skills do repositório os citam assim. Eles foram **reconstruídos** a partir dessas regras, já que o texto original não veio junto. O próximo ADR novo é o 0022. Os números 0019 e 0021 estão reservados para o planejamento 0027 (o 0018, antes reservado a ele, ficou com o Business Center).
+**Números 0004 e 0005:** livres. Os ADRs 0006 e 0007 mantêm os números do protótipo Agenda porque as regras e skills do repositório os citam assim. Eles foram **reconstruídos** a partir dessas regras, já que o texto original não veio junto. O próximo ADR novo é o 0023. Os números 0019 e 0021 estão reservados para o planejamento 0027 (o 0018, antes reservado a ele, ficou com o Business Center).
 
 ## Modelo
 

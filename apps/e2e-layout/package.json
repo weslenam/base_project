@@ -15,6 +15,22 @@
         "options": {
           "cwd": "apps/e2e-layout"
         }
+      },
+      "typecheck": {
+        "command": "tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "apps/e2e-layout"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
       }
     }
   }

@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: Arquitetura e regras do design system Vue 3 (JavaScript, sem TypeScript) em workspace Nx, com componentes Ds* e composables que embrulham o framework de UI (Vuetify hoje, ADR 0007; Quasar ou outro amanhã) atrás de um contrato próprio. Use SEMPRE que for criar, alterar ou revisar componentes de interface, telas, formulários, tabelas, diálogos, notificações, layout, tokens de tema ou a lib @barbertime/ui; quando alguém pedir para usar Quasar, Vuetify, PrimeVue ou outra biblioteca de componentes; ao gerar telas novas em apps Vue do workspace; ou ao discutir trocar o framework de UI. Mesmo que o pedido não mencione "design system", se envolve UI Vue neste workspace, siga esta skill.
+description: Arquitetura e regras do design system Vue 3 (TypeScript strict, ADR 0022) em workspace Nx, com componentes Ds* e composables que embrulham o framework de UI (Vuetify hoje, ADR 0007; Quasar ou outro amanhã) atrás de um contrato próprio. Use SEMPRE que for criar, alterar ou revisar componentes de interface, telas, formulários, tabelas, diálogos, notificações, layout, tokens de tema ou a lib @barbertime/ui; quando alguém pedir para usar Quasar, Vuetify, PrimeVue ou outra biblioteca de componentes; ao gerar telas novas em apps Vue do workspace; ou ao discutir trocar o framework de UI. Mesmo que o pedido não mencione "design system", se envolve UI Vue neste workspace, siga esta skill.
 ---
 
 # Design System Vue com wrappers
@@ -9,7 +9,7 @@ Esta skill define como a interface dos apps Vue do workspace é construída. A i
 
 ## Decisões já tomadas
 
-- **Vue 3 com `<script setup>`, JavaScript puro.** Não usar TypeScript.
+- **Vue 3 com `<script setup lang="ts">`, TypeScript strict (ADR 0022).** Props e eventos tipados (`defineProps<…>()`), com nomes em português. Durante a conversão (planejamento 0040), componente ainda em JS segue funcionando.
 - **Framework base: Vuetify 4** (ADR 0007, que substituiu o Quasar do protótipo Agenda). Cobre os componentes pesados (VDataTable, VAutocomplete) e traz o `VCalendar`, usado no `DsCalendario`.
 - **Gráficos: ApexCharts** (`vue3-apexcharts`), também atrás de wrapper (`DsGrafico`).
 - **Não misturar suítes completas.** Vuetify + PrimeVue + outra suíte ao mesmo tempo gera conflito de CSS global, overlays/z-index, tema duplicado e comportamento inconsistente. Exceção só para um componente que o Vuetify não cubra bem (ex.: TreeTable, organograma) — ver `references/excecoes-de-biblioteca.md`.

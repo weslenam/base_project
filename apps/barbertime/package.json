@@ -7,7 +7,25 @@
     "tags": [
       "type:app",
       "scope:front"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "command": "vue-tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "apps/barbertime"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
+      }
+    }
   },
   "type": "module",
   "dependencies": {

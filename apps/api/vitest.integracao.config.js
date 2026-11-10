@@ -9,7 +9,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['src/integracao/**/*.spec.js'],
+    include: ['src/integracao/**/*.spec.{js,ts}'],
     globalSetup: ['src/integracao/preparar.js'],
     fileParallelism: false,
     testTimeout: 20000,

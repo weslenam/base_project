@@ -3,6 +3,8 @@ import nx from '@nx/eslint-plugin';
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/javascript'],
+  // TypeScript (planejamento 0040, ADR 0022).
+  ...nx.configs['flat/typescript'],
   {
     ignores: [
       '**/dist',
@@ -11,8 +13,14 @@ export default [
       '**/vitest.config.*.timestamp*',
     ],
   },
+  // Nos testes, `!` depois de um find/consulta é aceitável: se vier vazio, o
+  // teste falha de qualquer jeito.
   {
-    files: ['**/*.js', '**/*.mjs', '**/*.vue'],
+    files: ['**/*.spec.ts'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
+  {
+    files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.vue'],
     rules: {
       '@nx/enforce-module-boundaries': [
         'error',
