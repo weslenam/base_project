@@ -7,8 +7,19 @@ import {
   paraHora,
   paraMinutos,
 } from '@barbertime/dominio';
+import type { Conexao } from '../src/infra/banco.ts';
 
-const PERFIS = {
+// Semente de desenvolvimento: o SQL fica no driver pg da transação (`c.query`,
+// com parâmetros), como antes da conversão (planejamento 0040).
+
+interface Perfil {
+  servicos: [string, number, number][];
+  produtos: [string, number, number][];
+  equipe: [string, string, string, number, boolean][];
+  clientes: string[];
+}
+
+const PERFIS: Record<string, Perfil | undefined> = {
   'studio-negoboy': {
     servicos: [
       ['Corte degradê', 40, 45],
@@ -50,17 +61,24 @@ const PERFIS = {
   },
 };
 
-const somarDias = (iso, n) => {
+const somarDias = (iso: string, n: number): string => {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
 const FORMAS = ['pix', 'dinheiro', 'credito', 'debito', 'pix'];
 
-export const temPerfil = (slug) => Boolean(PERFIS[slug]);
+export const temPerfil = (slug: string): boolean => Boolean(PERFIS[slug]);
 
 /** Cria a operação de exemplo dentro de uma transação com RLS (c). */
-export async function semearOperacao(c, { barbeariaId, slug, donoUsuarioId }) {
+export async function semearOperacao(
+  c: Conexao,
+  {
+    barbeariaId,
+    slug,
+    donoUsuarioId,
+  }: { barbeariaId: number; slug: string; donoUsuarioId: number | null },
+): Promise<boolean> {
   const perfil = PERFIS[slug];
   const ja = await c.query('select 1 from servicos limit 1');
   if (!perfil || ja.rowCount) return false;
@@ -112,6 +130,16 @@ export async function semearOperacao(c, { barbeariaId, slug, donoUsuarioId }) {
     caixaId,
     forma,
     produto,
+  }: {
+    data: string;
+    inicio: string;
+    barbeiro: { id: number; inicio: string; fim: string };
+    servico: { id: number; nome: string; duracao: number; preco: number };
+    cliente: { id: number };
+    estado: string;
+    caixaId?: number;
+    forma?: string;
+    produto?: { id: number; nome: string; preco: number } | null;
   }) {
     const fim = fimDe(inicio, servico.duracao);
     const { rows } = await c.query(

@@ -2,9 +2,8 @@
 // Só tipos: nada aqui roda. As rotas e serviços em TypeScript enxergam
 // `fastify.naBarbearia`, `fastify.exigir`, `req.contexto` etc. já tipados.
 import type pg from 'pg';
-import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { Conexao } from '../infra/banco.ts';
-import type { criarIdentidadePropria } from '../identidade/propria.js';
+import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify';
+import type { Conexao, ExecutorSql } from '../infra/banco.ts';
 import type { NomeDoLimite } from '../seguranca/limites.ts';
 
 /** Contexto da barbearia, carregado uma vez por requisição autenticada. */
@@ -32,7 +31,43 @@ export interface Operador {
   token: string;
 }
 
-export type Identidade = Awaited<ReturnType<typeof criarIdentidadePropria>>;
+/**
+ * Contrato de toda implementação de identidade (ADR 0016, planejamento 0025
+ * S3). As rotas falam só com `fastify.identidade`.
+ */
+export interface Identidade {
+  nome: string;
+  /** Sessão do cookie, ou null. */
+  lerSessao(req: FastifyRequest): Promise<Sessao | null>;
+  /** Abre a sessão e grava o cookie. */
+  abrirSessao(
+    reply: FastifyReply,
+    usuarioId: number,
+    barbeariaId: number | null,
+  ): Promise<Sessao>;
+  trocarBarbearia(sessao: Sessao, barbeariaId: number): Promise<unknown>;
+  sair(req: FastifyRequest, reply: FastifyReply): Promise<void>;
+  /** id do usuário, ou null (mesmo tempo para e-mail inexistente e senha errada). */
+  conferirCredenciais(email: unknown, senha: unknown): Promise<number | null>;
+  /** Cria a conta e devolve o id (`c` pode ser a transação). */
+  criarConta(
+    c: ExecutorSql,
+    dados: { nome: string; email: string; senha: string },
+  ): Promise<number>;
+  /** Quantas outras sessões caíram. */
+  trocarSenha(
+    sessao: Sessao,
+    senhaAtual: unknown,
+    novaSenha: unknown,
+  ): Promise<number | null>;
+  /** Não revela se o e-mail existe. */
+  pedirRedefinicao(email: unknown, log: FastifyBaseLogger): Promise<void>;
+  redefinirSenha(token: string, senha: string): Promise<void>;
+  encerrarSessoesDaBarbearia(
+    c: ExecutorSql,
+    barbeariaId: number,
+  ): Promise<unknown>;
+}
 
 type Guarda = (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
 

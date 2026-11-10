@@ -13,19 +13,19 @@
         }
       },
       "migrar": {
-        "command": "node scripts/migrar.js",
+        "command": "node scripts/migrar.ts",
         "options": {
           "cwd": "apps/api"
         }
       },
       "semear": {
-        "command": "node scripts/semear.js",
+        "command": "node scripts/semear.ts",
         "options": {
           "cwd": "apps/api"
         }
       },
       "operador": {
-        "command": "node scripts/operador.js",
+        "command": "node scripts/operador.ts",
         "options": {
           "cwd": "apps/api"
         }

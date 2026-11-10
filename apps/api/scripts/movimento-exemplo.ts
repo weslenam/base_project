@@ -8,6 +8,10 @@
 // Na negoboy, uma venda há 10 dias e nada depois (vira "Parada" depois dos 14 dias de "Nova").
 // Só roda onde ainda não há caixa: rodar de novo não duplica nada.
 import { somarDias } from '@barbertime/dominio';
+import type { Conexao } from '../src/infra/banco.ts';
+
+// Semente de desenvolvimento: o SQL fica no driver pg da transação (`c.query`,
+// com parâmetros), como antes da conversão (planejamento 0040).
 
 const DIAS = 60;
 const FORMAS = ['pix', 'pix', 'credito', 'debito', 'dinheiro'];
@@ -42,7 +46,7 @@ const SOBRENOMES = [
 ];
 
 /** Gerador determinístico (mulberry32): a semente produz sempre os mesmos dados. */
-function aleatorio(semente) {
+function aleatorio(semente: number): () => number {
   let a = semente;
   return () => {
     a |= 0;
@@ -53,15 +57,19 @@ function aleatorio(semente) {
   };
 }
 
-const hhmm = (min) =>
+const hhmm = (min: number): string =>
   `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-export async function semearMovimento(c, { barbeariaId, hoje }) {
+export async function semearMovimento(
+  c: Conexao,
+  { barbeariaId, hoje }: { barbeariaId: number; hoje: string },
+): Promise<boolean> {
   const ja = await c.query('select 1 from caixas limit 1');
   if (ja.rowCount) return false;
 
   const r = aleatorio(barbeariaId * 7919);
-  const escolher = (lista) => lista[Math.floor(r() * lista.length)];
+  const escolher = <T>(lista: readonly T[]): T =>
+    lista[Math.floor(r() * lista.length)] as T;
   const { rows: servicos } = await c.query(
     'select id, nome, preco, duracao from servicos where excluido_em is null order by id',
   );
@@ -206,7 +214,10 @@ export async function semearMovimento(c, { barbeariaId, hoje }) {
 }
 
 /** Uma venda há 10 dias e nada depois: "Parada" assim que deixar de ser "Nova". */
-export async function semearVendaAntiga(c, { barbeariaId, hoje }) {
+export async function semearVendaAntiga(
+  c: Conexao,
+  { barbeariaId, hoje }: { barbeariaId: number; hoje: string },
+): Promise<boolean> {
   const ja = await c.query('select 1 from caixas limit 1');
   if (ja.rowCount) return false;
   const data = somarDias(hoje, -10);

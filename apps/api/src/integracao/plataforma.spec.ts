@@ -1,6 +1,6 @@
 import { momentoNoFuso, somarMeses } from '@barbertime/dominio';
 import { codigoDoPasso, passoAtual } from '../seguranca/totp.ts';
-import { criarOperador } from '../servicos/operadores.js';
+import { criarOperador } from '../servicos/operadores.ts';
 import {
   comoAplicacao,
   comoSuperusuario,
@@ -9,11 +9,22 @@ import {
   novaBarbearia,
   unico,
 } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
+import type { ModuloDaBarbearia } from '../app/rotas/modulos.ts';
+import type {
+  BarbeariaNaLista,
+  RegistroDeAuditoria,
+  UsuarioDoPainel,
+} from '../app/rotas/plataforma.contratos.ts';
+
+type Metodo = 'GET' | 'POST' | 'PUT' | 'DELETE';
+type OperadorDeTeste = { email: string; segredo: string };
 
 // Business Center (planejamento 0028, ADR 0018): operadores com TOTP, painel por
 // barbearia sem dado pessoal de cliente, ações auditadas e barbearia suspensa.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
@@ -32,11 +43,16 @@ async function novoOperador() {
 /** "Navegador" do operador: guarda o cookie bt_operador. */
 function painelDoOperador() {
   let cookie = '';
-  const pedir = async (method, url, payload, extra = {}) => {
+  const pedir = async (
+    method: Metodo,
+    url: string,
+    payload?: unknown,
+    extra: Record<string, string> = {},
+  ) => {
     const r = await servidor.inject({
       method,
       url,
-      payload,
+      payload: payload as never,
       headers: { ...(cookie ? { cookie } : {}), ...extra },
     });
     const novo = r.cookies.find((c) => c.name === 'bt_operador');
@@ -44,14 +60,14 @@ function painelDoOperador() {
     return { status: r.statusCode, corpo: r.body ? r.json() : null, r };
   };
   return {
-    get: (url) => pedir('GET', url),
-    post: (url, corpo) => pedir('POST', url, corpo),
+    get: (url: string) => pedir('GET', url),
+    post: (url: string, corpo?: unknown) => pedir('POST', url, corpo),
     pedir,
     cookie: () => cookie,
   };
 }
 
-async function entrarComo(op, deslocamento = 0) {
+async function entrarComo(op: OperadorDeTeste, deslocamento = 0) {
   const n = painelDoOperador();
   const r = await n.post('/api/plataforma/auth/entrar', {
     email: op.email,
@@ -168,7 +184,7 @@ describe('painel da barbearia', () => {
       })
     ).corpo;
     await b.dono.post('/api/caixa/abrir', { valorInicial: 100 });
-    const pagar = async (itens, clienteId = null) => {
+    const pagar = async (itens: unknown[], clienteId: number | null = null) => {
       const cm = (
         await b.dono.post('/api/comandas', {
           barbeiroId: joao.id,
@@ -227,7 +243,7 @@ describe('painel da barbearia', () => {
       );
       // Agendamentos: uma falta hoje conta; um marcado para o dia 1º do mês
       // seguinte não entra no mês atual.
-      const marcar = (data, estado) =>
+      const marcar = (data: string, estado: string) =>
         c.query(
           `insert into atendimentos (barbearia_id, data, inicio, fim, barbeiro_id, servico_id, estado, origem)
            values ($1, $2, '08:00', '08:30', $3, $4, $5, 'agendamento')`,
@@ -245,7 +261,7 @@ describe('painel da barbearia', () => {
     const { n } = await entrarComo(op);
 
     const lista = (await n.get('/api/plataforma/barbearias')).corpo;
-    const naLista = lista.find((x) => x.id === b.id);
+    const naLista = lista.find((x: BarbeariaNaLista) => x.id === b.id);
     expect(naLista).toMatchObject({
       faturamentoMes: 240,
       selo: 'ativa',
@@ -299,7 +315,9 @@ describe('painel da barbearia', () => {
       ),
     );
     expect(vistas.n).toBe(1);
-    expect(p.auditoria.map((a) => a.acao)).not.toContain('ver_painel');
+    expect(p.auditoria.map((a: RegistroDeAuditoria) => a.acao)).not.toContain(
+      'ver_painel',
+    );
   });
 
   // Planejamento 0037: o cashback abate como desconto também no painel.
@@ -317,7 +335,9 @@ describe('painel da barbearia', () => {
     const op = await novoOperador();
     const { n } = await entrarComo(op);
     const lista = (await n.get('/api/plataforma/barbearias')).corpo;
-    expect(lista.find((x) => x.id === b.id).faturamentoMes).toBe(230);
+    expect(
+      lista.find((x: BarbeariaNaLista) => x.id === b.id).faturamentoMes,
+    ).toBe(230);
     const p = (await n.get(`/api/plataforma/barbearias/${b.id}`)).corpo;
     expect(p.faturamento.atual).toBe(230);
     expect(p.caixa).toMatchObject({
@@ -357,7 +377,9 @@ describe('ações do operador', () => {
     const op = await novoOperador();
     const { n } = await entrarComo(op);
     const lista = (await n.get('/api/plataforma/barbearias')).corpo;
-    expect(lista.find((x) => x.id === id).modulosPendentes).toBe(1);
+    expect(
+      lista.find((x: BarbeariaNaLista) => x.id === id).modulosPendentes,
+    ).toBe(1);
 
     const semMotivo = await n.post(
       `/api/plataforma/barbearias/${id}/modulos/estoque/confirmar_contratacao`,
@@ -374,7 +396,9 @@ describe('ações do operador', () => {
       para: 'ativo',
     });
     const mods = (await b.dono.get('/api/modulos')).corpo;
-    expect(mods.find((m) => m.chave === 'estoque').estado).toBe('ativo');
+    expect(
+      mods.find((m: ModuloDaBarbearia) => m.chave === 'estoque').estado,
+    ).toBe('ativo');
 
     const invalida = await n.post(
       `/api/plataforma/barbearias/${id}/modulos/estoque/solicitar`,
@@ -383,7 +407,7 @@ describe('ações do operador', () => {
     expect(invalida.status).toBe(400);
 
     const painel = (await n.get(`/api/plataforma/barbearias/${id}`)).corpo;
-    expect(painel.auditoria.map((a) => a.acao)).toContain(
+    expect(painel.auditoria.map((a: RegistroDeAuditoria) => a.acao)).toContain(
       'modulo_confirmar_contratacao',
     );
   });
@@ -451,15 +475,17 @@ describe('ações do operador', () => {
       nome: 'Novo Dono',
       email,
       senha: 'senha-segura',
-      papelId: papeis.find((p) => p.chave === 'recepcao').id,
+      papelId: papeis.find((p: PapelDaBarbearia) => p.chave === 'recepcao').id,
     });
     expect(convite.status).toBe(201);
 
     const op = await novoOperador();
     const { n } = await entrarComo(op);
     const antes = (await n.get(`/api/plataforma/barbearias/${id}`)).corpo;
-    const alvo = antes.usuarios.find((u) => u.email === email);
-    const dono = antes.usuarios.find((u) => u.papelChave === 'dono');
+    const alvo = antes.usuarios.find((u: UsuarioDoPainel) => u.email === email);
+    const dono = antes.usuarios.find(
+      (u: UsuarioDoPainel) => u.papelChave === 'dono',
+    );
 
     expect(
       (
@@ -483,12 +509,16 @@ describe('ações do operador', () => {
     expect(r.status).toBe(200);
 
     const depois = (await n.get(`/api/plataforma/barbearias/${id}`)).corpo;
-    const donos = depois.usuarios.filter((u) => u.papelChave === 'dono');
-    expect(donos.map((u) => u.id)).toEqual([alvo.id]);
-    expect(depois.usuarios.find((u) => u.id === dono.id).papelChave).toBe(
-      'gerente',
+    const donos = depois.usuarios.filter(
+      (u: UsuarioDoPainel) => u.papelChave === 'dono',
     );
-    expect(depois.auditoria.map((a) => a.acao)).toContain('transferir_dono');
+    expect(donos.map((u: UsuarioDoPainel) => u.id)).toEqual([alvo.id]);
+    expect(
+      depois.usuarios.find((u: UsuarioDoPainel) => u.id === dono.id).papelChave,
+    ).toBe('gerente');
+    expect(depois.auditoria.map((a: RegistroDeAuditoria) => a.acao)).toContain(
+      'transferir_dono',
+    );
   });
 
   it('a auditoria não pode ser alterada nem apagada pela aplicação', async () => {

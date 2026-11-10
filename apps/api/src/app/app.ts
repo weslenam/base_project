@@ -1,18 +1,14 @@
 import helmet from '@fastify/helmet';
-import type {
-  FastifyError,
-  FastifyInstance,
-  FastifyPluginAsync,
-} from 'fastify';
-import sensible from './plugins/sensible.js';
+import type { FastifyError, FastifyInstance } from 'fastify';
+import sensible from './plugins/sensible.ts';
 import banco from '../infra/banco.ts';
 import { config } from '../infra/config.ts';
 import autenticacao from '../seguranca/autenticacao.ts';
-import identidadeJs from '../identidade/index.js';
+import identidade from '../identidade/index.ts';
 import entrada, { mensagemDeErro } from '../seguranca/entrada.ts';
 import limites from '../seguranca/limites.ts';
 import type { Limite } from '../seguranca/limites.ts';
-import rotasSaude from './rotas/saude.js';
+import rotasSaude from './rotas/saude.ts';
 import { criarCorreioSmtp } from '../infra/correio.ts';
 import type { Correio } from '../infra/correio.ts';
 
@@ -29,17 +25,17 @@ import rotasFinanceiro from './rotas/financeiro.js';
 // não mexerem em linhas vizinhas.
 
 // ---- Rotas de cadastro, acesso e plataforma (etapa 6, agente B) ----
-import rotasAutenticacao from './rotas/autenticacao.js';
-import rotasUsuarios from './rotas/usuarios.js';
-import rotasPapeis from './rotas/papeis.js';
-import rotasModulos from './rotas/modulos.js';
-import rotasPagamentos from './rotas/pagamentos.js';
-import rotasBarbearia from './rotas/barbearia.js';
-import rotasCadastros from './rotas/cadastros.js';
-import rotasClientes from './rotas/clientes.js';
-import rotasPublico from './rotas/publico.js';
-import rotasSenha from './rotas/senha.js';
-import rotasPlataforma from './rotas/plataforma.js';
+import rotasAutenticacao from './rotas/autenticacao.ts';
+import rotasUsuarios from './rotas/usuarios.ts';
+import rotasPapeis from './rotas/papeis.ts';
+import rotasModulos from './rotas/modulos.ts';
+import rotasPagamentos from './rotas/pagamentos.ts';
+import rotasBarbearia from './rotas/barbearia.ts';
+import rotasCadastros from './rotas/cadastros.ts';
+import rotasClientes from './rotas/clientes.ts';
+import rotasPublico from './rotas/publico.ts';
+import rotasSenha from './rotas/senha.ts';
+import rotasPlataforma from './rotas/plataforma.ts';
 
 /**
  * Aplicação Fastify. Toda rota fica sob /api. Erros esperados saem como
@@ -58,14 +54,6 @@ export interface OpcoesDoApp {
   paginaPublicaLiberada?: boolean;
   pagamentos?: Record<string, unknown>;
 }
-
-// A identidade ainda é JS (etapa 6, agente B): até converter, o tipo das
-// opções vem daqui.
-const identidade = identidadeJs as unknown as FastifyPluginAsync<{
-  auth?: string;
-  correio: Correio;
-  appUrl: string;
-}>;
 
 export async function app(fastify: FastifyInstance, opts: OpcoesDoApp = {}) {
   fastify.register(helmet);

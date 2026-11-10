@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
-import identidade from './index.js';
+import identidade from './index.ts';
+import type { Correio } from '../infra/correio.ts';
 
 // Contrato da identidade (ADR 0016, planejamento 0025 S3): toda implementação
 // expõe as mesmas operações, e AUTH desconhecido não sobe a API.
@@ -15,9 +17,11 @@ const CONTRATO = [
   'pedirRedefinicao',
   'redefinirSenha',
   'encerrarSessoesDaBarbearia',
-];
+] as const;
 
-let app;
+const correio = {} as Correio;
+
+let app: FastifyInstance | undefined;
 afterEach(() => app?.close());
 
 describe('identidade', () => {
@@ -25,7 +29,7 @@ describe('identidade', () => {
     app = Fastify();
     await app.register(identidade, {
       auth: 'propria',
-      correio: {},
+      correio,
       appUrl: '',
     });
     await app.ready();
@@ -36,7 +40,7 @@ describe('identidade', () => {
 
   it('AUTH desconhecido impede a API de subir', async () => {
     app = Fastify();
-    app.register(identidade, { auth: 'xpto', correio: {}, appUrl: '' });
+    app.register(identidade, { auth: 'xpto', correio, appUrl: '' });
     await expect(app.ready()).rejects.toThrow('AUTH="xpto" não existe');
   });
 });

@@ -1,5 +1,15 @@
 import { MODULOS, transicaoDeModulo } from '@barbertime/dominio';
+import type { Modulo } from '@barbertime/dominio';
+import { sql } from 'kysely';
+import type { FastifyInstance } from 'fastify';
 import { invalido, naoEncontrado, proibido } from '../../infra/erros.ts';
+import type { Conexao } from '../../infra/banco.ts';
+
+/** Módulo do catálogo com o estado nesta barbearia (`GET /modulos`). */
+export interface ModuloDaBarbearia extends Modulo {
+  estado: string;
+  atualizadoEm: Date | null;
+}
 
 const ACOES_DA_BARBEARIA = [
   'ativar',
@@ -8,19 +18,20 @@ const ACOES_DA_BARBEARIA = [
   'cancelar_solicitacao',
 ];
 
-async function listar(c) {
-  const { rows } = await c.query(
-    'select modulo, estado, atualizado_em from barbearia_modulos',
-  );
+async function listar(c: Conexao): Promise<ModuloDaBarbearia[]> {
+  const rows = await c.db
+    .selectFrom('barbeariaModulos')
+    .select(['modulo', 'estado', 'atualizadoEm'])
+    .execute();
   const estados = new Map(rows.map((r) => [r.modulo, r]));
   return MODULOS.map((m) => ({
     ...m,
     estado: estados.get(m.chave)?.estado ?? 'inativo',
-    atualizadoEm: estados.get(m.chave)?.atualizado_em ?? null,
+    atualizadoEm: estados.get(m.chave)?.atualizadoEm ?? null,
   }));
 }
 
-export default async function (fastify) {
+export default async function (fastify: FastifyInstance) {
   /** Catálogo com o estado de cada módulo nesta barbearia. */
   fastify.get('/modulos', { preHandler: fastify.autenticado }, (req) =>
     fastify.naBarbearia(req, listar),
@@ -30,7 +41,7 @@ export default async function (fastify) {
    * Ações da barbearia sobre um módulo. A confirmação de contratação de um
    * serviço adicional é feita pela equipe BarberTime (super admin), não aqui.
    */
-  fastify.post(
+  fastify.post<{ Params: { chave: string; acao: string } }>(
     '/modulos/:chave/:acao',
     { preHandler: fastify.exigir('modulos.gerenciar') },
     async (req) => {
@@ -45,12 +56,22 @@ export default async function (fastify) {
         if (!atual) throw naoEncontrado('Módulo desconhecido.');
         const { estado, erro } = transicaoDeModulo(chave, atual.estado, acao);
         if (erro) throw invalido(erro);
-        await c.query(
-          `insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, $2, $3)
-           on conflict (barbearia_id, modulo)
-           do update set estado = excluded.estado, atualizado_em = now()`,
-          [req.contexto.barbeariaId, chave, estado],
-        );
+        // Sem erro, a transição sempre devolve o estado novo.
+        if (estado === undefined) throw invalido('Ação desconhecida.');
+        await c.db
+          .insertInto('barbeariaModulos')
+          .values({
+            barbeariaId: req.contexto.barbeariaId,
+            modulo: chave,
+            estado,
+          })
+          .onConflict((oc) =>
+            oc.columns(['barbeariaId', 'modulo']).doUpdateSet({
+              estado: (eb) => eb.ref('excluded.estado'),
+              atualizadoEm: sql<Date>`now()`,
+            }),
+          )
+          .execute();
         return (await listar(c)).find((m) => m.chave === chave);
       });
     },

@@ -16,7 +16,7 @@ const GLOBAIS = [
   'auditoria_plataforma',
 ];
 
-const consultar = (sql, params) =>
+const consultar = (sql: string, params?: unknown[]) =>
   comoSuperusuario(async (c) => (await c.query(sql, params)).rows);
 
 describe('isolamento do schema app', () => {

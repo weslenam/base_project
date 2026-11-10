@@ -4,17 +4,20 @@ import Fastify from 'fastify';
 import { config } from '../src/infra/config.ts';
 import { migrar, prepararPapelDaAplicacao } from '../src/infra/migrar.ts';
 import banco from '../src/infra/banco.ts';
-import { criarBarbearia } from '../src/servicos/barbearias.js';
+import { criarBarbearia } from '../src/servicos/barbearias.ts';
 import { garantirCategoriasPadrao } from '../src/servicos/estoque.js';
-import identidade from '../src/identidade/index.js';
-import { semearOperacao, temPerfil } from './operacao-exemplo.js';
-import { criarOperador } from '../src/servicos/operadores.js';
+import identidade from '../src/identidade/index.ts';
+import { semearOperacao, temPerfil } from './operacao-exemplo.ts';
+import { criarOperador } from '../src/servicos/operadores.ts';
 import {
   momentoNoFuso,
   somarDias,
   vigenciaDoPacote,
 } from '@barbertime/dominio';
-import { semearMovimento, semearVendaAntiga } from './movimento-exemplo.js';
+import { semearMovimento, semearVendaAntiga } from './movimento-exemplo.ts';
+
+// Semente de desenvolvimento: o SQL fica no driver pg (`c.query`, com
+// parâmetros), como antes da conversão (planejamento 0040).
 
 const SENHA = 'barbertime123';
 await migrar(config.databaseUrlMigracao);
@@ -88,7 +91,7 @@ const {
 await fastify.comBarbearia(modelo.id, async (c) => {
   const ja = await c.query('select 1 from servicos limit 1');
   if (ja.rowCount) return;
-  const inserir = (sql, linhas) =>
+  const inserir = (sql: string, linhas: unknown[][]) =>
     Promise.all(linhas.map((l) => c.query(sql, [modelo.id, ...l])));
   await inserir(
     'insert into servicos (barbearia_id, nome, duracao, preco) values ($1, $2, $3, $4)',
@@ -180,9 +183,13 @@ await fastify.comBarbearia(modelo.id, async (c) => {
   const { rows: servicos } = await c.query(
     "select id, nome from servicos where nome in ('Corte', 'Barba') and excluido_em is null order by id",
   );
-  const servico = (nome) => servicos.find((s) => s.nome === nome)?.id;
+  const servico = (nome: string): number | undefined =>
+    servicos.find((s) => s.nome === nome)?.id;
   if (!servico('Corte') || !servico('Barba')) return;
-  const pacote = async (dados, itens) => {
+  const pacote = async (
+    dados: unknown[],
+    itens: [string, number | null][],
+  ): Promise<number> => {
     const {
       rows: [{ id }],
     } = await c.query(
@@ -230,11 +237,12 @@ await fastify.comBarbearia(modelo.id, async (c) => {
   if (ja.rowCount) return;
   await garantirCategoriasPadrao(c, modelo.id);
   const hoje = momentoNoFuso(new Date()).data;
-  for (const [tipo, descricao, categoria, valor, dias] of [
+  const contas: [string, string, string, number, number][] = [
     ['pagar', 'Aluguel do salão', 'Aluguel', 1800, 5],
     ['pagar', 'Conta de luz', 'Energia', 320.45, -2],
     ['receber', 'Aluguel da cadeira (Léo)', 'Aluguel de cadeira', 600, 3],
-  ])
+  ];
+  for (const [tipo, descricao, categoria, valor, dias] of contas)
     await c.query(
       `insert into contas (barbearia_id, tipo, descricao, categoria_id, valor, vencimento)
        select $1, $2, $3, id, $5, $6 from categorias_financeiras

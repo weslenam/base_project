@@ -1,18 +1,26 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
+
+type Navegador = ReturnType<typeof navegador>;
 
 // Planejamento 0017: configurações da barbearia, perfil e troca de senha.
 // Planejamento 0023: a senha provisória definida pelo Dono saiu.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
 afterAll(() => servidor?.close());
 
-async function convidar(dono, chave, email = `${unico(chave)}@teste.dev`) {
+async function convidar(
+  dono: Navegador,
+  chave: string,
+  email = `${unico(chave)}@teste.dev`,
+) {
   const papel = (await dono.get('/api/papeis')).corpo.find(
-    (p) => p.chave === chave,
+    (p: PapelDaBarbearia) => p.chave === chave,
   );
   const r = await dono.post('/api/usuarios', {
     nome: `Usuário ${chave}`,

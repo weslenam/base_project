@@ -1,10 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso } from '@barbertime/dominio';
 import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
+import type { Servico } from '../app/rotas/cadastros.contratos.ts';
+
+type Horario = { hora: string; disponivel: boolean };
 
 // Planejamento 0019 (parte 1): cadastros, clientes, agenda e página pública.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
@@ -20,7 +25,7 @@ function proximaSegunda() {
 }
 
 /** Barbearia com um serviço e um barbeiro, pronta para agendar. */
-async function montada(nome) {
+async function montada(nome?: string) {
   const b = await novaBarbearia(servidor, nome);
   const servico = (
     await b.dono.post('/api/servicos', {
@@ -100,9 +105,9 @@ describe('cadastros', () => {
       })
     ).corpo;
     expect((await dono.delete(`/api/servicos/${barba.id}`)).status).toBe(204);
-    expect((await dono.get('/api/servicos')).corpo.map((s) => s.nome)).toEqual([
-      'Corte',
-    ]);
+    expect(
+      (await dono.get('/api/servicos')).corpo.map((s: Servico) => s.nome),
+    ).toEqual(['Corte']);
   });
 });
 
@@ -161,8 +166,12 @@ describe('clientes e agenda', () => {
         `/api/agendamentos/horarios?data=${dia}&barbeiroId=${barbeiro.id}&servicoId=${servico.id}`,
       )
     ).corpo;
-    expect(livres.find((h) => h.hora === '10:00').disponivel).toBe(false);
-    expect(livres.find((h) => h.hora === '10:30').disponivel).toBe(true);
+    expect(livres.find((h: Horario) => h.hora === '10:00').disponivel).toBe(
+      false,
+    );
+    expect(livres.find((h: Horario) => h.hora === '10:30').disponivel).toBe(
+      true,
+    );
 
     const id = novo.corpo.id;
     expect(
@@ -183,9 +192,9 @@ describe('clientes e agenda', () => {
 
   it('recepção agenda; barbeiro não (403)', async () => {
     const { dono } = await montada();
-    const convidar = async (chave) => {
+    const convidar = async (chave: string) => {
       const papel = (await dono.get('/api/papeis')).corpo.find(
-        (p) => p.chave === chave,
+        (p: PapelDaBarbearia) => p.chave === chave,
       );
       const email = `${unico(chave)}@teste.dev`;
       await dono.post('/api/usuarios', {
@@ -224,7 +233,9 @@ describe('página pública', () => {
     const pagina = await p.get(`/api/publico/${slug}`);
     expect(pagina.status).toBe(200);
     expect(pagina.corpo.barbearia.nome).toBe('Studio Teste');
-    expect(pagina.corpo.servicos.map((s) => s.nome)).toEqual(['Corte']);
+    expect(pagina.corpo.servicos.map((s: Servico) => s.nome)).toEqual([
+      'Corte',
+    ]);
     expect(pagina.corpo.barbeiros[0]).not.toHaveProperty('comissao');
 
     const dia = proximaSegunda();

@@ -42,7 +42,7 @@ export const encerrarSessaoDeOperador = (
 export const opcoesDoCookieDeOperador = () => ({
   path: CAMINHO_DO_COOKIE,
   httpOnly: true,
-  sameSite: 'strict',
+  sameSite: 'strict' as const,
   secure: config.producao,
   maxAge: HORAS_DE_SESSAO * 3_600,
 });
