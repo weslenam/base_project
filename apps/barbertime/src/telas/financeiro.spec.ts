@@ -4,6 +4,7 @@ import { api } from '../dados/api.ts';
 import {
   botoes,
   clicar,
+  clicarCelula,
   escolherNoSelect,
   esperar,
   montarApp,
@@ -11,11 +12,13 @@ import {
   sessaoCom,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
+import type { ContaFin } from '../dados/modelos.ts';
 
 // Planejamento 0027, parte 2, fatia 2A: contas a pagar e a receber,
 // categorias e a baixa com dinheiro do caixa.
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   app?.unmount();
@@ -24,12 +27,9 @@ afterEach(() => {
 
 const menu = () =>
   [...document.querySelectorAll('[aria-label="Menu principal"] a')].map((a) =>
-    a.textContent.trim(),
+    (a.textContent ?? '').trim(),
   );
-const abrirLinha = (trecho) =>
-  [...document.querySelectorAll('td')]
-    .find((td) => td.textContent.trim() === trecho)
-    .click();
+const abrirLinha = clicarCelula;
 
 describe('menu e permissões', () => {
   it('com o módulo, Contas e Categorias aparecem no grupo Financeiro', async () => {
@@ -98,27 +98,31 @@ describe('contas', () => {
     await escolherNoSelect('Forma de pagamento', 'Dinheiro do caixa');
     await clicar('Confirmar pagamento');
     await esperar(() => expect(texto()).toContain('saiu do caixa de hoje'));
-    const { resumo } = await api.caixa.obterDoDia();
-    expect(resumo.saidas).toBe(320.45);
+    const caixa = await api.caixa.obterDoDia();
+    expect(caixa?.resumo.saidas).toBe(320.45);
   });
 });
 
 describe('#30: tela de contas', () => {
   it('#30: resposta atrasada de um filtro antigo não sobrescreve a nova', async () => {
     const original = api.financeiro.contas.listar;
-    const linha = (descricao) => ({
-      id: descricao.length,
-      tipo: 'pagar',
-      descricao,
-      categoriaNome: 'Aluguel',
-      valor: 10,
-      vencimento: '2026-11-10',
-      situacao: 'aberta',
-      situacaoAtual: 'aberta',
-    });
-    api.financeiro.contas.listar = ({ situacao }) =>
-      situacao === 'aberta'
-        ? new Promise((ok) => setTimeout(() => ok([linha('Antiga')]), 1500))
+    // Só os campos que a tela de contas mostra.
+    const linha = (descricao: string) =>
+      ({
+        id: descricao.length,
+        tipo: 'pagar',
+        descricao,
+        categoriaNome: 'Aluguel',
+        valor: 10,
+        vencimento: '2026-11-10',
+        situacao: 'aberta',
+        situacaoAtual: 'aberta',
+      }) as ContaFin;
+    api.financeiro.contas.listar = (filtros) =>
+      filtros?.situacao === 'aberta'
+        ? new Promise<ContaFin[]>((ok) =>
+            setTimeout(() => ok([linha('Antiga')]), 1500),
+          )
         : Promise.resolve([linha('Nova conta filtrada')]);
     try {
       app = await montarApp('/financeiro/contas');

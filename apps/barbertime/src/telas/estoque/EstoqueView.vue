@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import {
   DsBotao,
@@ -11,25 +11,29 @@ import {
 import { formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { pode } from '../../sessao/sessao.ts';
-import { ROTULO_DO_TIPO, formatarQuantidade } from './rotulos.js';
+import { ROTULO_DO_TIPO, formatarQuantidade } from './rotulos.ts';
 import ConsumoDialogo from './ConsumoDialogo.vue';
 import InventarioDialogo from './InventarioDialogo.vue';
 import MovimentosDialogo from './MovimentosDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { sugestaoDeCompra } from '@barbertime/dominio';
+import type { ProdutoEstoque } from '../../dados/modelos.ts';
 
 // Estoque (planejamento 0027, parte 1): saldos, "Comprar", consumo manual,
 // inventário e movimentos por produto. A Recepção só vê.
-const produtos = ref([]);
-const comprar = ref([]);
+const produtos = ref<ProdutoEstoque[]>([]);
+const comprar = ref<ReturnType<typeof sugestaoDeCompra>>([]);
 const consumoAberto = ref(false);
 const inventarioAberto = ref(false);
-const movimentosDe = ref(null);
+const movimentosDe = ref<ProdutoEstoque | null>(null);
 const gerencia = computed(() => pode('estoque.gerenciar'));
 
-const unidadeDe = (id) => produtos.value.find((p) => p.id === id)?.unidade;
+const unidadeDe = (id: number) =>
+  produtos.value.find((p) => p.id === id)?.unidade;
 
-const colunas = [
+const colunas: ColunaDaTabela<ProdutoEstoque>[] = [
   { campo: 'nome', titulo: 'Produto', ordenavel: true },
-  { campo: 'tipo', titulo: 'Tipo', formatar: (v) => ROTULO_DO_TIPO[v] },
+  { campo: 'tipo', titulo: 'Tipo', formatar: (v) => ROTULO_DO_TIPO[v] ?? '' },
   { campo: 'saldo', titulo: 'Saldo', alinhamento: 'fim' },
   {
     campo: 'estoqueMinimo',

@@ -1,22 +1,27 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { DsDialogo, DsTabela } from '@barbertime/ui';
 import { formatarData } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
-import { ROTULO_DO_MOVIMENTO, formatarQuantidade } from './rotulos.js';
+import { ROTULO_DO_MOVIMENTO, formatarQuantidade } from './rotulos.ts';
+import type { PropType } from 'vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { MovimentoEstoque, ProdutoEstoque } from '../../dados/modelos.ts';
 
 // Últimos movimentos de um produto (planejamento 0027).
-const props = defineProps({ produto: { type: Object, default: null } });
+const props = defineProps({
+  produto: { type: Object as PropType<ProdutoEstoque | null>, default: null },
+});
 const emit = defineEmits(['fechar']);
 
-const movimentos = ref([]);
+const movimentos = ref<MovimentoEstoque[]>([]);
 const carregando = ref(false);
 const aberto = computed({
   get: () => Boolean(props.produto),
-  set: (v) => !v && emit('fechar'),
+  set: (v: boolean) => !v && emit('fechar'),
 });
 
-const colunas = computed(() => [
+const colunas = computed<ColunaDaTabela<MovimentoEstoque>[]>(() => [
   {
     campo: 'criadoEm',
     titulo: 'Data',
@@ -25,7 +30,7 @@ const colunas = computed(() => [
   {
     campo: 'tipo',
     titulo: 'Movimento',
-    formatar: (v) => ROTULO_DO_MOVIMENTO[v],
+    formatar: (v) => ROTULO_DO_MOVIMENTO[v] ?? v,
   },
   {
     campo: 'quantidade',

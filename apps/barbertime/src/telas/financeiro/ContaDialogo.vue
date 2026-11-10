@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -15,15 +15,29 @@ import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { useSessao } from '../../sessao/sessao.ts';
-import { ROTULO_DA_FORMA, seloDaSituacao } from './rotulos.js';
+import { ROTULO_DA_FORMA, seloDaSituacao } from './rotulos.ts';
 import BaixaDialogo from './BaixaDialogo.vue';
+import type { PropType } from 'vue';
+import type { Categoria, ContaFin, Fornecedor } from '../../dados/modelos.ts';
+
+/** Conta no formulário (a nova ainda não tem id). */
+interface FormularioDaConta {
+  id?: number;
+  tipo: string;
+  descricao: string;
+  categoriaId: number | null;
+  valor: number | null;
+  vencimento: string;
+  fornecedorId: number | null;
+  clienteId: number | null;
+}
 
 // Conta a pagar ou a receber (planejamento 0027, parte 2, fatia 2A): lançar,
 // editar a aberta (parcela de compra só muda o vencimento), dar baixa,
 // estornar e cancelar.
-const aberto = defineModel({ type: Boolean, default: false });
+const aberto = defineModel<boolean>({ default: false });
 const props = defineProps({
-  conta: { type: Object, default: null },
+  conta: { type: Object as PropType<ContaFin | null>, default: null },
   /** Tipo da conta nova (aba atual da tela). */
   tipo: { type: String, default: 'pagar' },
 });
@@ -34,16 +48,24 @@ const notificar = useNotificacao();
 const executar = useAcao();
 const { moduloAtivo } = useSessao();
 
-const form = ref({});
-const atual = ref(null);
-const categorias = ref([]);
-const fornecedores = ref([]);
+const form = ref<FormularioDaConta>({
+  tipo: 'pagar',
+  descricao: '',
+  categoriaId: null,
+  valor: null,
+  vencimento: '',
+  fornecedorId: null,
+  clienteId: null,
+});
+const atual = ref<ContaFin | null>(null);
+const categorias = ref<Categoria[]>([]);
+const fornecedores = ref<Fornecedor[]>([]);
 const baixaAberta = ref(false);
 
 const nova = computed(() => !atual.value);
 const tipoDaConta = computed(() => atual.value?.tipo ?? props.tipo);
 const editavel = computed(
-  () => nova.value || atual.value.situacao === 'aberta',
+  () => nova.value || atual.value?.situacao === 'aberta',
 );
 const daCompra = computed(() => atual.value?.origem === 'compra');
 const titulo = computed(() => {
@@ -51,7 +73,7 @@ const titulo = computed(() => {
     return tipoDaConta.value === 'pagar'
       ? 'Nova conta a pagar'
       : 'Nova conta a receber';
-  return atual.value.descricao;
+  return atual.value?.descricao ?? '';
 });
 
 const opcoesCategorias = computed(() =>
@@ -105,15 +127,15 @@ async function salvar() {
 }
 
 async function cancelar() {
-  const ok = await confirmar(`Cancelar a conta "${atual.value.descricao}"?`, {
+  const conta = atual.value;
+  if (!conta) return;
+  const ok = await confirmar(`Cancelar a conta "${conta.descricao}"?`, {
     perigo: true,
     textoOk: 'Cancelar conta',
     textoCancelar: 'Manter',
   });
   if (!ok) return;
-  const r = await executar(() =>
-    api.financeiro.contas.cancelar(atual.value.id),
-  );
+  const r = await executar(() => api.financeiro.contas.cancelar(conta.id));
   if (!r) return;
   notificar.sucesso('Conta cancelada.');
   aberto.value = false;
@@ -121,16 +143,16 @@ async function cancelar() {
 }
 
 async function estornar() {
+  const conta = atual.value;
+  if (!conta) return;
   const ok = await confirmar(
-    atual.value.forma === 'dinheiro_caixa'
+    conta.forma === 'dinheiro_caixa'
       ? 'Estornar o pagamento? O valor volta para o caixa em que saiu (só se ele ainda estiver aberto).'
       : 'Estornar o pagamento? A conta volta a ficar em aberto.',
     { textoOk: 'Estornar', textoCancelar: 'Manter' },
   );
   if (!ok) return;
-  const r = await executar(() =>
-    api.financeiro.contas.estornar(atual.value.id),
-  );
+  const r = await executar(() => api.financeiro.contas.estornar(conta.id));
   if (!r) return;
   notificar.sucesso('Pagamento estornado.');
   atual.value = r;
@@ -138,7 +160,7 @@ async function estornar() {
   emit('alterada');
 }
 
-function baixada(conta) {
+function baixada(conta: ContaFin) {
   atual.value = conta;
   aberto.value = false;
   emit('alterada');
@@ -168,7 +190,7 @@ function baixada(conta) {
       </div>
       <div>
         <dt>Forma</dt>
-        <dd>{{ ROTULO_DA_FORMA[atual.forma] ?? atual.forma }}</dd>
+        <dd>{{ ROTULO_DA_FORMA[atual.forma ?? ''] ?? atual.forma }}</dd>
       </div>
     </dl>
 
@@ -184,7 +206,7 @@ function baixada(conta) {
         <DsInputMoeda v-model="form.valor" rotulo="Valor" obrigatorio />
       </template>
       <p v-else class="ds-corpo">
-        {{ atual.categoriaNome }} · {{ formatarMoeda(atual.valor) }}
+        {{ atual?.categoriaNome }} · {{ formatarMoeda(atual?.valor) }}
       </p>
       <DsInput
         v-model="form.vencimento"
@@ -203,15 +225,15 @@ function baixada(conta) {
     <dl v-else class="conta__baixa">
       <div>
         <dt>Categoria</dt>
-        <dd>{{ atual.categoriaNome }}</dd>
+        <dd>{{ atual?.categoriaNome }}</dd>
       </div>
       <div>
         <dt>Vencimento</dt>
-        <dd>{{ formatarData(atual.vencimento) }}</dd>
+        <dd>{{ formatarData(atual?.vencimento) }}</dd>
       </div>
       <div>
         <dt>Valor previsto</dt>
-        <dd>{{ formatarMoeda(atual.valor) }}</dd>
+        <dd>{{ formatarMoeda(atual?.valor) }}</dd>
       </div>
     </dl>
 

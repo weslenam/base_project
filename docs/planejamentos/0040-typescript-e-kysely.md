@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A a 9C feitas)
+- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A a 9D feitas)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -236,3 +236,8 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
     - tirar os casts de `formatar` da 9B;
     - a coluna só de slot do `ColunaDaTabela` aceita qualquer `campo` (um nome errado numa coluna sem `formatar` não é pego);
     - o limite de tempo dos testes é global (o melhor seria rodar typecheck e testes em sequência no `verificar`).
+- 2026-11-10 — Etapa 9D (cadastros, estoque e financeiro): telas de equipe, serviços, produtos, estoque e financeiro com `lang="ts"`, os `rotulos.ts` de estoque e financeiro e os testes `estoque` e `financeiro` em TS.
+  - **`Produto`:** passa a ser o produto sem custo, com `saldo` e `ultimoCusto` opcionais (só vêm para quem vê o estoque), tanto na `Api` quanto nos modelos.
+  - **Modelos novos:** `Fornecedor`, `Compra`, `CompraResumida`, `ProdutoEstoque`, `MovimentoEstoque`, `ItemFicha`, `ContaFin` e `Categoria`.
+  - **Exclusões e ações de diálogo:** conferem o id antes de pedir a confirmação.
+  - **Selo de situação de conta desconhecida:** aparece com o próprio nome, em vez de vazio.

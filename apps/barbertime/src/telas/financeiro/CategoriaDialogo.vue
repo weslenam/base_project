@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -12,11 +12,15 @@ import {
 } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { PropType } from 'vue';
+import type { Categoria } from '../../dados/modelos.ts';
 
 // Categoria do financeiro (planejamento 0027, parte 2). Com conta lançada,
 // não se exclui: só se desativa (some da escolha nas contas novas).
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ categoria: { type: Object, default: null } });
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  categoria: { type: Object as PropType<Categoria | null>, default: null },
+});
 const emit = defineEmits(['alterada']);
 
 const TIPOS = [
@@ -26,7 +30,12 @@ const TIPOS = [
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
-const form = ref({});
+const form = ref<{
+  id?: number;
+  nome: string;
+  tipo: string;
+  ativa: boolean;
+}>({ nome: '', tipo: 'pagar', ativa: true });
 const editando = computed(() => Boolean(props.categoria?.id));
 
 watch(aberto, (abriu) => {
@@ -53,6 +62,8 @@ async function salvar() {
 }
 
 async function excluir() {
+  const id = form.value.id;
+  if (id === undefined) return;
   const ok = await confirmar(`Excluir a categoria "${form.value.nome}"?`, {
     perigo: true,
     textoOk: 'Excluir',
@@ -60,7 +71,7 @@ async function excluir() {
   });
   if (!ok) return;
   const feito = await executar(
-    async () => (await api.financeiro.categorias.excluir(form.value.id), true),
+    async () => (await api.financeiro.categorias.excluir(id), true),
   );
   if (!feito) return;
   notificar.sucesso('Categoria excluída.');
@@ -92,7 +103,7 @@ async function excluir() {
     </DsFormulario>
     <template #acoes>
       <DsBotao
-        v-if="editando && !categoria.emUso"
+        v-if="editando && !categoria?.emUso"
         variante="perigo"
         class="acao-excluir"
         @click="excluir"

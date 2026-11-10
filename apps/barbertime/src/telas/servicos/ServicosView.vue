@@ -1,15 +1,17 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import ServicoDialogo from './ServicoDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Servico } from '../../dados/modelos.ts';
 
-const servicos = ref([]);
+const servicos = ref<Servico[]>([]);
 const dialogoAberto = ref(false);
-const selecionadoId = ref(null);
+const selecionadoId = ref<number | null>(null);
 
-const colunas = [
+const colunas: ColunaDaTabela<Servico>[] = [
   { campo: 'nome', titulo: 'Serviço', ordenavel: true },
   {
     campo: 'duracao',
@@ -30,7 +32,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(id = null) {
+function abrir(id: number | null = null) {
   selecionadoId.value = id;
   dialogoAberto.value = true;
 }

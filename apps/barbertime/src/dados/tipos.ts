@@ -30,14 +30,13 @@ import type {
   PacoteDoCatalogo,
   PaginaPublica,
   PodeUsarPacote,
-  Produto,
   ProdutoNoEstoque,
-  ProdutoSemCusto,
   ResumoDoCliente,
   Servico,
   VendaDePacote,
 } from '@barbertime/contratos';
 import type { SaldoFidelidade, sugestaoDeCompra } from '@barbertime/dominio';
+import type { Produto as ProdutoDoModelo } from './modelos.ts';
 
 /**
  * Corpo enviado por um formulário. Fica aberto nesta etapa: o formato de cada
@@ -81,7 +80,8 @@ export interface Api {
   servicos: Recurso<EmJson<Servico>> & {
     contarFuturos: (id: number) => Promise<number>;
   };
-  produtos: Recurso<EmJson<Produto | ProdutoSemCusto>>;
+  /** Saldo e último custo só vêm para quem vê o estoque (planejamento 0027). */
+  produtos: Recurso<ProdutoDoModelo>;
   estoque: {
     obter: () => Promise<{
       produtos: EmJson<ProdutoNoEstoque>[];

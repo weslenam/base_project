@@ -1,19 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { DsBotao, DsDialogo, DsInput, useNotificacao } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
-import { formatarQuantidade } from './rotulos.js';
+import { formatarQuantidade } from './rotulos.ts';
+import type { PropType } from 'vue';
+import type { ProdutoEstoque } from '../../dados/modelos.ts';
 
 // Inventário (planejamento 0027): a contagem física define o saldo novo, e
 // cada diferença vira um ajuste. Linha em branco não entra.
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ produtos: { type: Array, default: () => [] } });
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  produtos: { type: Array as PropType<ProdutoEstoque[]>, default: () => [] },
+});
 const emit = defineEmits(['salvo']);
 
 const notificar = useNotificacao();
 const executar = useAcao();
-const contagem = ref({});
+/** Contagem por id do produto; em branco não entra. */
+const contagem = ref<Record<number, string | number | null>>({});
 
 watch(aberto, (abriu) => {
   if (abriu) contagem.value = {};

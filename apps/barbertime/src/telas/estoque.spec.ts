@@ -6,6 +6,7 @@ import {
   botoes,
   campo,
   clicar,
+  clicarCelula,
   clicarContendo,
   escolherNoSelect,
   esperar,
@@ -14,10 +15,11 @@ import {
   sessaoCom,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
 // Planejamento 0027 (parte 1): estoque, fornecedores, compras e ficha técnica.
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   app?.unmount();
@@ -31,11 +33,7 @@ const menu = () =>
 const normalizado = () => texto().replace(/\s/g, ' ');
 const celulas = () =>
   [...document.querySelectorAll('td')].map((td) =>
-    td.textContent.replace(/\s/g, ' ').trim(),
-  );
-const linhaCom = (trecho) =>
-  [...document.querySelectorAll('td')].find(
-    (td) => td.textContent.trim() === trecho,
+    (td.textContent ?? '').replace(/\s/g, ' ').trim(),
   );
 
 describe('menu e permissões', () => {
@@ -102,8 +100,8 @@ describe('produtos', () => {
     });
     await api.comandas.receber(cm.id, { forma: 'pix' });
     const { produtos } = await api.estoque.obter();
-    expect(produtos.find((p) => p.id === gel.id).saldo).toBe(-10);
-    expect(produtos.find((p) => p.id === 1).saldo).toBe(4);
+    expect(produtos.find((p) => p.id === gel.id)?.saldo).toBe(-10);
+    expect(produtos.find((p) => p.id === 1)?.saldo).toBe(4);
   });
 });
 
@@ -131,7 +129,7 @@ describe('estoque', () => {
     // A notificação anterior ainda ocupa o aviso: confere pelo saldo.
     await esperar(() => expect(celulas()).toContain('10 un'));
 
-    linhaCom('Pomada modeladora').click();
+    clicarCelula('Pomada modeladora');
     await esperar(() =>
       expect(texto()).toContain('Movimentos de Pomada modeladora'),
     );
@@ -180,7 +178,7 @@ describe('compras', () => {
     const compra = await api.compras.obter(1);
     expect(compra.parcelas.map((p) => p.valor)).toEqual([22.5, 22.5]);
 
-    linhaCom('Distribuidora Navalha').click();
+    clicarCelula('Distribuidora Navalha');
     await esperar(() =>
       expect(texto()).toContain('Compra #1 · Distribuidora Navalha'),
     );
@@ -197,7 +195,7 @@ describe('ficha técnica', () => {
     await api.produtos.salvar({ nome: 'Lâmina', tipo: 'consumivel' });
     app = await montarApp('/servicos');
     await esperar(() => expect(texto()).toContain('Pigmentação'));
-    linhaCom('Corte').click();
+    clicarCelula('Corte');
     await esperar(() => expect(texto()).toContain('Ficha técnica'));
     await esperar(() => expect(texto()).toContain('Sem ficha técnica'));
     await clicar('Incluir consumível');

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -12,8 +12,10 @@ import {
 import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
 import { hojeIso, totaisDasContas } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
-import { SITUACOES, seloDaSituacao } from './rotulos.js';
+import { SITUACOES, seloDaSituacao } from './rotulos.ts';
 import ContaDialogo from './ContaDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { ContaFin } from '../../dados/modelos.ts';
 
 // Contas a pagar e a receber (planejamento 0027, parte 2, fatia 2A).
 const TIPOS = [
@@ -22,12 +24,12 @@ const TIPOS = [
 ];
 const tipo = ref('pagar');
 const situacao = ref('aberta');
-const contas = ref([]);
+const contas = ref<ContaFin[]>([]);
 const carregando = ref(false);
 const dialogoAberto = ref(false);
-const selecionada = ref(null);
+const selecionada = ref<ContaFin | null>(null);
 
-const colunas = [
+const colunas: ColunaDaTabela<ContaFin>[] = [
   {
     campo: 'vencimento',
     titulo: 'Vencimento',
@@ -70,7 +72,7 @@ async function carregar() {
 onMounted(carregar);
 watch([tipo, situacao], carregar);
 
-function abrir(conta = null) {
+function abrir(conta: ContaFin | null = null) {
   selecionada.value = conta;
   dialogoAberto.value = true;
 }

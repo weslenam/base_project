@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsBotao,
   DsDialogo,
@@ -11,19 +12,38 @@ import {
 } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { OpcaoDeSelect } from '@barbertime/ui';
 
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ id: { type: Number, default: null } });
+/** Barbeiro no formulário (o novo ainda não tem id). */
+interface FormularioDoBarbeiro {
+  id?: number;
+  nome: string;
+  inicio: string;
+  fim: string;
+  comissao: number | string;
+  usuarioId: number | null;
+}
+
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  id: { type: Number as PropType<number | null>, default: null },
+});
 const emit = defineEmits(['salvo']);
 
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
-const form = ref({});
-const contas = ref([]);
+const form = ref<FormularioDoBarbeiro>({
+  nome: '',
+  inicio: '09:00',
+  fim: '18:00',
+  comissao: 40,
+  usuarioId: null,
+});
+const contas = ref<OpcaoDeSelect[]>([]);
 const editando = computed(() => Boolean(props.id));
 
-const regraComissao = (v) =>
+const regraComissao = (v: unknown) =>
   (v !== '' && Number(v) >= 0 && Number(v) <= 100) || 'Entre 0 e 100';
 
 watch(aberto, async (abriu) => {
@@ -64,6 +84,8 @@ async function salvar() {
 }
 
 async function excluir() {
+  const id = props.id;
+  if (id === null) return;
   const ok = await confirmar(`Tirar ${form.value.nome} da equipe?`, {
     perigo: true,
     textoOk: 'Tirar da equipe',
@@ -71,7 +93,7 @@ async function excluir() {
   });
   if (!ok) return;
   const feito = await executar(
-    async () => (await api.barbeiros.excluir(props.id), true),
+    async () => (await api.barbeiros.excluir(id), true),
   );
   if (!feito) return;
   notificar.sucesso('Barbeiro removido da equipe.');

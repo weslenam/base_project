@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsBotao,
   DsDialogo,
@@ -14,39 +15,51 @@ import {
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { moduloAtivo } from '../../sessao/sessao.ts';
-import { TIPOS, UNIDADES } from '../estoque/rotulos.js';
+import { TIPOS, UNIDADES } from '../estoque/rotulos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ id: { type: Number, default: null } });
+/** Produto no formulário (o novo ainda não tem id). */
+interface FormularioDoProduto {
+  id?: number;
+  nome: string;
+  tipo: string;
+  unidade: string;
+  estoqueMinimo: number | string;
+  preco: number | null;
+  comissao: number | string;
+}
+const produtoNovo = (): FormularioDoProduto => ({
+  nome: '',
+  tipo: 'revenda',
+  unidade: 'un',
+  estoqueMinimo: 0,
+  preco: null,
+  comissao: 10,
+});
+
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  id: { type: Number as PropType<number | null>, default: null },
+});
 const emit = defineEmits(['salvo']);
 
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
-const form = ref({});
+const form = ref<FormularioDoProduto>(produtoNovo());
 const editando = computed(() => Boolean(props.id));
 const revenda = computed(() => form.value.tipo !== 'consumivel');
 const comEstoque = computed(() => moduloAtivo('estoque'));
 
-const regraMinimo = (v) =>
+const regraMinimo = (v: unknown) =>
   v === '' || v == null || Number(v) >= 0 || 'Não pode ser negativo';
-const regraComissao = (v) =>
+const regraComissao = (v: unknown) =>
   (v !== '' && Number(v) >= 0 && Number(v) <= 100) || 'Entre 0 e 100';
 
 watch(aberto, async (abriu) => {
   if (!abriu) return;
   const produtos = await api.produtos.listar();
   const atual = produtos.find((p) => p.id === props.id);
-  form.value = atual
-    ? { tipo: 'revenda', unidade: 'un', estoqueMinimo: 0, ...atual }
-    : {
-        nome: '',
-        tipo: 'revenda',
-        unidade: 'un',
-        estoqueMinimo: 0,
-        preco: null,
-        comissao: 10,
-      };
+  form.value = atual ? { ...produtoNovo(), ...atual } : produtoNovo();
 });
 
 async function salvar() {
@@ -67,6 +80,8 @@ async function salvar() {
 }
 
 async function excluir() {
+  const id = props.id;
+  if (id === null) return;
   const ok = await confirmar(`Excluir o produto "${form.value.nome}"?`, {
     perigo: true,
     textoOk: 'Excluir',
@@ -74,7 +89,7 @@ async function excluir() {
   });
   if (!ok) return;
   const feito = await executar(
-    async () => (await api.produtos.excluir(props.id), true),
+    async () => (await api.produtos.excluir(id), true),
   );
   if (!feito) return;
   notificar.sucesso('Produto excluído.');
