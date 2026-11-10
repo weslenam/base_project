@@ -1,4 +1,4 @@
-export { formatarData, formatarDiaCurto, formatarMoeda } from './formatacao.js';
+export { formatarData, formatarDiaCurto, formatarMoeda } from './formatacao.ts';
 export {
   somenteDigitos,
   formatarTelefone,
@@ -7,4 +7,4 @@ export {
   validarCpf,
   formatarDecimal,
   centavosParaReais,
-} from './mascaras.js';
+} from './mascaras.ts';

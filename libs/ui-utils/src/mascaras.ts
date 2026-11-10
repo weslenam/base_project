@@ -2,12 +2,15 @@
 // Convenção: o modelo guarda só dígitos (telefone, CPF) ou número (moeda).
 
 /** Remove tudo que não é dígito: '(11) 9 8765' → '119 8765' → '1198765'. */
-export function somenteDigitos(valor) {
+/** Valor de campo: texto digitado ou número. */
+type Entrada = string | number | null | undefined;
+
+export function somenteDigitos(valor: Entrada): string {
   return String(valor ?? '').replace(/\D/g, '');
 }
 
 /** Formata progressivamente: '11987654321' → '(11) 98765-4321'; fixo com 10 dígitos → '(11) 3456-7890'. */
-export function formatarTelefone(valor) {
+export function formatarTelefone(valor: Entrada): string {
   const d = somenteDigitos(valor).slice(0, 11);
   if (!d) return '';
   if (d.length <= 2) return `(${d}`;
@@ -19,7 +22,7 @@ export function formatarTelefone(valor) {
 }
 
 /** Telefone completo: DDD válido e 10 dígitos (fixo) ou 11 começando por 9 (celular). */
-export function validarTelefone(valor) {
+export function validarTelefone(valor: Entrada): boolean {
   const d = somenteDigitos(valor);
   if (!/^[1-9][1-9]/.test(d)) return false;
   if (d.length === 10) return /^[2-5]$/.test(d[2]);
@@ -28,7 +31,7 @@ export function validarTelefone(valor) {
 }
 
 /** Formata progressivamente: '12345678909' → '123.456.789-09'. */
-export function formatarCpf(valor) {
+export function formatarCpf(valor: Entrada): string {
   const d = somenteDigitos(valor).slice(0, 11);
   return d
     .replace(/^(\d{3})(\d)/, '$1.$2')
@@ -37,10 +40,10 @@ export function formatarCpf(valor) {
 }
 
 /** CPF com 11 dígitos e dígitos verificadores corretos (rejeita sequências repetidas). */
-export function validarCpf(valor) {
+export function validarCpf(valor: Entrada): boolean {
   const d = somenteDigitos(valor);
   if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
-  const digito = (base) => {
+  const digito = (base: string) => {
     const soma = [...base].reduce(
       (total, n, i) => total + Number(n) * (base.length + 1 - i),
       0,
@@ -60,7 +63,7 @@ const formatoDecimal = new Intl.NumberFormat('pt-BR', {
 });
 
 /** Número em reais sem o símbolo: 1234.5 → '1.234,50'. Vazio para null/undefined. */
-export function formatarDecimal(valor) {
+export function formatarDecimal(valor: Entrada): string {
   if (
     valor === null ||
     valor === undefined ||
@@ -72,7 +75,7 @@ export function formatarDecimal(valor) {
 }
 
 /** Dígitos digitados como centavos: '123456' → 1234.56. Vazio vira null. */
-export function centavosParaReais(valor) {
+export function centavosParaReais(valor: Entrada): number | null {
   const d = somenteDigitos(valor);
   return d ? Number(d) / 100 : null;
 }

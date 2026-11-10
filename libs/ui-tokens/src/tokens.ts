@@ -1,4 +1,4 @@
-// GERADO por libs/ui-tokens/scripts/gerar-tokens.mjs a partir de docs/identidade-visual/tokens.json. Não edite.
+// GERADO por libs/ui-tokens/scripts/gerar-tokens.ts a partir de docs/identidade-visual/tokens.json. Não edite.
 
 export const TEMA_PADRAO = "claro";
 

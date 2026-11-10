@@ -1,4 +1,4 @@
-import { formatarData, formatarDiaCurto, formatarMoeda } from './formatacao.js';
+import { formatarData, formatarDiaCurto, formatarMoeda } from './formatacao.ts';
 
 describe('formatarData', () => {
   it('formata em dd/mm/aaaa', () => {

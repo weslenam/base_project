@@ -3,9 +3,9 @@ import {
   gerar,
   ORIGEM,
   DESTINO_CSS,
-  DESTINO_JS,
-} from '../scripts/gerar-tokens.mjs';
-import { temas, TEMA_PADRAO, espacos, raios, fontes } from './tokens.js';
+  DESTINO_TS,
+} from '../scripts/gerar-tokens.ts';
+import { temas, TEMA_PADRAO, espacos, raios, fontes } from './tokens.ts';
 
 const json = JSON.parse(readFileSync(ORIGEM, 'utf8'));
 const esperado = gerar(json);
@@ -15,8 +15,8 @@ describe('tokens gerados a partir de docs/identidade-visual/tokens.json', () => 
     expect(readFileSync(DESTINO_CSS, 'utf8')).toBe(esperado.css);
   });
 
-  it('tokens.js está atualizado (rode: pnpm nx run ui-tokens:gerar)', () => {
-    expect(readFileSync(DESTINO_JS, 'utf8')).toBe(esperado.js);
+  it('tokens.ts está atualizado (rode: pnpm nx run ui-tokens:gerar)', () => {
+    expect(readFileSync(DESTINO_TS, 'utf8')).toBe(esperado.ts);
   });
 
   it('tema padrão é o claro, e existe o escuro', () => {

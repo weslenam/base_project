@@ -4,4 +4,4 @@ import './fontes.css';
 import './tokens.css';
 import './base.css';
 
-export { TEMA_PADRAO, temas, fontes, espacos, raios } from './tokens.js';
+export { TEMA_PADRAO, temas, fontes, espacos, raios } from './tokens.ts';

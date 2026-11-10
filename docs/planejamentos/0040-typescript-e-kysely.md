@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 e 2 concluídas; próxima: etapa 3)
+- **Status:** Em andamento (etapas 1 a 3 concluídas; próxima: etapa 4)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -48,7 +48,7 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 
 - [x] 1. **Base:** `tsconfig.base.json` com `strict`, targets `typecheck` no Nx (`tsc --noEmit` e `vue-tsc`) dentro do `pnpm verificar`, ESLint com `typescript-eslint`, Vite e Vitest com TS. O `allowJs` fica ligado só enquanto houver JS. ADR 0022 e atualização das skills e regras.
 - [x] 2. **`libs/dominio`** em TS: tipos das entidades (comanda, conta, assinatura etc.) e regras puras.
-- [ ] 3. **`libs/ui-utils` e `libs/ui-tokens`** em TS.
+- [x] 3. **`libs/ui-utils` e `libs/ui-tokens`** em TS.
 - [ ] 4. **`libs/contratos`:** tipos das respostas e dos corpos da API.
 - [ ] 5. **API, infraestrutura:** Kysely, `comBarbearia` e `emTransacao` com `trx`, tipos gerados do banco, plugins do Fastify tipados (sessão, contexto, `exigir`) e teste de isolamento.
 - [ ] 6. **API, serviços e rotas** convertidos para TS + Kysely, módulo a módulo: cadastros e clientes; agenda e balcão; caixa, fidelidade e pacotes; estoque e financeiro; plataforma e autenticação. Os testes de integração viram TS.
@@ -71,6 +71,7 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 - **Isolamento:** um serviço que use a conexão errada fura a RLS. Isso é mitigado pela decisão 1, pelo teste de isolamento e pela revisão de segurança em cada PR.
 - **Tipos do `pg`:** hoje `bigint`, `numeric` e `date` são convertidos (Number e texto `AAAA-MM-DD`). Os tipos gerados precisam refletir isso; o `kysely-codegen` tem opção de sobrescrever tipos.
 - **Testes de tela com `montarApp`:** podem precisar de ajuste na montagem com TS.
+- **Servidor de desenvolvimento:** quando um pacote troca o `index.js` por `index.ts`, o Vite em execução guarda a resolução antiga e as telas quebram. Reiniciar o `pnpm dev` resolve (visto na etapa 3).
 - **Grafo (graphify):** precisa ser regerado (`--force`) depois de cada etapa grande.
 
 ## Registro de mudanças
@@ -90,3 +91,4 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
   - Ajustes de tipo que refletem o uso real: no item de comanda, `tipo` e `preco` são opcionais (sem tipo conta como serviço); `podeUsarPacote` devolve `{ ok, motivo? }`.
   - Comprovado: a API (Node 22, sem compilar) importa o domínio em `.ts`; os apps compilam (Vite); integração (146) e layout (89) verdes.
   - Testes podem usar `!` (regra liberada só em `*.spec.ts`), e os `tsconfig` ganharam os tipos globais do Vitest.
+- 2026-11-10: **etapa 3 concluída.** `libs/ui-utils` (formatação e máscaras) e `libs/ui-tokens` em TS. O gerador de tokens virou `scripts/gerar-tokens.ts` (roda direto no Node, com os tipos do `tokens.json`) e passou a gerar `src/tokens.ts`; o teste confere que o arquivo gerado está atualizado. `pnpm verificar` e layout (89) verdes, depois de reiniciar o `pnpm dev`.

@@ -6,6 +6,6 @@
 pnpm-lock.yaml
 # Gerados a partir de docs/identidade-visual/tokens.json
 libs/ui-tokens/src/tokens.css
-libs/ui-tokens/src/tokens.js
+libs/ui-tokens/src/tokens.ts
 # Identidade visual: mantida como veio
 docs/identidade-visual/

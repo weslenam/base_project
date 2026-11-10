@@ -6,7 +6,7 @@ import {
   validarCpf,
   formatarDecimal,
   centavosParaReais,
-} from './mascaras.js';
+} from './mascaras.ts';
 
 describe('somenteDigitos', () => {
   it.each([

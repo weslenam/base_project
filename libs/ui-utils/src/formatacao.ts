@@ -11,7 +11,9 @@ const formatoMoeda = new Intl.NumberFormat(LOCALE, {
 const DATA_PURA = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** Data no formato dd/mm/aaaa. Aceita Date, timestamp ou string ISO. */
-export function formatarData(valor) {
+export function formatarData(
+  valor: Date | string | number | null | undefined,
+): string {
   if (valor === null || valor === undefined || valor === '') return '';
   // Data pura (AAAA-MM-DD, como as do banco) é um dia do calendário, sem fuso:
   // lida como meia-noite UTC, voltaria um dia no Brasil (issue #21).
@@ -28,7 +30,9 @@ export function formatarData(valor) {
 }
 
 /** Valor em reais (R$ 1.234,56). */
-export function formatarMoeda(valor) {
+export function formatarMoeda(
+  valor: string | number | null | undefined,
+): string {
   if (valor === null || valor === undefined || valor === '') return '';
   const numero = Number(valor);
   return Number.isNaN(numero) ? '' : formatoMoeda.format(numero);
@@ -37,7 +41,7 @@ export function formatarMoeda(valor) {
 const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 /** Data ISO curta, como no guia da identidade: '2026-11-08' → 'Dom, 8/11'. */
-export function formatarDiaCurto(iso) {
+export function formatarDiaCurto(iso: string | null | undefined): string {
   if (!iso) return '';
   const [a, m, d] = String(iso).split('-').map(Number);
   const data = new Date(a, m - 1, d);

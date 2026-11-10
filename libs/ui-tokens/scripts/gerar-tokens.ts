@@ -1,5 +1,5 @@
 /**
- * Gera src/tokens.css e src/tokens.js a partir de docs/identidade-visual/tokens.json
+ * Gera src/tokens.css e src/tokens.ts a partir de docs/identidade-visual/tokens.json
  * (fonte única da identidade visual, ADR 0003). Ninguém edita os arquivos gerados.
  *
  * Uso: pnpm nx run ui-tokens:gerar
@@ -13,19 +13,51 @@ export const ORIGEM = fileURLToPath(
 export const DESTINO_CSS = fileURLToPath(
   new URL('../src/tokens.css', import.meta.url),
 );
-export const DESTINO_JS = fileURLToPath(
-  new URL('../src/tokens.js', import.meta.url),
+export const DESTINO_TS = fileURLToPath(
+  new URL('../src/tokens.ts', import.meta.url),
 );
 
+/** Formato de docs/identidade-visual/tokens.json (só o que o gerador lê). */
+interface TemaJson {
+  id: string;
+  name: string;
+}
+interface TokenPorTema {
+  name: string;
+  value: Record<string, string>;
+}
+interface TokenSimples {
+  name: string;
+  value: string;
+}
+interface EstiloJson {
+  name: string;
+  fontWeight: string | number;
+  fontSize: string;
+  lineHeight: string | number;
+  letterSpacing?: string;
+}
+interface TipografiaJson {
+  families: Record<string, string>;
+  groups: { family: string; styles: EstiloJson[] }[];
+}
+export interface TokensJson {
+  color: { themes: TemaJson[]; tokens: TokenPorTema[] };
+  shadow: { tokens: TokenPorTema[] };
+  spacing: { tokens: TokenSimples[] };
+  radius: { tokens: TokenSimples[] };
+  type: TipografiaJson;
+}
+
 const CABECALHO =
-  'GERADO por libs/ui-tokens/scripts/gerar-tokens.mjs a partir de docs/identidade-visual/tokens.json. Não edite.';
+  'GERADO por libs/ui-tokens/scripts/gerar-tokens.ts a partir de docs/identidade-visual/tokens.json. Não edite.';
 
 /** Nome em pt-BR usado na API (useTema): "Claro" → "claro". */
-const nomeDoTema = (tema) => tema.name.toLowerCase();
+const nomeDoTema = (tema: TemaJson): string => tema.name.toLowerCase();
 
 /** Variáveis tipográficas: --tipo-<estilo> (shorthand font) e --tipo-<estilo>-espacamento. */
-function variaveisDeTipo(type) {
-  const linhas = [];
+function variaveisDeTipo(type: TipografiaJson): string[] {
+  const linhas: string[] = [];
   for (const grupo of type.groups) {
     for (const s of grupo.styles) {
       linhas.push(
@@ -39,11 +71,11 @@ function variaveisDeTipo(type) {
   return linhas;
 }
 
-export function gerar(json) {
+export function gerar(json: TokensJson): { css: string; ts: string } {
   const temas = json.color.themes;
-  const [padrao, ...outros] = temas;
+  const [padrao, ...outros] = temas as [TemaJson, ...TemaJson[]];
 
-  const blocoTema = (id) => [
+  const blocoTema = (id: string) => [
     ...json.color.tokens.map((t) => `  --${t.name}: ${t.value[id]};`),
     ...json.shadow.tokens.map((t) => `  --${t.name}: ${t.value[id]};`),
   ];
@@ -94,7 +126,7 @@ export function gerar(json) {
     raios: Object.fromEntries(json.radius.tokens.map((t) => [t.name, t.value])),
   };
 
-  const js = [
+  const ts = [
     `// ${CABECALHO}`,
     '',
     `export const TEMA_PADRAO = ${JSON.stringify(nomeDoTema(padrao))};`,
@@ -105,13 +137,13 @@ export function gerar(json) {
     ),
   ].join('\n');
 
-  return { css, js };
+  return { css, ts };
 }
 
 const executadoDireto = process.argv[1] === fileURLToPath(import.meta.url);
 if (executadoDireto) {
-  const { css, js } = gerar(JSON.parse(readFileSync(ORIGEM, 'utf8')));
+  const { css, ts } = gerar(JSON.parse(readFileSync(ORIGEM, 'utf8')));
   writeFileSync(DESTINO_CSS, css);
-  writeFileSync(DESTINO_JS, js);
-  console.log('tokens.css e tokens.js gerados a partir de', ORIGEM);
+  writeFileSync(DESTINO_TS, ts);
+  console.log('tokens.css e tokens.ts gerados a partir de', ORIGEM);
 }
