@@ -132,7 +132,7 @@ describe('clientes e agenda', () => {
     );
   });
 
-  it('agenda: cria, recusa conflito e fora do expediente, muda estado', async () => {
+  it('agenda: cria, recusa conflito e fora do expediente, muda estado (#39: horários sem data)', async () => {
     const { dono, servico, barbeiro } = await montada();
     const dia = proximaSegunda();
     const base = { data: dia, barbeiroId: barbeiro.id, servicoId: servico.id };
@@ -172,6 +172,13 @@ describe('clientes e agenda', () => {
     expect(livres.find((h: Horario) => h.hora === '10:30').disponivel).toBe(
       true,
     );
+
+    // #39: sem data, a grade inteira voltava livre (mesmo com o 10:00 ocupado).
+    const semData = await dono.get(
+      `/api/agendamentos/horarios?barbeiroId=${barbeiro.id}&servicoId=${servico.id}`,
+    );
+    expect(semData.status).toBe(400);
+    expect(semData.corpo.mensagem).toBe('Escolha o dia.');
 
     const id = novo.corpo.id;
     expect(
