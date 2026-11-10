@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { VDialog } from 'vuetify/components/VDialog';
 import DsIcone from './DsIcone.vue';
 import {
@@ -20,7 +20,7 @@ defineProps({
   largura: {
     type: String,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg', 'xl'].includes(v),
+    validator: (v: string) => ['sm', 'md', 'lg', 'xl'].includes(v),
   },
   /** Mostra um "X" (Fechar) no título; dispensa rodapé só para fechar. */
   fechavel: Boolean,

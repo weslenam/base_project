@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import {
   formatarTelefone,
   somenteDigitos,
@@ -7,7 +7,7 @@ import {
 import CampoMascarado from '../internos/CampoMascarado.vue';
 
 /** Modelo: só dígitos ('11987654321'). Exibe '(11) 98765-4321'. */
-const modelo = defineModel({ type: [String, null], default: null });
+const modelo = defineModel<string | null>({ default: null });
 
 defineProps({
   rotulo: { type: String, default: 'Telefone' },
@@ -19,7 +19,7 @@ defineProps({
   validarNumero: { type: Boolean, default: true },
 });
 
-const extrair = (texto) => somenteDigitos(texto).slice(0, 11) || null;
+const extrair = (texto: string) => somenteDigitos(texto).slice(0, 11) || null;
 </script>
 
 <template>

@@ -6,7 +6,7 @@
     "checkJs": false,
     "baseUrl": ".",
     "paths": {
-      "@barbertime/ui": ["libs/ui-vuetify/src/index.js"]
+      "@barbertime/ui": ["libs/ui-vuetify/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "**/dist"]

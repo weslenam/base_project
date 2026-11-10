@@ -1,9 +1,12 @@
-<script setup>
-const modelo = defineModel({ type: [String, null], default: null });
+<script setup lang="ts">
+import type { PropType } from 'vue';
+import type { OpcaoDeHorario } from '../tipos.ts';
+
+const modelo = defineModel<string | null>({ default: null });
 
 defineProps({
   /** [{ hora: '09:30', disponivel: true }] */
-  opcoes: { type: Array, default: () => [] },
+  opcoes: { type: Array as PropType<OpcaoDeHorario[]>, default: () => [] },
   /** Nome do grupo para leitor de tela. */
   rotulo: { type: String, default: 'Horários' },
   textoVazio: { type: String, default: 'Nenhum horário livre neste dia' },

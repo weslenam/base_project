@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { formatarCpf, somenteDigitos, validarCpf } from '@barbertime/ui-utils';
 import CampoMascarado from '../internos/CampoMascarado.vue';
 
 /** Modelo: só dígitos ('12345678909'). Exibe '123.456.789-09'. */
-const modelo = defineModel({ type: [String, null], default: null });
+const modelo = defineModel<string | null>({ default: null });
 
 defineProps({
   rotulo: { type: String, default: 'CPF' },
@@ -13,7 +13,7 @@ defineProps({
   desabilitado: Boolean,
 });
 
-const extrair = (texto) => somenteDigitos(texto).slice(0, 11) || null;
+const extrair = (texto: string) => somenteDigitos(texto).slice(0, 11) || null;
 </script>
 
 <template>

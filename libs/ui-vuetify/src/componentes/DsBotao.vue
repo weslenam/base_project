@@ -1,26 +1,30 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
 import { VBtn } from 'vuetify/components/VBtn';
+
+type Variante = 'primario' | 'secundario' | 'perigo' | 'fantasma';
+type Tamanho = 'sm' | 'md' | 'lg';
 
 const props = defineProps({
   /** primario | secundario | perigo | fantasma */
   variante: {
-    type: String,
+    type: String as PropType<Variante>,
     default: 'primario',
-    validator: (v) =>
+    validator: (v: string) =>
       ['primario', 'secundario', 'perigo', 'fantasma'].includes(v),
   },
   /** sm | md | lg */
   tamanho: {
-    type: String,
+    type: String as PropType<Tamanho>,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg'].includes(v),
+    validator: (v: string) => ['sm', 'md', 'lg'].includes(v),
   },
   /** button | submit */
   tipo: {
-    type: String,
+    type: String as PropType<'button' | 'submit'>,
     default: 'button',
-    validator: (v) => ['button', 'submit'].includes(v),
+    validator: (v: string) => ['button', 'submit'].includes(v),
   },
   desabilitado: Boolean,
   carregando: Boolean,
@@ -30,9 +34,12 @@ const props = defineProps({
   /** id de um DsFormulario: o botão o envia mesmo estando fora dele. */
   formulario: { type: String, default: undefined },
 });
-const emit = defineEmits(['click']);
+const emit = defineEmits<{ click: [evento: MouseEvent] }>();
 
-const VARIANTES = {
+const VARIANTES: Record<
+  Variante,
+  { color: string | undefined; variant: 'flat' | 'outlined' | 'text' }
+> = {
   primario: { color: 'primary', variant: 'flat' },
   secundario: { color: undefined, variant: 'outlined' },
   perigo: { color: 'error', variant: 'outlined' },

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 defineProps({
   titulo: { type: String, required: true },
   /** Linha pequena acima do título (ex.: data, contexto). */

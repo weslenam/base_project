@@ -1,16 +1,29 @@
-<script setup>
+<script setup lang="ts">
 // Base interna dos campos com máscara (telefone, CPF, moeda). Não é exportada.
 import { computed } from 'vue';
+import type { PropType } from 'vue';
 import { VTextField } from 'vuetify/components/VTextField';
-import { regraObrigatorio, useCampoMascarado } from './useCampoMascarado.js';
+import { regraObrigatorio, useCampoMascarado } from './useCampoMascarado.ts';
 
-const modelo = defineModel({ type: [String, Number, null], default: null });
+/** Valor limpo do campo: dígitos (telefone, CPF) ou número (moeda). */
+type Valor = string | number | null;
+
+const modelo = defineModel<Valor>({ default: null });
 
 const props = defineProps({
-  formatar: { type: Function, required: true },
-  extrair: { type: Function, required: true },
+  formatar: {
+    type: Function as PropType<(valor: Valor) => string>,
+    required: true,
+  },
+  extrair: {
+    type: Function as PropType<(texto: string) => Valor>,
+    required: true,
+  },
   /** (valorDoModelo) => boolean, aplicado só quando há valor. */
-  validar: { type: Function, default: null },
+  validar: {
+    type: Function as PropType<((valor: Valor) => boolean) | null>,
+    default: null,
+  },
   mensagemInvalida: { type: String, default: 'Valor inválido' },
   rotulo: { type: String, default: '' },
   dica: { type: String, default: '' },
@@ -31,7 +44,7 @@ const regras = computed(() => [
         () =>
           modelo.value === null ||
           modelo.value === '' ||
-          props.validar(modelo.value) ||
+          props.validar?.(modelo.value) ||
           props.mensagemInvalida,
       ]
     : []),

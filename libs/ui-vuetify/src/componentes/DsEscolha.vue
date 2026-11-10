@@ -1,16 +1,16 @@
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue';
+import type { OpcaoDeEscolha } from '../tipos.ts';
+
 /** Escolha única em botões grandes (estilo PDV). */
-const modelo = defineModel({
-  type: [String, Number, Boolean, null],
-  default: null,
-});
+const modelo = defineModel<OpcaoDeEscolha['valor']>({ default: null });
 
 defineProps({
   /**
    * [{ valor, rotulo, detalhe?, desabilitado? }]. detalhe: segunda linha
    * (ex.: "30 min · R$ 45,00", "~15 min"); desabilitado: só aquela opção.
    */
-  opcoes: { type: Array, required: true },
+  opcoes: { type: Array as PropType<OpcaoDeEscolha[]>, required: true },
   /** Botões maiores, em grade, para escolhas com detalhe (ex.: balcão). */
   grande: Boolean,
   /** Nome do grupo para leitor de tela. */
@@ -27,7 +27,7 @@ defineProps({
   >
     <button
       v-for="opcao in opcoes"
-      :key="opcao.valor"
+      :key="`${typeof opcao.valor}:${String(opcao.valor)}`"
       type="button"
       class="ds-escolha__opcao"
       :aria-pressed="modelo === opcao.valor ? 'true' : 'false'"

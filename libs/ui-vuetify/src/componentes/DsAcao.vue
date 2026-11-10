@@ -1,9 +1,11 @@
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue';
 import DsIcone from './DsIcone.vue';
+import type { NomeDoIcone } from '../icones.ts';
 
 defineProps({
   /** Nome do catálogo do DsIcone. */
-  icone: { type: String, required: true },
+  icone: { type: String as PropType<NomeDoIcone>, required: true },
   titulo: { type: String, required: true },
   /** Uma linha dizendo o efeito da ação. */
   descricao: { type: String, default: '' },
@@ -11,13 +13,13 @@ defineProps({
   variante: {
     type: String,
     default: 'secundario',
-    validator: (v) => ['primario', 'secundario', 'perigo'].includes(v),
+    validator: (v: string) => ['primario', 'secundario', 'perigo'].includes(v),
   },
   desabilitado: Boolean,
   /** 52px de altura, para painéis com pouco espaço. */
   compacta: Boolean,
 });
-const emit = defineEmits(['click']);
+const emit = defineEmits<{ click: [evento: MouseEvent] }>();
 </script>
 
 <template>

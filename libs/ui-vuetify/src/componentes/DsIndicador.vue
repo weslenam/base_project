@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
 
 // Cartão de indicador (KPI): rótulo, valor em destaque, variação e detalhe.
 // Feito para grades de painel: o valor nunca vaza do cartão e todos os
@@ -14,7 +15,7 @@ const props = defineProps({
    * Variação percentual contra a referência (ex.: 12.5 = +12,5%).
    * null = sem base para comparar; undefined = não mostra a linha.
    */
-  variacao: { type: Number, default: undefined },
+  variacao: { type: Number as PropType<number | null>, default: undefined },
   /** Referência da variação (ex.: "mês anterior"). */
   comparacao: { type: String, default: 'período anterior' },
 });
@@ -27,6 +28,7 @@ const tendencia = computed(() => {
 const textoVariacao = computed(() => {
   const v = props.variacao;
   if (v === null) return `sem base no ${props.comparacao}`;
+  if (v === undefined) return '';
   const numero = v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
   return `${v > 0 ? '+' : ''}${numero}% vs ${props.comparacao}`;
 });

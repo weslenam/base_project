@@ -1,16 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
+import type { Passo } from '../tipos.ts';
 
 /** Indicador de etapas (stepper). A etapa atual vem por v-model (índice a partir de 0). */
-const atual = defineModel({ type: Number, required: true });
+const atual = defineModel<number>({ required: true });
 const props = defineProps({
   /** [{ rotulo, resumo? }] — resumo aparece sob a etapa concluída */
-  passos: { type: Array, required: true },
+  passos: { type: Array as PropType<Passo[]>, required: true },
   /** Nome do conjunto para leitor de tela. */
   rotulo: { type: String, default: 'Etapas' },
 });
 
-const estado = (i) =>
+const estado = (i: number) =>
   i < atual.value ? 'concluido' : i === atual.value ? 'atual' : 'futuro';
 const textoAtual = computed(
   () =>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { VTextarea } from 'vuetify/components/VTextarea';
 
@@ -16,18 +16,20 @@ const props = defineProps({
   desabilitado: Boolean,
 });
 
-const regras = computed(() => [
-  ...(props.obrigatorio
-    ? [(v) => (v ?? '').trim() !== '' || 'Campo obrigatório']
-    : []),
-  ...(props.maxCaracteres
-    ? [
-        (v) =>
-          (v ?? '').length <= props.maxCaracteres ||
-          `Máximo de ${props.maxCaracteres} caracteres`,
-      ]
-    : []),
-]);
+const regras = computed(() => {
+  const max = props.maxCaracteres;
+  return [
+    ...(props.obrigatorio
+      ? [(v: string | null) => (v ?? '').trim() !== '' || 'Campo obrigatório']
+      : []),
+    ...(max
+      ? [
+          (v: string | null) =>
+            (v ?? '').length <= max || `Máximo de ${max} caracteres`,
+        ]
+      : []),
+  ];
+});
 </script>
 
 <template>

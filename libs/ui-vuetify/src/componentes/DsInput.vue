@@ -1,16 +1,27 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
+import type { Regra } from '../internos/useCampoMascarado.ts';
 import { VTextField } from 'vuetify/components/VTextField';
 
-const modelo = defineModel({ type: [String, Number], default: '' });
+const modelo = defineModel<string | number | null>({ default: '' });
+
+type TipoDeInput =
+  | 'texto'
+  | 'email'
+  | 'senha'
+  | 'numero'
+  | 'telefone'
+  | 'data'
+  | 'hora';
 
 const props = defineProps({
   rotulo: { type: String, default: '' },
   /** texto | email | senha | numero | telefone | data | hora */
   tipo: {
-    type: String,
+    type: String as PropType<TipoDeInput>,
     default: 'texto',
-    validator: (v) =>
+    validator: (v: string) =>
       [
         'texto',
         'email',
@@ -26,13 +37,13 @@ const props = defineProps({
   /** Mensagem de erro vinda de fora (ex.: validação do servidor). */
   erro: { type: String, default: '' },
   /** Funções (valor) => true | 'mensagem de erro'. */
-  regras: { type: Array, default: () => [] },
+  regras: { type: Array as PropType<Regra[]>, default: () => [] },
   obrigatorio: Boolean,
   desabilitado: Boolean,
   somenteLeitura: Boolean,
 });
 
-const TIPOS = {
+const TIPOS: Record<TipoDeInput, string> = {
   texto: 'text',
   email: 'email',
   senha: 'password',
@@ -45,7 +56,7 @@ const TIPOS = {
 const regrasFinais = computed(() => [
   ...(props.obrigatorio
     ? [
-        (v) =>
+        (v: unknown) =>
           (v !== null && v !== undefined && String(v).trim() !== '') ||
           'Campo obrigatório',
       ]

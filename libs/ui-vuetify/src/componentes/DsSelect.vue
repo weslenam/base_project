@@ -1,16 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
+import type { OpcaoDeSelect } from '../tipos.ts';
 import { VSelect } from 'vuetify/components/VSelect';
 
-const modelo = defineModel({
-  type: [String, Number, Boolean, Array, null],
-  default: null,
-});
+/** Valor de uma opção do DsSelect. */
+type Valor = string | number | boolean;
+
+const modelo = defineModel<Valor | Valor[] | null>({ default: null });
 
 const props = defineProps({
   rotulo: { type: String, default: '' },
   /** [{ valor, rotulo }] */
-  opcoes: { type: Array, default: () => [] },
+  opcoes: {
+    type: Array as PropType<OpcaoDeSelect[]>,
+    default: () => [],
+  },
   ajuda: { type: String, default: '' },
   erro: { type: String, default: '' },
   obrigatorio: Boolean,
@@ -23,7 +28,7 @@ const props = defineProps({
 const regras = computed(() =>
   props.obrigatorio
     ? [
-        (v) =>
+        (v: unknown) =>
           (Array.isArray(v)
             ? v.length > 0
             : v !== null && v !== undefined && v !== '') || 'Campo obrigatório',

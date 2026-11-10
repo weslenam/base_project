@@ -1,13 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
-import { ROTULOS_DE_ESTADO } from '../internos/estados.js';
+import type { PropType } from 'vue';
+import { ROTULOS_DE_ESTADO } from '../internos/estados.ts';
+import type { EstadoVisual } from '../internos/estados.ts';
 
 const props = defineProps({
   /** confirmado | pendente | assinante | fila | faltou | neutro */
   estado: {
-    type: String,
+    type: String as PropType<EstadoVisual>,
     default: 'neutro',
-    validator: (v) =>
+    validator: (v: string) =>
       [
         'confirmado',
         'pendente',

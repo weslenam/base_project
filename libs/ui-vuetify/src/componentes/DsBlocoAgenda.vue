@@ -1,6 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
-import { ROTULOS_DE_ESTADO } from '../internos/estados.js';
+import type { PropType } from 'vue';
+import { ROTULOS_DE_ESTADO } from '../internos/estados.ts';
+import type { EstadoVisual } from '../internos/estados.ts';
 
 const props = defineProps({
   /** Nome do cliente (ou motivo, quando bloqueado). */
@@ -11,9 +13,9 @@ const props = defineProps({
   fim: { type: String, default: '' },
   /** confirmado | pendente | assinante | encaixe | bloqueado | atendido | faltou */
   estado: {
-    type: String,
+    type: String as PropType<EstadoVisual>,
     default: 'pendente',
-    validator: (v) =>
+    validator: (v: string) =>
       [
         'confirmado',
         'pendente',
