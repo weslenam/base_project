@@ -29,7 +29,11 @@ import {
   atendimentosOnde,
   obterAtendimento,
 } from '../../servicos/atendimentos.ts';
-import type { AtendimentoNaAgenda } from '@barbertime/contratos';
+import type {
+  AtendimentoNaAgenda,
+  EncaixeDoBalcao,
+  PainelDoBalcao,
+} from '@barbertime/contratos';
 import {
   cancelarComanda,
   comandaDoAtendimento,
@@ -125,7 +129,7 @@ export default async function (fastify: FastifyInstance) {
     return { data, hora, barbeiros, atendimentos, situacao, fila };
   }
 
-  fastify.get('/balcao', operar, async (req) => {
+  fastify.get('/balcao', operar, async (req): Promise<PainelDoBalcao> => {
     const config = await configDoBalcao(req);
     return na(req, async (c) => {
       const d = await estadoDoDia(c, config);
@@ -232,7 +236,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.get<{ Querystring: { servicoId?: number | null } }>(
     '/balcao/encaixe',
     { ...operar, schema: query({ servicoId: inteiro }) },
-    async (req) => {
+    async (req): Promise<EncaixeDoBalcao> => {
       const config = await configDoBalcao(req);
       return na(req, async (c) => {
         // buscarServico faz Number(id): o mesmo valor de antes da conversão.

@@ -16,8 +16,8 @@ import {
 import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
-import { seloDoEstado } from '../estados.js';
-import { rotuloDaForma, seloDaComanda } from '../caixa/rotulos.js';
+import { seloDoEstado } from '../estados.ts';
+import { rotuloDaForma, seloDaComanda } from '../caixa/rotulos.ts';
 import FidelidadeEPacotesCliente from './FidelidadeEPacotesCliente.vue';
 
 // Cadastro do cliente (planejamentos 0006 e 0016): ao editar, cadastro à esquerda e,

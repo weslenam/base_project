@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsBotao,
   DsDialogo,
@@ -14,29 +15,45 @@ import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import BuscaCliente from '../clientes/BuscaCliente.vue';
+import type {
+  Atendimento,
+  Barbeiro,
+  Cliente,
+  Servico,
+} from '../../dados/modelos.ts';
+import type { HorarioLivre } from '../../dados/tipos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
+/** Formulário do agendamento: os campos ficam vazios até a escolha. */
+interface Formulario {
+  clienteId: number | null;
+  barbeiroId: number | null;
+  servicoId: number | null;
+  dia: string;
+  hora: string | null;
+}
+
+const aberto = defineModel<boolean>({ default: false });
 const props = defineProps({
   data: { type: String, required: true },
   /** Barbeiro já escolhido (atalho na coluna da agenda). */
-  barbeiroId: { type: Number, default: null },
+  barbeiroId: { type: Number as PropType<number | null>, default: null },
 });
-const emit = defineEmits(['criado']);
+const emit = defineEmits<{ criado: [agendamento: Atendimento] }>();
 
 const { advertir } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const clienteEscolhido = ref(null);
+const clienteEscolhido = ref<Cliente | null>(null);
 const erroCliente = ref('');
-const barbeiros = ref([]);
-const servicos = ref([]);
-const form = ref(vazio());
-const horarios = ref([]);
+const barbeiros = ref<Barbeiro[]>([]);
+const servicos = ref<Servico[]>([]);
+const form = ref<Formulario>(vazio());
+const horarios = ref<HorarioLivre[]>([]);
 const erroHorario = ref('');
 const salvando = ref(false);
 
-function vazio() {
+function vazio(): Formulario {
   return {
     clienteId: null,
     barbeiroId: props.barbeiroId,
@@ -100,6 +117,12 @@ async function agendar() {
     erroHorario.value = 'Escolha um horário.';
     return;
   }
+  const { barbeiroId, servicoId, clienteId, hora, dia } = form.value;
+  // Os horários só aparecem com barbeiro e serviço escolhidos.
+  if (!barbeiroId || !servicoId) {
+    erroHorario.value = 'Escolha o barbeiro e o serviço.';
+    return;
+  }
   const cliente = clienteEscolhido.value;
   if (cliente?.faltas) {
     const seguir = await advertir(
@@ -111,11 +134,11 @@ async function agendar() {
   salvando.value = true;
   const criado = await executar(() =>
     api.agendamentos.criar({
-      data: form.value.dia,
-      inicio: form.value.hora,
-      barbeiroId: form.value.barbeiroId,
-      servicoId: form.value.servicoId,
-      clienteId: form.value.clienteId,
+      data: dia,
+      inicio: hora,
+      barbeiroId,
+      servicoId,
+      clienteId,
     }),
   );
   salvando.value = false;
@@ -141,7 +164,9 @@ watch(
     <DsFormulario id="form-novo-agendamento" @enviar="agendar">
       <BuscaCliente
         v-model="form.clienteId"
-        @selecionado="(c) => ((clienteEscolhido = c), (erroCliente = ''))"
+        @selecionado="
+          (c: Cliente) => ((clienteEscolhido = c), (erroCliente = ''))
+        "
       />
       <p v-if="erroCliente" class="erro" role="alert">{{ erroCliente }}</p>
       <DsSelect

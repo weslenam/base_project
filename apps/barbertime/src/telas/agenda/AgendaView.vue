@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import {
   DsBlocoAgenda,
@@ -7,9 +7,11 @@ import {
   DsInput,
   DsPagina,
 } from '@barbertime/ui';
+import type { EstadoVisual } from '@barbertime/ui';
 import { formatarDiaCurto } from '@barbertime/ui-utils';
 import { hojeIso, podeMarcarNaAgenda, somarDias } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
+import type { Barbeiro, ItemAgenda } from '../../dados/modelos.ts';
 import { useSessao } from '../../sessao/sessao.ts';
 import NovoAgendamento from './NovoAgendamento.vue';
 import DetalheAgendamento from './DetalheAgendamento.vue';
@@ -17,8 +19,8 @@ import BloquearHorario from './BloquearHorario.vue';
 import ComandaDialogo from '../caixa/ComandaDialogo.vue';
 
 const data = ref(hojeIso());
-const barbeiros = ref([]);
-const agendamentos = ref([]);
+const barbeiros = ref<Barbeiro[]>([]);
+const agendamentos = ref<ItemAgenda[]>([]);
 
 // Recepção e Barbeiro (agenda.ajudar) marcam e bloqueiam (planejamento 0035).
 const { sessao } = useSessao();
@@ -29,23 +31,23 @@ const podeMarcar = computed(() =>
 const novoAberto = ref(false);
 const bloqueioAberto = ref(false);
 // Atalhos da coluna já abrem o diálogo com o barbeiro dela; os botões do topo, sem.
-const barbeiroDoAtalho = ref(null);
-function novoAgendamento(barbeiroId = null) {
+const barbeiroDoAtalho = ref<number | null>(null);
+function novoAgendamento(barbeiroId: number | null = null) {
   barbeiroDoAtalho.value = barbeiroId;
   novoAberto.value = true;
 }
-function bloquearHorario(barbeiroId = null) {
+function bloquearHorario(barbeiroId: number | null = null) {
   barbeiroDoAtalho.value = barbeiroId;
   bloqueioAberto.value = true;
 }
 const detalheAberto = ref(false);
-const comandaId = ref(null);
+const comandaId = ref<number | null>(null);
 const comandaAberta = ref(false);
-function abrirComanda(id) {
+function abrirComanda(id: number) {
   comandaId.value = id;
   comandaAberta.value = true;
 }
-const selecionadoId = ref(null);
+const selecionadoId = ref<number | null>(null);
 
 async function carregar() {
   [barbeiros.value, agendamentos.value] = await Promise.all([
@@ -67,7 +69,7 @@ const colunas = computed(() =>
   })),
 );
 
-function abrir(id) {
+function abrir(id: number) {
   selecionadoId.value = id;
   detalheAberto.value = true;
 }
@@ -157,9 +159,9 @@ function abrir(id) {
             :key="a.id"
             :cliente="a.clienteNome"
             :servico="a.servicoNome"
-            :inicio="a.inicio"
-            :fim="a.fim"
-            :estado="a.estado"
+            :inicio="a.inicio ?? undefined"
+            :fim="a.fim ?? undefined"
+            :estado="a.estado as EstadoVisual"
             clicavel
             @selecionar="abrir(a.id)"
           />

@@ -2,6 +2,7 @@
 // dos corpos, comum à API e à camada de dados dos apps. Só tipos.
 export type { EmJson } from './json.ts';
 export type * from './agenda.ts';
+export type * from './balcao.ts';
 export type * from './barbearia.ts';
 export type * from './cadastros.ts';
 export type * from './caixa.ts';

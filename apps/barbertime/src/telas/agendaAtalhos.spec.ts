@@ -1,11 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { api } from '../dados/api.ts';
-import { clicarContendo, esperar, montarApp } from '../testes/apoio.ts';
+import {
+  clicarContendo,
+  elemento,
+  esperar,
+  montarApp,
+} from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
 // Atalhos na coluna da agenda (planejamento 0035): + e bloquear já abrem o
 // diálogo com o barbeiro da coluna; os botões do topo continuam sem barbeiro.
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   app?.unmount();
@@ -16,8 +22,11 @@ const nomes = () =>
   [...document.querySelectorAll('.coluna__nome')].map((h) =>
     h.textContent.trim(),
   );
-const atalho = (rotulo) =>
-  document.querySelector(`[aria-label="${rotulo}"]`).closest('button');
+const atalho = (rotulo: string) => {
+  const botao = elemento(`[aria-label="${rotulo}"]`).closest('button');
+  if (!botao) throw new Error(`Atalho "${rotulo}" sem botão`);
+  return botao;
+};
 const dialogo = () =>
   [...document.querySelectorAll('[role="dialog"]')].at(-1)?.textContent ?? '';
 

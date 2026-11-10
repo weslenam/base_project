@@ -10,7 +10,10 @@ defineProps({
    * [{ valor, rotulo, detalhe?, desabilitado? }]. detalhe: segunda linha
    * (ex.: "30 min · R$ 45,00", "~15 min"); desabilitado: só aquela opção.
    */
-  opcoes: { type: Array as PropType<OpcaoDeEscolha[]>, required: true },
+  opcoes: {
+    type: Array as PropType<readonly OpcaoDeEscolha[]>,
+    required: true,
+  },
   /** Botões maiores, em grade, para escolhas com detalhe (ex.: balcão). */
   grande: Boolean,
   /** Nome do grupo para leitor de tela. */

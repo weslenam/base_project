@@ -1,5 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
+import type { OpcaoDeEscolha } from '@barbertime/ui';
+import type {
+  Atendimento,
+  Encaixe,
+  ServicoBalcao,
+} from '../../dados/modelos.ts';
 import {
   DsBotao,
   DsDialogo,
@@ -14,24 +21,24 @@ import { useAcao } from '../../dados/useAcao.ts';
 
 // Avulso em até 3 toques (especificação docs/atendimento/balcao.md):
 // 1. serviço · 2. barbeiro ("Primeiro livre" é o padrão) · 3. WhatsApp ou pular.
-const aberto = defineModel({ type: Boolean, default: false });
+const aberto = defineModel<boolean>({ default: false });
 const props = defineProps({
   /** Serviços, os mais vendidos primeiro. */
-  servicos: { type: Array, default: () => [] },
+  servicos: { type: Array as PropType<ServicoBalcao[]>, default: () => [] },
   exigirTelefone: Boolean,
 });
-const emit = defineEmits(['registrado']);
+const emit = defineEmits<{ registrado: [atendimento: Atendimento] }>();
 
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const servicoId = ref(null);
+const servicoId = ref<number | null>(null);
 const servico = computed(() =>
   props.servicos.find((s) => s.id === servicoId.value),
 );
-const encaixe = ref(null);
-const barbeiroId = ref(null); // null = primeiro livre
-const telefone = ref(null);
+const encaixe = ref<Encaixe | null>(null);
+const barbeiroId = ref<number | null>(null); // null = primeiro livre
+const telefone = ref<string | null>(null);
 const nome = ref('');
 const enviando = ref(false);
 
@@ -56,10 +63,10 @@ const opcoesServico = computed(() =>
 watch(servicoId, async (id) => {
   encaixe.value = null;
   barbeiroId.value = null;
-  if (id) encaixe.value = await executar(() => balcao.encaixe(id));
+  if (id) encaixe.value = (await executar(() => balcao.encaixe(id))) ?? null;
 });
 
-const espera = (p) =>
+const espera = (p: Encaixe['porBarbeiro'][number]) =>
   p.estado === 'pausa'
     ? 'Em pausa'
     : p.inicioPrevisto === null
@@ -68,7 +75,7 @@ const espera = (p) =>
         ? 'Agora'
         : `~${p.esperaMin} min`;
 
-const opcoesBarbeiro = computed(() => {
+const opcoesBarbeiro = computed((): OpcaoDeEscolha[] => {
   if (!encaixe.value) return [];
   const pl = encaixe.value.primeiroLivre;
   return [
@@ -82,7 +89,7 @@ const opcoesBarbeiro = computed(() => {
     },
     ...encaixe.value.porBarbeiro.map((p) => ({
       valor: p.barbeiroId,
-      rotulo: p.barbeiroNome,
+      rotulo: p.barbeiroNome ?? '',
       detalhe: espera(p),
       desabilitado: p.estado === 'pausa' || p.inicioPrevisto === null,
     })),
@@ -92,6 +99,9 @@ const opcoesBarbeiro = computed(() => {
 const telefoneOk = computed(() => validarTelefone(telefone.value));
 
 async function registrar({ semTelefone = false } = {}) {
+  const id = servicoId.value;
+  // O registro só aparece depois de escolher o serviço.
+  if (id === null) return;
   if (!semTelefone && telefone.value && !telefoneOk.value) {
     notificar.aviso('Confira o WhatsApp (DDD + número) ou pule.');
     return;
@@ -99,7 +109,7 @@ async function registrar({ semTelefone = false } = {}) {
   enviando.value = true;
   const a = await executar(() =>
     balcao.avulso({
-      servicoId: servicoId.value,
+      servicoId: id,
       barbeiroId: barbeiroId.value,
       telefone: semTelefone ? null : telefone.value,
       nome: semTelefone ? null : nome.value.trim() || null,

@@ -8,6 +8,7 @@ import type {
   AssinaturaDoCliente,
   AtendimentoNaAgenda,
   Barbeiro,
+  BloqueioNaAgenda,
   CaixaComResumo,
   CategoriaFinanceira,
   ClienteComResumo,
@@ -133,7 +134,7 @@ export interface Api {
       servicoId: number;
     }) => Promise<HorarioLivre[]>;
     criar: (d: NovoAgendamento) => Promise<EmJson<AtendimentoNaAgenda>>;
-    bloquear: (d: NovoBloqueio) => Promise<unknown>;
+    bloquear: (d: NovoBloqueio) => Promise<EmJson<BloqueioNaAgenda>>;
     alterarEstado: (
       id: number,
       estado: string,

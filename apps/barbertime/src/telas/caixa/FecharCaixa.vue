@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsBotao,
   DsDialogo,
@@ -12,15 +13,18 @@ import { formatarMoeda } from '@barbertime/ui-utils';
 import { diferencaDeCaixa, FORMAS_DE_PAGAMENTO } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { Caixa } from '../../dados/modelos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ caixa: { type: Object, required: true } });
-const emit = defineEmits(['fechado']);
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  caixa: { type: Object as PropType<Caixa>, required: true },
+});
+const emit = defineEmits<{ fechado: [caixa: Caixa] }>();
 
 const { advertir } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
-const contado = ref(null);
+const contado = ref<number | null>(null);
 
 watch(aberto, (abriu) => abriu && (contado.value = null));
 
