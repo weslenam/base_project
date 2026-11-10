@@ -7,11 +7,15 @@ import {
   novaBarbearia,
   unico,
 } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type Navegador = Awaited<ReturnType<typeof novaBarbearia>>['dono'];
+type ComId = { id: number };
 
 // Planejamento 0034, etapa B: pacotes e assinaturas no banco. Venda e
 // renovação pelo caixa; uso na comanda conferido ao salvar e ao receber.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
@@ -19,7 +23,7 @@ afterAll(() => servidor?.close());
 
 const hoje = () => momentoNoFuso().data;
 
-const ligarModulo = (barbeariaId) =>
+const ligarModulo = (barbeariaId: number) =>
   comoSuperusuario((c) =>
     c.query(
       `insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, 'pacotes', 'ativo')
@@ -28,9 +32,9 @@ const ligarModulo = (barbeariaId) =>
     ),
   );
 
-async function entrarComo(dono, chave) {
+async function entrarComo(dono: Navegador, chave: string) {
   const papel = (await dono.get('/api/papeis')).corpo.find(
-    (p) => p.chave === chave,
+    (p: { chave: string }) => p.chave === chave,
   );
   const email = `${unico(chave)}@teste.dev`;
   await dono.post('/api/usuarios', {
@@ -50,7 +54,7 @@ async function comPacotes({ modulo = true } = {}) {
   const id = b.sessao.barbearia.id;
   if (modulo) await ligarModulo(id);
   const { dono } = b;
-  const servico = async (nome, preco) =>
+  const servico = async (nome: string, preco: number) =>
     (await dono.post('/api/servicos', { nome, duracao: 30, preco })).corpo;
   const corte = await servico('Corte', 50);
   const barba = await servico('Barba', 30);
@@ -67,7 +71,7 @@ async function comPacotes({ modulo = true } = {}) {
   ).corpo;
   await dono.post('/api/caixa/abrir', { valorInicial: 0 });
 
-  const criarPacote = async (dados) =>
+  const criarPacote = async (dados: object = {}) =>
     dono.post('/api/pacotes', {
       nome: 'Clube',
       preco: 120,
@@ -75,24 +79,26 @@ async function comPacotes({ modulo = true } = {}) {
       itens: [{ servicoId: corte.id, quantidade: null }],
       ...dados,
     });
-  const vender = async (pacote, quem = dono, clienteId = ana.id) =>
+  const vender = async (pacote: ComId, quem = dono, clienteId = ana.id) =>
     quem.post('/api/assinaturas', {
       clienteId,
       pacoteId: pacote.id,
       barbeiroId: joao.id,
     });
-  const receber = (comandaId, quem = dono) =>
+  const receber = (comandaId: number, quem = dono) =>
     quem.post(`/api/comandas/${comandaId}/receber`, { forma: 'pix' });
   /** Vende e paga: devolve a assinatura ativa. */
-  const assinar = async (pacote) => {
+  const assinar = async (pacote: ComId) => {
     const v = await vender(pacote);
     expect(v.status).toBe(201);
     expect((await receber(v.corpo.comandaId)).status).toBe(200);
-    return (await assinaturas()).find((a) => a.id === v.corpo.assinatura.id);
+    return (await assinaturas()).find(
+      (a: ComId) => a.id === v.corpo.assinatura.id,
+    );
   };
   const assinaturas = async (clienteId = ana.id) =>
     (await dono.get(`/api/clientes/${clienteId}/assinaturas`)).corpo;
-  const usar = (assinatura, servicoId = corte.id, quem = dono) =>
+  const usar = (assinatura: ComId, servicoId = corte.id, quem = dono) =>
     quem.post('/api/comandas', {
       barbeiroId: joao.id,
       clienteId: ana.id,
@@ -174,9 +180,11 @@ describe('cadastro de pacotes', () => {
 
     const livre = (await b.criarPacote({ nome: 'Sem clientes' })).corpo;
     expect((await b.dono.delete(`/api/pacotes/${livre.id}`)).status).toBe(204);
-    expect((await b.dono.get('/api/pacotes')).corpo.map((p) => p.nome)).toEqual(
-      ['Clube VIP'],
-    );
+    expect(
+      (await b.dono.get('/api/pacotes')).corpo.map(
+        (p: { nome: string }) => p.nome,
+      ),
+    ).toEqual(['Clube VIP']);
   });
 });
 
@@ -407,7 +415,7 @@ describe('renovação', () => {
     const cm = (await b.dono.get(`/api/comandas/${r.corpo.comandaId}`)).corpo;
     expect(cm.total).toBe(120);
 
-    const pendente = (await b.assinaturas()).find((x) => x.id === a.id);
+    const pendente = (await b.assinaturas()).find((x: ComId) => x.id === a.id);
     expect(pendente.renovacao).toBe('aguardando_pagamento');
     const outra = await b.dono.post(`/api/assinaturas/${a.id}/renovar`, {
       barbeiroId: b.joao.id,
@@ -416,7 +424,7 @@ describe('renovação', () => {
 
     expect((await b.receber(r.corpo.comandaId)).status).toBe(200);
     const nova = (await b.assinaturas()).find(
-      (x) => x.id === r.corpo.assinatura.id,
+      (x: ComId) => x.id === r.corpo.assinatura.id,
     );
     const inicio = somarDias(a.fim, 1);
     expect(nova).toMatchObject({
@@ -426,9 +434,9 @@ describe('renovação', () => {
       vigente: false,
     });
     // O ciclo atual continua valendo até o fim.
-    expect((await b.assinaturas()).find((x) => x.id === a.id).vigente).toBe(
-      true,
-    );
+    expect(
+      (await b.assinaturas()).find((x: ComId) => x.id === a.id).vigente,
+    ).toBe(true);
     expect(
       (
         await b.dono.post(`/api/assinaturas/${a.id}/renovar`, {
@@ -454,7 +462,7 @@ describe('renovação', () => {
     });
     await b.receber(r.corpo.comandaId);
     const nova = (await b.assinaturas()).find(
-      (x) => x.id === r.corpo.assinatura.id,
+      (x: ComId) => x.id === r.corpo.assinatura.id,
     );
     expect(nova).toMatchObject({ inicio: hoje(), vigente: true });
 

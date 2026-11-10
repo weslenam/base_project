@@ -7,16 +7,20 @@ import {
   novaBarbearia,
   unico,
 } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type Navegador = Awaited<ReturnType<typeof novaBarbearia>>['dono'];
+type ComId = { id: number };
 
 // Planejamento 0027 (parte 1): estoque e compras. Critérios de aceite 1, 2, 3, 7 e 8.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
 afterAll(() => servidor?.close());
 
-const ativarEstoque = (barbeariaId) =>
+const ativarEstoque = (barbeariaId: number) =>
   comoSuperusuario((c) =>
     c.query(
       `insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, 'estoque', 'ativo')
@@ -44,7 +48,7 @@ async function comEstoque() {
       comissao: 40,
     })
   ).corpo;
-  const produto = async (dados) =>
+  const produto = async (dados: object) =>
     (await b.dono.post('/api/produtos', dados)).corpo;
   const pomada = await produto({
     nome: 'Pomada',
@@ -67,15 +71,16 @@ async function comEstoque() {
   return { ...b, corte, joao, pomada, gel, lamina, fornecedor };
 }
 
-const saldoDe = async (dono, id) =>
-  (await dono.get('/api/estoque')).corpo.produtos.find((p) => p.id === id)
-    .saldo;
+const saldoDe = async (dono: Navegador, id: number) =>
+  (await dono.get('/api/estoque')).corpo.produtos.find(
+    (p: ComId) => p.id === id,
+  ).saldo;
 
 const hoje = () => momentoNoFuso().data;
 
-async function convidar(dono, chave) {
+async function convidar(dono: Navegador, chave: string) {
   const papel = (await dono.get('/api/papeis')).corpo.find(
-    (p) => p.chave === chave,
+    (p: { chave: string }) => p.chave === chave,
   );
   const email = `${unico(chave)}@teste.dev`;
   await dono.post('/api/usuarios', {
@@ -128,7 +133,9 @@ describe('estoque na comanda paga (critério 1)', () => {
     expect(await saldoDe(dono, gel.id)).toBe(-20);
     expect(await saldoDe(dono, lamina.id)).toBe(-2);
     const { comprar } = (await dono.get('/api/estoque')).corpo;
-    expect(comprar.find((x) => x.produtoId === pomada.id)).toMatchObject({
+    expect(
+      comprar.find((x: { produtoId: number }) => x.produtoId === pomada.id),
+    ).toMatchObject({
       negativo: true,
       sugerido: 5,
     });
@@ -176,7 +183,12 @@ describe('estoque na comanda paga (critério 1)', () => {
 });
 
 describe('compras (critérios 2 e 3)', () => {
-  const compra = (fornecedor, pomada, gel, lamina) => ({
+  const compra = (
+    fornecedor: ComId,
+    pomada: ComId,
+    gel: ComId,
+    lamina: ComId,
+  ) => ({
     fornecedorId: fornecedor.id,
     data: hoje(),
     frete: '10',
@@ -202,13 +214,18 @@ describe('compras (critérios 2 e 3)', () => {
     expect(r.status).toBe(201);
     expect(r.corpo.total).toBe(147.5);
     expect(r.corpo.itens).toHaveLength(3);
-    expect(r.corpo.parcelas.map((p) => [p.parcela, p.valor])).toEqual([
+    expect(
+      r.corpo.parcelas.map((p: { parcela: number; valor: number }) => [
+        p.parcela,
+        p.valor,
+      ]),
+    ).toEqual([
       [1, 73.75],
       [2, 73.75],
     ]);
     expect(await saldoDe(dono, gel.id)).toBe(500);
     const produtos = (await dono.get('/api/estoque')).corpo.produtos;
-    expect(produtos.find((p) => p.id === pomada.id)).toMatchObject({
+    expect(produtos.find((p: ComId) => p.id === pomada.id)).toMatchObject({
       saldo: 5,
       ultimoCusto: 12.5,
     });
@@ -236,13 +253,15 @@ describe('compras (critérios 2 e 3)', () => {
     expect(cancelada.status).toBe(200);
     expect(cancelada.corpo.cancelada).toBe(true);
     expect(
-      cancelada.corpo.parcelas.every((p) => p.situacao === 'cancelada'),
+      cancelada.corpo.parcelas.every(
+        (p: { situacao: string }) => p.situacao === 'cancelada',
+      ),
     ).toBe(true);
     expect(await saldoDe(dono, pomada.id)).toBe(0);
     expect(
       (
         await dono.get(`/api/estoque/movimentos?produtoId=${pomada.id}`)
-      ).corpo.map((m) => m.tipo),
+      ).corpo.map((m: { tipo: string }) => m.tipo),
     ).toEqual(['estorno_compra', 'compra']);
     expect((await dono.post(`/api/compras/${a.id}/cancelar`)).status).toBe(409);
 
@@ -316,7 +335,12 @@ describe('inventário e consumo (critério 7)', () => {
     expect(await saldoDe(dono, gel.id)).toBe(200);
     const movs = (await dono.get(`/api/estoque/movimentos?produtoId=${gel.id}`))
       .corpo;
-    expect(movs.map((m) => [m.tipo, m.quantidade])).toEqual([
+    expect(
+      movs.map((m: { tipo: string; quantidade: number }) => [
+        m.tipo,
+        m.quantidade,
+      ]),
+    ).toEqual([
       ['ajuste_inventario', 215.5],
       ['consumo_manual', -15.5],
     ]);
@@ -398,7 +422,7 @@ describe('ajustes da revisão (planejamento 0027)', () => {
 
   it('compra lançada com data antiga não sobrescreve o último custo', async () => {
     const { dono, fornecedor, pomada } = await comEstoque();
-    const comprar = (custo, data) =>
+    const comprar = (custo: string, data: string) =>
       dono.post('/api/compras', {
         fornecedorId: fornecedor.id,
         data,
@@ -413,7 +437,7 @@ describe('ajustes da revisão (planejamento 0027)', () => {
       .slice(0, 10);
     expect((await comprar('8', antiga)).status).toBe(201);
     const custo = (await dono.get('/api/estoque')).corpo.produtos.find(
-      (p) => p.id === pomada.id,
+      (p: ComId) => p.id === pomada.id,
     ).ultimoCusto;
     expect(custo).toBe(10);
   });
@@ -430,7 +454,7 @@ describe('ajustes da revisão (planejamento 0027)', () => {
 
   it('cancelar a compra devolve o último custo ao da compra anterior', async () => {
     const { dono, fornecedor, pomada } = await comEstoque();
-    const comprar = (custo) =>
+    const comprar = (custo: string) =>
       dono.post('/api/compras', {
         fornecedorId: fornecedor.id,
         data: hoje(),
@@ -443,7 +467,7 @@ describe('ajustes da revisão (planejamento 0027)', () => {
     const errada = (await comprar('999')).corpo;
     const custo = async () =>
       (await dono.get('/api/estoque')).corpo.produtos.find(
-        (p) => p.id === pomada.id,
+        (p: ComId) => p.id === pomada.id,
       ).ultimoCusto;
     expect(await custo()).toBe(999);
     await dono.post(`/api/compras/${errada.id}/cancelar`);

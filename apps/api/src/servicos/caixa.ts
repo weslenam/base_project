@@ -4,73 +4,127 @@ import {
   resumoDoCaixa,
   totalDaComanda,
 } from '@barbertime/dominio';
+import type { ItemComanda, Valor } from '@barbertime/dominio';
+import { sql } from 'kysely';
 import { conflito, invalido, naoEncontrado } from '../infra/erros.ts';
+import type { Conexao } from '../infra/banco.ts';
 import { agora } from './agenda.ts';
-import { baixarComanda } from './estoque.js';
-import { conferirResgate, fidelidadeAoReceber } from './fidelidade.js';
+import { baixarComanda } from './estoque.ts';
+import { conferirResgate, fidelidadeAoReceber } from './fidelidade.ts';
+import type { FidelidadeNoPedido } from './fidelidade.ts';
 import {
   buscarPacote,
   conferirUsos,
   conferirVendaPendente,
   pacotesAoCancelar,
   pacotesAoReceber,
-} from './pacotes.js';
+} from './pacotes.ts';
+import type {
+  Caixa,
+  CaixaComResumo,
+  ComandaDoCaixa,
+  ComandaRecebida,
+} from './caixa.contratos.ts';
 
 // Caixa do dia e comandas (planejamento 0020, fase 1). A comanda nasce no
 // check-in ou na entrada na fila e acompanha o atendimento até o pagamento.
 // Fidelidade (crédito e resgate) e pacotes (venda, uso e renovação) no
 // planejamento 0034.
 
-const SELECT_CAIXA = `
-  select id, data, valor_inicial as "valorInicial", aberto, aberto_as as "abertoAs",
-         fechado_as as "fechadoAs", dinheiro_contado as "dinheiroContado", diferenca
-    from caixas`;
+const selecionarCaixa = (c: Conexao) =>
+  c.db
+    .selectFrom('caixas')
+    .select([
+      'id',
+      'data',
+      'valorInicial',
+      'aberto',
+      'abertoAs',
+      'fechadoAs',
+      'dinheiroContado',
+      'diferenca',
+    ]);
 
-export const SELECT_COMANDA = `
-  select cm.id, cm.caixa_id as "caixaId", cx.data, cm.atendimento_id as "atendimentoId",
-         cm.cliente_id as "clienteId", cm.barbeiro_id as "barbeiroId", cm.hora,
-         cm.itens, cm.desconto, cm.forma, cm.estado, cm.paga_as as "pagaAs",
-         cm.premio_fidelidade as "premioFidelidade", cm.cashback_usado as "cashbackUsado",
-         coalesce(cl.nome, a.cliente_nome, 'Cliente avulso') as "clienteNome",
-         coalesce(b.nome, '') as "barbeiroNome"
-    from comandas cm
-    join caixas cx on cx.id = cm.caixa_id
-    left join clientes cl on cl.id = cm.cliente_id
-    left join barbeiros b on b.id = cm.barbeiro_id
-    left join atendimentos a on a.id = cm.atendimento_id`;
+/** Comandas com caixa, cliente e barbeiro (complete com where e order). */
+export const selecionarComandas = (c: Conexao) =>
+  c.db
+    .selectFrom('comandas as cm')
+    .innerJoin('caixas as cx', 'cx.id', 'cm.caixaId')
+    .leftJoin('clientes as cl', 'cl.id', 'cm.clienteId')
+    .leftJoin('barbeiros as b', 'b.id', 'cm.barbeiroId')
+    .leftJoin('atendimentos as a', 'a.id', 'cm.atendimentoId')
+    .select([
+      'cm.id',
+      'cm.caixaId',
+      'cx.data',
+      'cm.atendimentoId',
+      'cm.clienteId',
+      'cm.barbeiroId',
+      'cm.hora',
+      'cm.itens',
+      'cm.desconto',
+      'cm.forma',
+      'cm.estado',
+      'cm.pagaAs',
+      'cm.premioFidelidade',
+      'cm.cashbackUsado',
+    ])
+    .select((eb) => [
+      eb.fn
+        .coalesce('cl.nome', 'a.clienteNome', eb.val('Cliente avulso'))
+        .as('clienteNome'),
+      eb.fn.coalesce('b.nome', eb.val('')).as('barbeiroNome'),
+    ]);
+
+type LinhaDeComanda = Awaited<
+  ReturnType<ReturnType<typeof selecionarComandas>['execute']>
+>[number];
 
 /** Comanda com os totais (serviços, produtos, subtotal, desconto, total). */
-export const completarComanda = (c) => ({ ...c, ...totalDaComanda(c) });
+export const completarComanda = (linha: LinhaDeComanda): ComandaDoCaixa => {
+  // A coluna jsonb `itens` só é gravada por salvarComanda: sempre uma lista
+  // de itens normalizados.
+  const cm = { ...linha, itens: linha.itens as ItemComanda[] };
+  return { ...cm, ...totalDaComanda(cm) };
+};
 
-export async function caixaDoDia(c, data = agora().data) {
-  const {
-    rows: [caixa],
-  } = await c.query(`${SELECT_CAIXA} where data = $1`, [data]);
+export async function caixaDoDia(
+  c: Conexao,
+  data: string = agora().data,
+): Promise<Caixa | null> {
+  const caixa = await selecionarCaixa(c)
+    .where('data', '=', data)
+    .executeTakeFirst();
   return caixa ?? null;
 }
 
-export async function exigirCaixaAberto(c) {
+export async function exigirCaixaAberto(c: Conexao): Promise<Caixa> {
   const caixa = await caixaDoDia(c);
   if (!caixa?.aberto)
     throw conflito('Abra o caixa de hoje antes de lançar comandas.');
   return caixa;
 }
 
-export async function comandasDoCaixa(c, caixaId) {
-  const { rows } = await c.query(
-    `${SELECT_COMANDA} where cm.caixa_id = $1 order by cm.hora desc, cm.id desc`,
-    [caixaId],
-  );
-  return rows.map(completarComanda);
+export async function comandasDoCaixa(
+  c: Conexao,
+  caixaId: number,
+): Promise<ComandaDoCaixa[]> {
+  const linhas = await selecionarComandas(c)
+    .where('cm.caixaId', '=', caixaId)
+    .orderBy('cm.hora', 'desc')
+    .orderBy('cm.id', 'desc')
+    .execute();
+  return linhas.map(completarComanda);
 }
 
-export async function obterComanda(c, id, { travar = false } = {}) {
-  const {
-    rows: [cm],
-  } = await c.query(
-    `${SELECT_COMANDA} where cm.id = $1${travar ? ' for update of cm' : ''}`,
-    [Number(id)],
-  );
+export async function obterComanda(
+  c: Conexao,
+  id: number | string,
+  { travar = false } = {},
+): Promise<ComandaDoCaixa> {
+  let consulta = selecionarComandas(c).where('cm.id', '=', Number(id));
+  if (travar) consulta = consulta.forUpdate('cm');
+  const cm = await consulta.executeTakeFirst();
   if (!cm) throw naoEncontrado('Comanda não encontrada.');
   return completarComanda(cm);
 }
@@ -79,12 +133,18 @@ export async function obterComanda(c, id, { travar = false } = {}) {
  * Trava a comanda para mudar o estado. Sempre na mesma ordem (atendimento,
  * depois comanda), como as rotas do balcão, para não haver impasse.
  */
-async function travarComanda(c, id) {
+async function travarComanda(
+  c: Conexao,
+  id: number | string,
+): Promise<ComandaDoCaixa> {
   const cm = await obterComanda(c, id);
   if (cm.atendimentoId)
-    await c.query('select 1 from atendimentos where id = $1 for update', [
-      cm.atendimentoId,
-    ]);
+    await c.db
+      .selectFrom('atendimentos')
+      .select('id')
+      .where('id', '=', cm.atendimentoId)
+      .forUpdate()
+      .execute();
   return obterComanda(c, cm.id, { travar: true });
 }
 
@@ -92,26 +152,32 @@ async function travarComanda(c, id) {
  * Comanda que ficou aberta num caixa de outro dia passa para o caixa de hoje:
  * o dinheiro entra no fechamento de hoje e o caixa antigo pode ser fechado.
  */
-async function trazerParaOCaixaDeHoje(c, cm, caixa) {
+async function trazerParaOCaixaDeHoje(
+  c: Conexao,
+  cm: ComandaDoCaixa,
+  caixa: Caixa,
+): Promise<ComandaDoCaixa> {
   if (cm.caixaId === caixa.id) return cm;
-  await c.query('update comandas set caixa_id = $2 where id = $1', [
-    cm.id,
-    caixa.id,
-  ]);
+  await c.db
+    .updateTable('comandas')
+    .set({ caixaId: caixa.id })
+    .where('id', '=', cm.id)
+    .execute();
   return { ...cm, caixaId: caixa.id };
 }
 
-export async function caixaComResumo(c, caixa) {
-  if (!caixa) return null;
+/** O caixa com o resumo do dia. */
+async function resumirCaixa(c: Conexao, caixa: Caixa): Promise<CaixaComResumo> {
   const comandas = await comandasDoCaixa(c, caixa.id);
   // Saídas e entradas da gaveta vindas do financeiro (planejamento 0027,
   // parte 2). Só os totais vão para o resumo: a descrição das contas fica com
   // quem tem financeiro.gerenciar.
-  const { rows: movimentos } = await c.query(
-    `select tipo, valor from movimentos_caixa
-      where caixa_id = $1 and estornado_em is null`,
-    [caixa.id],
-  );
+  const movimentos = await c.db
+    .selectFrom('movimentosCaixa')
+    .select(['tipo', 'valor'])
+    .where('caixaId', '=', caixa.id)
+    .where('estornadoEm', 'is', null)
+    .execute();
   return {
     ...caixa,
     resumo: resumoDoCaixa({
@@ -122,7 +188,19 @@ export async function caixaComResumo(c, caixa) {
   };
 }
 
-export async function abrirCaixa(c, barbeariaId, { valorInicial }) {
+export async function caixaComResumo(
+  c: Conexao,
+  caixa: Caixa | null,
+): Promise<CaixaComResumo | null> {
+  if (!caixa) return null;
+  return resumirCaixa(c, caixa);
+}
+
+export async function abrirCaixa(
+  c: Conexao,
+  barbeariaId: number,
+  { valorInicial }: { valorInicial?: Valor },
+): Promise<CaixaComResumo | null> {
   const atual = await caixaDoDia(c);
   if (atual?.aberto) throw conflito('O caixa de hoje já está aberto.');
   if (atual)
@@ -134,19 +212,32 @@ export async function abrirCaixa(c, barbeariaId, { valorInicial }) {
   )
     throw invalido('Informe o troco inicial (pode ser zero).');
   const { data, hora } = agora();
-  await c.query(
-    'insert into caixas (barbearia_id, data, valor_inicial, aberto_as) values ($1, $2, $3, $4)',
-    [barbeariaId, data, Number(valorInicial), hora],
-  );
+  await c.db
+    .insertInto('caixas')
+    .values({
+      barbeariaId,
+      data,
+      valorInicial: Number(valorInicial),
+      abertoAs: hora,
+    })
+    .execute();
   return caixaComResumo(c, await caixaDoDia(c));
 }
 
-export async function fecharCaixa(c, { dinheiroContado }) {
+export async function fecharCaixa(
+  c: Conexao,
+  { dinheiroContado }: { dinheiroContado?: Valor },
+): Promise<CaixaComResumo | null> {
   const caixa = await exigirCaixaAberto(c);
   // Trava o caixa: uma baixa em dinheiro do financeiro ao mesmo tempo espera
   // e depois vê o caixa fechado (issue #28).
-  await c.query('select 1 from caixas where id = $1 for update', [caixa.id]);
-  const { resumo } = await caixaComResumo(c, caixa);
+  await c.db
+    .selectFrom('caixas')
+    .select('id')
+    .where('id', '=', caixa.id)
+    .forUpdate()
+    .execute();
+  const { resumo } = await resumirCaixa(c, caixa);
   if (resumo.abertas) {
     const n = resumo.abertas;
     throw conflito(
@@ -159,34 +250,61 @@ export async function fecharCaixa(c, { dinheiroContado }) {
     dinheiroContado === ''
   )
     throw invalido('Informe quanto dinheiro há na gaveta.');
-  await c.query(
-    `update caixas set aberto = false, fechado_as = $2, dinheiro_contado = $3, diferenca = $4
-      where id = $1`,
-    [
-      caixa.id,
-      agora().hora,
-      Number(dinheiroContado),
-      diferencaDeCaixa(dinheiroContado, resumo.dinheiroEsperado),
-    ],
-  );
+  await c.db
+    .updateTable('caixas')
+    .set({
+      aberto: false,
+      fechadoAs: agora().hora,
+      dinheiroContado: Number(dinheiroContado),
+      diferenca: diferencaDeCaixa(dinheiroContado, resumo.dinheiroEsperado),
+    })
+    .where('id', '=', caixa.id)
+    .execute();
   return caixaComResumo(c, await caixaDoDia(c));
 }
 
 /** Barbeiro ativo desta barbearia (a RLS limita a busca à barbearia). */
-async function exigirBarbeiro(c, id) {
-  const b = await c.query(
-    'select 1 from barbeiros where id = $1 and excluido_em is null',
-    [id],
-  );
-  if (!b.rowCount) throw invalido('Barbeiro não encontrado.');
+async function exigirBarbeiro(c: Conexao, id: number): Promise<void> {
+  const b = await c.db
+    .selectFrom('barbeiros')
+    .select('id')
+    .where('id', '=', id)
+    .where('excluidoEm', 'is', null)
+    .executeTakeFirst();
+  if (!b) throw invalido('Barbeiro não encontrado.');
+}
+
+/** Item como chega no corpo da comanda (nome e preço não são aceitos). */
+export interface ItemPedido {
+  tipo?: string | null;
+  refId?: number | null;
+  assinaturaId?: number | null;
+  barbeiroId?: number | null;
+  quantidade?: Valor;
+  /** Item do prêmio da fidelidade (montado pelo servidor; ignorado aqui). */
+  premio?: boolean | null;
+}
+
+/** Pacotes no pedido: módulo ativo e se é a venda (rotas de assinaturas). */
+export interface PacotesNoPedido {
+  ativo: boolean;
+  venda?: boolean;
 }
 
 /**
  * Itens com nome e preço do catálogo no momento da venda (base da comissão
  * futura). Nome e preço nunca vêm de quem chama a API.
  */
-async function normalizarItens(c, itens = [], barbeiroId, pacotes) {
-  const normalizados = [];
+async function normalizarItens(
+  c: Conexao,
+  itens: ItemPedido[] | null = [],
+  barbeiroId: number | null,
+  pacotes: PacotesNoPedido & { anteriores: ItemComanda[] },
+): Promise<ItemComanda[]> {
+  // O schema aceita `itens: null`, e antes da conversão isso já parava aqui
+  // com erro 500 (o for...of sobre null). Mantido na conversão: issue #41.
+  if (itens === null) throw new TypeError('itens is not iterable');
+  const normalizados: ItemComanda[] = [];
   const conferidos = new Set(barbeiroId ? [barbeiroId] : []);
   for (const i of itens) {
     // O item do prêmio da fidelidade é montado pelo servidor (conferirResgate).
@@ -208,7 +326,7 @@ async function normalizarItens(c, itens = [], barbeiroId, pacotes) {
         const [anterior] = pacotes.anteriores.splice(ja, 1);
         normalizados.push({
           ...anterior,
-          barbeiroId: doItem ?? anterior.barbeiroId ?? barbeiroId ?? null,
+          barbeiroId: doItem ?? anterior?.barbeiroId ?? barbeiroId ?? null,
         });
         continue;
       }
@@ -228,13 +346,20 @@ async function normalizarItens(c, itens = [], barbeiroId, pacotes) {
       continue;
     }
     const produto = i.tipo === 'produto';
-    const {
-      rows: [ref],
-    } = await c.query(
-      `select id, nome, preco from ${produto ? 'produtos' : 'servicos'}
-        where id = $1 and excluido_em is null${produto ? " and tipo = 'revenda'" : ''}`,
-      [Number(i.refId)],
-    );
+    const ref = produto
+      ? await c.db
+          .selectFrom('produtos')
+          .select(['id', 'nome', 'preco'])
+          .where('id', '=', Number(i.refId))
+          .where('excluidoEm', 'is', null)
+          .where('tipo', '=', 'revenda')
+          .executeTakeFirst()
+      : await c.db
+          .selectFrom('servicos')
+          .select(['id', 'nome', 'preco'])
+          .where('id', '=', Number(i.refId))
+          .where('excluidoEm', 'is', null)
+          .executeTakeFirst();
     if (!ref)
       throw invalido(`${produto ? 'Produto' : 'Serviço'} não encontrado.`);
     // Serviço usado por pacote: sai por R$ 0, ligado à assinatura; o uso é
@@ -263,16 +388,35 @@ async function normalizarItens(c, itens = [], barbeiroId, pacotes) {
   return normalizados;
 }
 
+/** Corpo de POST/PUT /comandas (o schema da rota confere tipo e tamanho). */
+export interface DadosDaComanda {
+  id?: number | null;
+  atendimentoId?: number | null;
+  barbeiroId?: number | null;
+  clienteId?: number | null;
+  itens?: ItemPedido[] | null;
+  desconto?: Valor;
+  forma?: string | null;
+  premioFidelidade?: boolean | null;
+  cashbackUsado?: Valor;
+}
+
 /**
  * Cria ou atualiza uma comanda aberta. `fidelidade` ({ ativo, hoje }) libera o
  * resgate (prêmio e cashback) quando o módulo está ativo.
  */
 export async function salvarComanda(
-  c,
-  barbeariaId,
-  dados,
-  { fidelidade = { ativo: false }, pacotes = { ativo: false } } = {},
-) {
+  c: Conexao,
+  barbeariaId: number,
+  dados: DadosDaComanda,
+  {
+    fidelidade = { ativo: false },
+    pacotes = { ativo: false },
+  }: {
+    fidelidade?: Pick<FidelidadeNoPedido, 'ativo'>;
+    pacotes?: PacotesNoPedido;
+  } = {},
+): Promise<ComandaDoCaixa> {
   const caixa = await exigirCaixaAberto(c);
   const barbeiroId = dados.barbeiroId ? Number(dados.barbeiroId) : null;
   if (barbeiroId) {
@@ -286,11 +430,11 @@ export async function salvarComanda(
   if (atendimentoId) {
     // A RLS só enxerga os atendimentos desta barbearia; a chave estrangeira
     // não passa pela RLS, então a conferência é aqui.
-    const {
-      rows: [a],
-    } = await c.query('select estado from atendimentos where id = $1', [
-      atendimentoId,
-    ]);
+    const a = await c.db
+      .selectFrom('atendimentos')
+      .select('estado')
+      .where('id', '=', atendimentoId)
+      .executeTakeFirst();
     if (!a) throw invalido('Atendimento não encontrado.');
     if (['desistiu', 'no_show', 'cancelado', 'pago'].includes(a.estado))
       throw invalido('Esse atendimento já foi encerrado.');
@@ -310,11 +454,13 @@ export async function salvarComanda(
     throw invalido('O desconto não pode ser maior que o valor da comanda.');
   const clienteId = dados.clienteId ? Number(dados.clienteId) : null;
   if (clienteId) {
-    const r = await c.query(
-      'select 1 from clientes where id = $1 and excluido_em is null',
-      [clienteId],
-    );
-    if (!r.rowCount) throw invalido('Cliente não encontrado.');
+    const r = await c.db
+      .selectFrom('clientes')
+      .select('id')
+      .where('id', '=', clienteId)
+      .where('excluidoEm', 'is', null)
+      .executeTakeFirst();
+    if (!r) throw invalido('Cliente não encontrado.');
   }
   await conferirUsos(c, itens, clienteId, agora().data);
   if (dados.id) await conferirVendaPendente(c, dados.id, itens, clienteId);
@@ -336,43 +482,41 @@ export async function salvarComanda(
     if (atual.estado !== 'aberta')
       throw conflito('Só dá para alterar comanda em aberto.');
     await trazerParaOCaixaDeHoje(c, atual, caixa);
-    await c.query(
-      `update comandas set cliente_id = $2, barbeiro_id = coalesce($3, barbeiro_id),
-         itens = $4, desconto = $5, forma = $6, premio_fidelidade = $7,
-         cashback_usado = $8 where id = $1`,
-      [
-        atual.id,
+    await c.db
+      .updateTable('comandas')
+      .set({
         clienteId,
-        barbeiroId,
-        JSON.stringify(itens),
+        // Sem barbeiro no pedido, fica o que já estava (coalesce).
+        ...(barbeiroId ? { barbeiroId } : {}),
+        // jsonb: vai como texto JSON (o pg mandaria a lista como array do Postgres).
+        itens: JSON.stringify(itens),
         desconto,
-        dados.forma ?? null,
+        forma: dados.forma ?? null,
         premioFidelidade,
         cashbackUsado,
-      ],
-    );
+      })
+      .where('id', '=', atual.id)
+      .execute();
     return obterComanda(c, atual.id);
   }
-  const {
-    rows: [nova],
-  } = await c.query(
-    `insert into comandas (barbearia_id, caixa_id, atendimento_id, cliente_id, barbeiro_id,
-       hora, itens, desconto, forma, premio_fidelidade, cashback_usado)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`,
-    [
+  const nova = await c.db
+    .insertInto('comandas')
+    .values({
       barbeariaId,
-      caixa.id,
+      caixaId: caixa.id,
       atendimentoId,
       clienteId,
       barbeiroId,
-      agora().hora,
-      JSON.stringify(itens),
+      hora: agora().hora,
+      // jsonb: vai como texto JSON (o pg mandaria a lista como array do Postgres).
+      itens: JSON.stringify(itens),
       desconto,
-      dados.forma ?? null,
+      forma: dados.forma ?? null,
       premioFidelidade,
       cashbackUsado,
-    ],
-  );
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
   return obterComanda(c, nova.id);
 }
 
@@ -381,29 +525,47 @@ export async function salvarComanda(
  * ativo, baixa a revenda e os consumíveis das fichas (planejamento 0027).
  */
 export async function receberComanda(
-  c,
-  id,
-  { forma } = {},
-  { barbeariaId, usuarioId, fidelidade = { ativo: false } } = {},
-) {
+  c: Conexao,
+  id: number | string,
+  { forma }: { forma?: string | null } = {},
+  {
+    barbeariaId,
+    usuarioId,
+    fidelidade = { ativo: false },
+  }: {
+    barbeariaId?: number;
+    usuarioId?: number;
+    fidelidade?: Pick<FidelidadeNoPedido, 'ativo'>;
+  } = {},
+): Promise<ComandaRecebida> {
   const caixa = await exigirCaixaAberto(c);
   const cm = await travarComanda(c, id);
   if (cm.estado !== 'aberta') throw conflito('Essa comanda já foi encerrada.');
   await trazerParaOCaixaDeHoje(c, cm, caixa);
   const motivo = motivoParaNaoReceber({ ...cm, forma: forma ?? cm.forma });
   if (motivo) throw invalido(motivo);
-  await c.query(
-    "update comandas set estado = 'paga', forma = $2, paga_as = $3 where id = $1",
-    [cm.id, forma ?? cm.forma, agora().hora],
-  );
+  await c.db
+    .updateTable('comandas')
+    .set({ estado: 'paga', forma: forma ?? cm.forma, pagaAs: agora().hora })
+    .where('id', '=', cm.id)
+    .execute();
   if (cm.atendimentoId) {
-    await c.query(
-      `update atendimentos set estado = 'pago',
-         finalizado_em = coalesce(finalizado_em, now()),
-         iniciado_em = coalesce(iniciado_em, now())
-       where id = $1 and estado in ('agendado', 'chegou', 'na_fila', 'em_atendimento', 'finalizado')`,
-      [cm.atendimentoId],
-    );
+    await c.db
+      .updateTable('atendimentos')
+      .set((eb) => ({
+        estado: 'pago',
+        finalizadoEm: eb.fn.coalesce('finalizadoEm', sql<Date>`now()`),
+        iniciadoEm: eb.fn.coalesce('iniciadoEm', sql<Date>`now()`),
+      }))
+      .where('id', '=', cm.atendimentoId)
+      .where('estado', 'in', [
+        'agendado',
+        'chegou',
+        'na_fila',
+        'em_atendimento',
+        'finalizado',
+      ])
+      .execute();
   }
   if (barbeariaId) await baixarComanda(c, barbeariaId, cm, usuarioId);
   // Pacotes (planejamento 0034, etapa B): usos e ativação da venda.
@@ -418,13 +580,18 @@ export async function receberComanda(
   return { ...(await obterComanda(c, cm.id)), creditos };
 }
 
-export async function cancelarComanda(c, id) {
+export async function cancelarComanda(
+  c: Conexao,
+  id: number | string,
+): Promise<ComandaDoCaixa> {
   const cm = await travarComanda(c, id);
   if (cm.estado === 'paga')
     throw conflito('Comanda já recebida não pode ser cancelada.');
-  await c.query("update comandas set estado = 'cancelada' where id = $1", [
-    cm.id,
-  ]);
+  await c.db
+    .updateTable('comandas')
+    .set({ estado: 'cancelada' })
+    .where('id', '=', cm.id)
+    .execute();
   await pacotesAoCancelar(c, cm.id);
   return obterComanda(c, cm.id);
 }
@@ -433,19 +600,29 @@ export async function cancelarComanda(c, id) {
  * Comanda do atendimento: devolve a existente (não cancelada) ou abre uma nova
  * com cliente, barbeiro e o serviço do atendimento.
  */
-export async function comandaDoAtendimento(c, barbeariaId, atendimento) {
-  const {
-    rows: [existente],
-  } = await c.query(
-    "select id from comandas where atendimento_id = $1 and estado <> 'cancelada'",
-    [atendimento.id],
-  );
+export async function comandaDoAtendimento(
+  c: Conexao,
+  barbeariaId: number,
+  atendimento: {
+    id: number;
+    clienteId: number | null;
+    barbeiroId: number | null;
+    servicoId: number | null;
+  },
+): Promise<ComandaDoCaixa> {
+  const existente = await c.db
+    .selectFrom('comandas')
+    .select('id')
+    .where('atendimentoId', '=', atendimento.id)
+    .where('estado', '<>', 'cancelada')
+    .executeTakeFirst();
   if (existente) return obterComanda(c, existente.id);
   // Comanda cancelada antes: libera o vínculo para abrir outra.
-  await c.query(
-    'update comandas set atendimento_id = null where atendimento_id = $1',
-    [atendimento.id],
-  );
+  await c.db
+    .updateTable('comandas')
+    .set({ atendimentoId: null })
+    .where('atendimentoId', '=', atendimento.id)
+    .execute();
   return salvarComanda(c, barbeariaId, {
     atendimentoId: atendimento.id,
     clienteId: atendimento.clienteId,

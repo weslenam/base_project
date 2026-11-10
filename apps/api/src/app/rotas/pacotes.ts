@@ -1,5 +1,7 @@
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { Conexao } from '../../infra/banco.ts';
 import { agora } from '../../servicos/agenda.ts';
-import { salvarComanda } from '../../servicos/caixa.js';
+import { salvarComanda } from '../../servicos/caixa.ts';
 import {
   assinaturasDoCliente,
   excluirPacote,
@@ -9,16 +11,24 @@ import {
   renovarPacote,
   salvarPacote,
   venderPacote,
-} from '../../servicos/pacotes.js';
+} from '../../servicos/pacotes.ts';
+import type {
+  AbrirComandaDoPacote,
+  DadosDoPacote,
+} from '../../servicos/pacotes.ts';
+import type { VendaDePacote } from '../../servicos/pacotes.contratos.ts';
 import { TAM, corpo, escalar, inteiro, texto } from '../esquemas.ts';
+
+type ComId = { Params: { id: string } };
 
 // Pacotes e assinaturas no banco (planejamento 0034, etapa B). Tudo exige o
 // módulo "pacotes" ativo (ADR 0011). Montar exige pacotes.gerenciar; vender e
 // renovar, pacotes.vender (o Barbeiro não tem); usar na comanda, caixa.operar.
-export default async function (fastify) {
+export default async function (fastify: FastifyInstance) {
   const modulo = fastify.exigirModulo('pacotes');
-  const na = (req, fn) => fastify.naBarbearia(req, fn);
-  const barbearia = (req) => req.contexto.barbeariaId;
+  const na = <T>(req: FastifyRequest, fn: (c: Conexao) => Promise<T>) =>
+    fastify.naBarbearia(req, fn);
+  const barbearia = (req: FastifyRequest) => req.contexto.barbeariaId;
   const gerenciar = {
     preHandler: [fastify.exigir('pacotes.gerenciar'), modulo],
   };
@@ -60,7 +70,7 @@ export default async function (fastify) {
     },
     (req) => na(req, (c) => listarPacotes(c)),
   );
-  fastify.post(
+  fastify.post<{ Body: DadosDoPacote | null }>(
     '/pacotes',
     { ...gerenciar, schema: pacote },
     async (req, reply) => {
@@ -68,21 +78,24 @@ export default async function (fastify) {
       return na(req, (c) => salvarPacote(c, barbearia(req), req.body ?? {}));
     },
   );
-  fastify.put('/pacotes/:id', { ...gerenciar, schema: pacote }, (req) =>
-    na(req, (c) =>
-      salvarPacote(c, barbearia(req), {
-        ...req.body,
-        id: Number(req.params.id),
-      }),
-    ),
+  fastify.put<ComId & { Body: DadosDoPacote | null }>(
+    '/pacotes/:id',
+    { ...gerenciar, schema: pacote },
+    (req) =>
+      na(req, (c) =>
+        salvarPacote(c, barbearia(req), {
+          ...req.body,
+          id: Number(req.params.id),
+        }),
+      ),
   );
-  fastify.delete('/pacotes/:id', gerenciar, async (req, reply) => {
+  fastify.delete<ComId>('/pacotes/:id', gerenciar, async (req, reply) => {
     await na(req, (c) => excluirPacote(c, req.params.id, agora().data));
     reply.code(204);
   });
 
   /** Pacotes do cliente com saldo (cadastro do cliente e comanda). */
-  fastify.get(
+  fastify.get<ComId>(
     '/clientes/:id/assinaturas',
     {
       preHandler: [
@@ -96,16 +109,27 @@ export default async function (fastify) {
 
   // Venda e renovação abrem a comanda no caixa aberto (o caixa monta o item).
   const vender = { preHandler: [fastify.exigir('pacotes.vender'), modulo] };
-  const abrirComanda = (c, req) => (dados) =>
-    salvarComanda(c, barbearia(req), dados, {
-      pacotes: { ativo: true, venda: true },
-    });
-  const vendido = async (c, { id, comandaId }) => ({
+  const abrirComanda =
+    (c: Conexao, req: FastifyRequest): AbrirComandaDoPacote =>
+    (dados) =>
+      salvarComanda(c, barbearia(req), dados, {
+        pacotes: { ativo: true, venda: true },
+      });
+  const vendido = async (
+    c: Conexao,
+    { id, comandaId }: { id: number; comandaId: number },
+  ): Promise<VendaDePacote> => ({
     assinatura: await obterAssinatura(c, id, agora().data),
     comandaId,
   });
 
-  fastify.post(
+  fastify.post<{
+    Body: {
+      clienteId?: number | null;
+      pacoteId?: number | null;
+      barbeiroId?: number | null;
+    } | null;
+  }>(
     '/assinaturas',
     {
       ...vender,
@@ -130,7 +154,7 @@ export default async function (fastify) {
       );
     },
   );
-  fastify.post(
+  fastify.post<ComId & { Body: { barbeiroId?: number | null } | null }>(
     '/assinaturas/:id/renovar',
     { ...vender, schema: corpo({ barbeiroId: inteiro }) },
     async (req, reply) => {
@@ -151,7 +175,14 @@ export default async function (fastify) {
   );
 
   /** Pré-checagem da comanda: pode usar este pacote neste serviço hoje? */
-  fastify.post(
+  fastify.post<
+    ComId & {
+      Body: {
+        servicoId?: number | null;
+        jaNaComanda?: (number | null)[] | null;
+      } | null;
+    }
+  >(
     '/assinaturas/:id/pode-usar',
     {
       preHandler: [fastify.exigir('caixa.operar'), modulo],

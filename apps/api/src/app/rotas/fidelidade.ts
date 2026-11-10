@@ -1,17 +1,22 @@
 import { saldoDeFidelidade } from '@barbertime/dominio';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { Conexao } from '../../infra/banco.ts';
 import { agora } from '../../servicos/agenda.ts';
 import {
   extratoDoCliente,
   obterConfig,
   salvarConfig,
-} from '../../servicos/fidelidade.js';
+} from '../../servicos/fidelidade.ts';
+import type { DadosDaFidelidade } from '../../servicos/fidelidade.ts';
+import type { FidelidadeDoCliente } from '../../servicos/fidelidade.contratos.ts';
 import { corpo, escalar, inteiro, logico } from '../esquemas.ts';
 
 // Fidelidade no banco (planejamento 0034, etapa A). Tudo exige o módulo
 // "fidelidade" ativo (ADR 0011); configurar exige fidelidade.gerenciar.
-export default async function (fastify) {
+export default async function (fastify: FastifyInstance) {
   const modulo = fastify.exigirModulo('fidelidade');
-  const na = (req, fn) => fastify.naBarbearia(req, fn);
+  const na = <T>(req: FastifyRequest, fn: (c: Conexao) => Promise<T>) =>
+    fastify.naBarbearia(req, fn);
 
   // A comanda (caixa.operar) também lê a configuração: prêmio e regras.
   fastify.get(
@@ -36,7 +41,7 @@ export default async function (fastify) {
       validadeDias: escalar(),
     },
   };
-  fastify.put(
+  fastify.put<{ Body: DadosDaFidelidade | null }>(
     '/fidelidade/config',
     {
       preHandler: [fastify.exigir('fidelidade.gerenciar'), modulo],
@@ -47,7 +52,7 @@ export default async function (fastify) {
   );
 
   /** Saldo e extrato do cliente (cadastro do cliente e comanda). */
-  fastify.get(
+  fastify.get<{ Params: { id: string } }>(
     '/clientes/:id/fidelidade',
     {
       preHandler: [
@@ -56,7 +61,7 @@ export default async function (fastify) {
       ],
     },
     (req) =>
-      na(req, async (c) => {
+      na(req, async (c): Promise<FidelidadeDoCliente> => {
         // Um só extrato: o saldo é calculado sobre ele (planejamento 0037).
         const extrato = await extratoDoCliente(c, Number(req.params.id));
         const saldo = saldoDeFidelidade(

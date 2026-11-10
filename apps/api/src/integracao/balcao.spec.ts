@@ -1,17 +1,20 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso, paraHora, paraMinutos } from '@barbertime/dominio';
 import { criarServidor, novaBarbearia } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type ComId = { id: number };
 
 // Planejamento 0020 (fase 1): Balcão, caixa e comandas ligadas ao atendimento.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
 afterAll(() => servidor?.close());
 
 const agora = () => momentoNoFuso();
-const daqui = (min) =>
+const daqui = (min: number) =>
   paraHora(Math.min(23 * 60 + 30, paraMinutos(agora().hora) + min));
 
 /** Barbearia com caixa aberto, um serviço de 30 min e dois barbeiros o dia todo. */
@@ -123,10 +126,12 @@ describe('balcão', () => {
       (await dono.post(`/api/atendimentos/${a.id}/iniciar`, {})).status,
     ).toBe(409);
     const painel = (await dono.get('/api/balcao')).corpo;
-    expect(painel.barbeiros.find((b) => b.id === joao.id)).toMatchObject({
-      estado: 'ocupado',
-      restanteMin: 30,
-    });
+    expect(painel.barbeiros.find((b: ComId) => b.id === joao.id)).toMatchObject(
+      {
+        estado: 'ocupado',
+        restanteMin: 30,
+      },
+    );
 
     expect(
       (await dono.post(`/api/atendimentos/${a.id}/finalizar`)).corpo.status,
@@ -135,7 +140,7 @@ describe('balcão', () => {
     await dono.post(`/api/comandas/${a.comandaId}/receber`, { forma: 'pix' });
     const fim = (
       await dono.get(`/api/agendamentos?data=${agora().data}`)
-    ).corpo.find((x) => x.id === a.id);
+    ).corpo.find((x: ComId) => x.id === a.id);
     expect(fim).toMatchObject({ status: 'pago', estado: 'atendido' });
   });
 
@@ -158,7 +163,9 @@ describe('balcão', () => {
     const enc = (await dono.get(`/api/balcao/encaixe?servicoId=${corte.id}`))
       .corpo;
     expect(
-      enc.porBarbeiro.find((p) => p.barbeiroId === joao.id).podeAgora,
+      enc.porBarbeiro.find(
+        (p: { barbeiroId: number }) => p.barbeiroId === joao.id,
+      ).podeAgora,
     ).toBe(false);
     expect(enc.primeiroLivre.barbeiroId).toBe(leo.id);
 
@@ -196,11 +203,13 @@ describe('balcão', () => {
       })
     ).corpo;
     expect(
-      (await dono.get('/api/balcao')).corpo.proximos.map((p) => p.id),
+      (await dono.get('/api/balcao')).corpo.proximos.map((p: ComId) => p.id),
     ).toContain(ag.id);
     const ci = (await dono.post(`/api/atendimentos/${ag.id}/checkin`)).corpo;
     expect(ci).toMatchObject({ status: 'chegou', comandaEstado: 'aberta' });
-    const fila = (await dono.get('/api/balcao')).corpo.fila.map((f) => f.id);
+    const fila = (await dono.get('/api/balcao')).corpo.fila.map(
+      (f: ComId) => f.id,
+    );
     expect(fila).toEqual([ag.id, avulso.id]);
   });
 
@@ -217,9 +226,11 @@ describe('balcão', () => {
     await dono.post(`/api/barbeiros/${leo.id}/pausa`, { emPausa: true });
     const enc = (await dono.get(`/api/balcao/encaixe?servicoId=${corte.id}`))
       .corpo;
-    expect(enc.porBarbeiro.find((p) => p.barbeiroId === leo.id).estado).toBe(
-      'pausa',
-    );
+    expect(
+      enc.porBarbeiro.find(
+        (p: { barbeiroId: number }) => p.barbeiroId === leo.id,
+      ).estado,
+    ).toBe('pausa');
     expect(enc.primeiroLivre.barbeiroId).toBe(joao.id);
   });
 

@@ -1,12 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso } from '@barbertime/dominio';
 import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type Navegador = ReturnType<typeof navegador>;
+type Quem = { n: Navegador; id: number };
+type ComId = { id: number };
 
 // Planejamento 0035: o Barbeiro ajuda na agenda (agenda.ajudar). Marca e
 // bloqueia em qualquer coluna; confirma e cancela só o que marcou; atendido e
 // falta também na própria coluna; remove só os bloqueios que criou.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
@@ -20,9 +25,9 @@ function proximaSegunda() {
   return d.toISOString().slice(0, 10);
 }
 
-async function entrarComo(dono, chave) {
+async function entrarComo(dono: Navegador, chave: string): Promise<Quem> {
   const papel = (await dono.get('/api/papeis')).corpo.find(
-    (p) => p.chave === chave,
+    (p: { chave: string }) => p.chave === chave,
   );
   const email = `${unico(chave)}@teste.dev`;
   const r = await dono.post('/api/usuarios', {
@@ -45,7 +50,7 @@ async function montada() {
   ).corpo;
   const barbeiro = await entrarComo(dono, 'barbeiro');
   const recepcao = await entrarComo(dono, 'recepcao');
-  const barbeiroNovo = async (nome, usuarioId) =>
+  const barbeiroNovo = async (nome: string, usuarioId?: number) =>
     (
       await dono.post('/api/barbeiros', {
         nome,
@@ -64,7 +69,7 @@ async function montada() {
     })
   ).corpo;
   const dia = proximaSegunda();
-  const agendar = async (quem, coluna, inicio) =>
+  const agendar = async (quem: Quem, coluna: ComId, inicio: string) =>
     quem.n.post('/api/agendamentos', {
       data: dia,
       inicio,
@@ -72,7 +77,7 @@ async function montada() {
       servicoId: servico.id,
       clienteId: cliente.id,
     });
-  const mudar = (quem, id, estado) =>
+  const mudar = (quem: Quem, id: number, estado: string) =>
     quem.n.put(`/api/agendamentos/${id}/estado`, { estado });
   return { dia, barbeiro, recepcao, marcos, leo, agendar, mudar };
 }
@@ -86,7 +91,7 @@ describe('Barbeiro ajudando na agenda', () => {
     expect(dele.corpo.criadoPor).toBe(barbeiro.id);
     expect(daRecepcao.corpo.criadoPor).toBe(recepcao.id);
     const lista = (await barbeiro.n.get(`/api/agendamentos?data=${dia}`)).corpo;
-    expect(lista.map((a) => a.id).sort()).toEqual(
+    expect(lista.map((a: ComId) => a.id).sort()).toEqual(
       [daRecepcao.corpo.id, dele.corpo.id].sort(),
     );
   });
@@ -122,7 +127,7 @@ describe('Barbeiro ajudando na agenda', () => {
 
   it('bloqueia qualquer coluna e remove só os bloqueios que criou', async () => {
     const { dia, barbeiro, recepcao, leo, marcos, mudar } = await montada();
-    const bloquear = (quem, coluna, inicio, fim) =>
+    const bloquear = (quem: Quem, coluna: ComId, inicio: string, fim: string) =>
       quem.n.post('/api/agendamentos/bloqueios', {
         data: dia,
         inicio,

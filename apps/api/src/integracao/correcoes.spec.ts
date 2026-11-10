@@ -7,17 +7,21 @@ import {
   novaBarbearia,
   unico,
 } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type Navegador = Awaited<ReturnType<typeof novaBarbearia>>['dono'];
+type ComId = { id: number };
 
 // Planejamento 0026: correções da revisão do PR #3 e achados N3 a N11 do 0025.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
 afterAll(() => servidor?.close());
 
 const agora = () => momentoNoFuso();
-const daqui = (min) =>
+const daqui = (min: number) =>
   paraHora(Math.min(23 * 60 + 30, paraMinutos(agora().hora) + min));
 
 /** Barbearia com caixa aberto, um corte, um produto e dois barbeiros o dia todo. */
@@ -37,7 +41,7 @@ async function balcao() {
       comissao: 10,
     })
   ).corpo;
-  const barbeiro = (nome) =>
+  const barbeiro = (nome: string) =>
     b.dono
       .post('/api/barbeiros', {
         nome,
@@ -53,7 +57,11 @@ async function balcao() {
 }
 
 /** Agendamento confirmado de hoje para o João. */
-async function agendado(b, inicio = daqui(60), barbeiroId = b.joao.id) {
+async function agendado(
+  b: Awaited<ReturnType<typeof balcao>>,
+  inicio = daqui(60),
+  barbeiroId = b.joao.id,
+) {
   const ag = (
     await b.dono.post('/api/agendamentos', {
       data: agora().data,
@@ -73,9 +81,9 @@ async function agendado(b, inicio = daqui(60), barbeiroId = b.joao.id) {
 }
 
 /** Convida um usuário com o papel e devolve o navegador logado e o id. */
-async function convidar(dono, chave) {
+async function convidar(dono: Navegador, chave: string) {
   const papel = (await dono.get('/api/papeis')).corpo.find(
-    (p) => p.chave === chave,
+    (p: { chave: string }) => p.chave === chave,
   );
   const email = `${unico(chave)}@teste.dev`;
   await dono.post('/api/usuarios', {
@@ -87,7 +95,11 @@ async function convidar(dono, chave) {
   const n = navegador(servidor);
   await n.post('/api/auth/entrar', { email, senha: 'senha-segura' });
   const contas = (await dono.get('/api/barbeiros/contas')).corpo;
-  return { n, email, usuarioId: contas.find((u) => u.email === email).id };
+  return {
+    n,
+    email,
+    usuarioId: contas.find((u: { email: string }) => u.email === email).id,
+  };
 }
 
 describe('agenda e ciclo do atendimento', () => {
@@ -220,7 +232,9 @@ describe('caixa e comandas', () => {
         ],
       })
     ).corpo;
-    expect(cm.itens.map((i) => [i.nome, i.preco])).toEqual([
+    expect(
+      cm.itens.map((i: { nome: string; preco: number }) => [i.nome, i.preco]),
+    ).toEqual([
       ['Corte', 45],
       ['Pomada', 30],
     ]);
@@ -293,7 +307,7 @@ describe('caixa e comandas', () => {
     await b.dono.post(`/api/comandas/${cm.id}/receber`, { forma: 'pix' });
     const vendas = async () =>
       (await b.dono.get('/api/balcao')).corpo.servicos.find(
-        (s) => s.id === b.corte.id,
+        (s: ComId) => s.id === b.corte.id,
       ).vendas;
     expect(await vendas()).toBe(1);
     await comoSuperusuario((c) =>
@@ -337,7 +351,7 @@ describe('clientes, equipe e permissões', () => {
     const b = await balcao();
     const outra = await balcao();
     const { n, usuarioId } = await convidar(b.dono, 'barbeiro');
-    const ligar = (dono, id, uid) =>
+    const ligar = (dono: Navegador, id: number, uid: number) =>
       dono.put(`/api/barbeiros/${id}`, {
         nome: 'Léo',
         inicio: '00:00',
@@ -354,7 +368,7 @@ describe('clientes, equipe e permissões', () => {
     const ag = await agendado(b, daqui(60), b.leo.id);
     const agenda = (await n.get(`/api/agendamentos?data=${agora().data}`))
       .corpo;
-    expect(agenda.map((x) => x.id)).toEqual([ag.id]);
+    expect(agenda.map((x: ComId) => x.id)).toEqual([ag.id]);
   });
 
   // Planejamento 0035: o Barbeiro vê a agenda de todos (agenda.ver), mas não
@@ -422,7 +436,7 @@ describe('página pública', () => {
     });
 
     const p = navegador(servidor);
-    const agendar = (inicio, nome) =>
+    const agendar = (inicio: string, nome: string) =>
       p.post(`/api/publico/${b.slug}/agendamentos`, {
         data: proximaSegunda(),
         inicio,
@@ -442,7 +456,7 @@ describe('página pública', () => {
 });
 
 describe('sessão', () => {
-  const expiracao = (email) =>
+  const expiracao = (email: string) =>
     comoSuperusuario(async (c) =>
       (
         await c.query(
@@ -452,7 +466,7 @@ describe('sessão', () => {
         )
       ).rows[0].expira_em.getTime(),
     );
-  const definir = (email, intervalo) =>
+  const definir = (email: string, intervalo: string) =>
     comoSuperusuario((c) =>
       c.query(
         `update sessoes set expira_em = now() + $2::interval

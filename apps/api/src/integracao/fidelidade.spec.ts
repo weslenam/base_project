@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso, somarMeses } from '@barbertime/dominio';
 import { comoSuperusuario, criarServidor, novaBarbearia } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type Movimento = { tipo: string };
 
 // Planejamento 0034, etapa A: fidelidade no banco, com crédito ao receber a
 // comanda e resgate (prêmio e cashback) na comanda.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
@@ -13,7 +16,7 @@ afterAll(() => servidor?.close());
 
 const hoje = () => momentoNoFuso().data;
 
-const ligarModulo = (barbeariaId, modulo = 'fidelidade') =>
+const ligarModulo = (barbeariaId: number, modulo = 'fidelidade') =>
   comoSuperusuario((c) =>
     c.query(
       `insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, $2, 'ativo')
@@ -59,11 +62,11 @@ async function comFidelidade({ modulo = true } = {}) {
       itens: [{ tipo: 'servico', refId: corte.id }],
       ...extra,
     });
-  const receber = (cm) =>
+  const receber = (cm: { id: number }) =>
     dono.post(`/api/comandas/${cm.id}/receber`, { forma: 'pix' });
   const fidelidadeDe = async (clienteId = ana.id) =>
     (await dono.get(`/api/clientes/${clienteId}/fidelidade`)).corpo;
-  const darSelos = (n) =>
+  const darSelos = (n: number) =>
     comoSuperusuario(async (c) => {
       for (let i = 0; i < n; i++)
         await c.query(
@@ -131,7 +134,9 @@ describe('crédito ao receber a comanda', () => {
     const { saldo, extrato } = await b.fidelidadeDe();
     expect(saldo).toMatchObject({ selos: 1, cashback: 2.5, necessarios: 10 });
     expect(extrato).toHaveLength(2);
-    expect(extrato.find((m) => m.tipo === 'selo').expiraEm).toBeNull();
+    expect(
+      extrato.find((m: Movimento) => m.tipo === 'selo').expiraEm,
+    ).toBeNull();
 
     const avulsa = (await b.comanda({ clienteId: null })).corpo;
     expect((await b.receber(avulsa)).corpo.creditos).toEqual([]);
@@ -151,10 +156,10 @@ describe('crédito ao receber a comanda', () => {
     });
     await b.receber((await b.comanda()).corpo);
     const { extrato } = await b.fidelidadeDe();
-    expect(extrato.find((m) => m.tipo === 'selo').expiraEm).toBe(
+    expect(extrato.find((m: Movimento) => m.tipo === 'selo').expiraEm).toBe(
       somarMeses(hoje(), 6),
     );
-    expect(extrato.find((m) => m.tipo === 'cashback').valor).toBe(5);
+    expect(extrato.find((m: Movimento) => m.tipo === 'cashback').valor).toBe(5);
   });
 });
 
@@ -166,7 +171,7 @@ describe('resgate na comanda', () => {
     await b.darSelos(10);
     const r = await b.comanda({ itens: [], premioFidelidade: true });
     expect(r.status).toBe(201);
-    const premio = r.corpo.itens.find((i) => i.premio);
+    const premio = r.corpo.itens.find((i: { premio?: boolean }) => i.premio);
     expect(premio).toMatchObject({
       refId: b.corte.id,
       preco: 0,
@@ -222,7 +227,9 @@ describe('resgate na comanda', () => {
     const [r1, r2] = await Promise.all([b.receber(um), b.receber(dois)]);
     expect([r1.status, r2.status].sort()).toEqual([200, 409]);
     const { saldo, extrato } = await b.fidelidadeDe();
-    expect(extrato.filter((m) => m.tipo === 'uso_cashback')).toHaveLength(1);
+    expect(
+      extrato.filter((m: Movimento) => m.tipo === 'uso_cashback'),
+    ).toHaveLength(1);
     expect(saldo.cashback).toBeGreaterThanOrEqual(0);
   });
 
@@ -263,7 +270,7 @@ describe('correções da revisão (planejamento 0037)', () => {
 
   it('configuração: meses fracionados e percentual pequeno demais dão 400', async () => {
     const b = await comFidelidade();
-    const salvar = (selos, cashback) =>
+    const salvar = (selos: object | null, cashback: object | null) =>
       b.dono.put('/api/fidelidade/config', { selos, cashback });
     const selos = { ativo: true, necessarios: 10, premioServicoId: b.corte.id };
     expect((await salvar({ ...selos, validadeMeses: 1.5 }, null)).status).toBe(

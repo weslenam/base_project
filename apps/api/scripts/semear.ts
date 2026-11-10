@@ -5,7 +5,7 @@ import { config } from '../src/infra/config.ts';
 import { migrar, prepararPapelDaAplicacao } from '../src/infra/migrar.ts';
 import banco from '../src/infra/banco.ts';
 import { criarBarbearia } from '../src/servicos/barbearias.ts';
-import { garantirCategoriasPadrao } from '../src/servicos/estoque.js';
+import { garantirCategoriasPadrao } from '../src/servicos/estoque.ts';
 import identidade from '../src/identidade/index.ts';
 import { semearOperacao, temPerfil } from './operacao-exemplo.ts';
 import { criarOperador } from '../src/servicos/operadores.ts';
