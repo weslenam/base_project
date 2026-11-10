@@ -6,17 +6,53 @@ import {
   inicioDaSemana,
   somarDias,
   somarMeses,
-} from './agenda.js';
+} from './agenda.ts';
+
+/** Pacote de serviços (planejamento 0015). */
+export interface Pacote {
+  id?: number;
+  nome: string;
+  preco: number;
+  tipo: 'recorrente' | 'unico' | string;
+  validadeDias?: number | null;
+  itens: {
+    servicoId: number | null;
+    servicoNome?: string;
+    quantidade?: number | null;
+  }[];
+  limites?: {
+    intervaloMinimoDias?: number | null;
+    maximoPorSemana?: number | null;
+  };
+  excluido?: boolean;
+}
+
+/** Uso de um pacote numa data. */
+export interface UsoDePacote {
+  servicoId: number;
+  data: string;
+  comandaId?: number | null;
+}
+
+/** Pacote do cliente (um ciclo de vigência). */
+export interface Assinatura {
+  id?: number;
+  inicio: string;
+  fim: string;
+  usos?: UsoDePacote[];
+  cancelada?: boolean;
+}
 
 export const TIPOS_DE_PACOTE = Object.freeze([
   { valor: 'recorrente', rotulo: 'Recorrente (mensal)' },
   { valor: 'unico', rotulo: 'Compra única com validade' },
 ]);
 
-const inteiroPositivo = (v) => Number.isInteger(v) && v >= 1;
+const inteiroPositivo = (v: unknown): v is number =>
+  Number.isInteger(v) && (v as number) >= 1;
 
 /** Motivo de pacote inválido, ou null. */
-export function validarPacote(p) {
+export function validarPacote(p: Pacote): string | null {
   if (!String(p.nome ?? '').trim()) return 'Informe o nome do pacote.';
   if (!(p.preco > 0)) return 'Informe o preço do pacote.';
   if (!TIPOS_DE_PACOTE.some((t) => t.valor === p.tipo))
@@ -45,21 +81,24 @@ export function validarPacote(p) {
 }
 
 /** Vigência (datas inclusivas) de um ciclo que começa em `inicio`. */
-export function vigenciaDoPacote(pacote, inicio) {
+export function vigenciaDoPacote(
+  pacote: Pick<Pacote, 'tipo' | 'validadeDias'>,
+  inicio: string,
+): { inicio: string; fim: string } {
   const fim =
     pacote.tipo === 'recorrente'
       ? somarDias(somarMeses(inicio, 1), -1)
-      : somarDias(inicio, pacote.validadeDias - 1);
+      : somarDias(inicio, Number(pacote.validadeDias) - 1);
   return { inicio, fim };
 }
 
-const usosDoCiclo = (assinatura) =>
+const usosDoCiclo = (assinatura: Assinatura): UsoDePacote[] =>
   (assinatura.usos ?? []).filter(
     (u) => u.data >= assinatura.inicio && u.data <= assinatura.fim,
   );
 
 /** Por serviço: quantidade contratada (null = livre), usados no ciclo e restantes. */
-export function saldoDoPacote(pacote, assinatura) {
+export function saldoDoPacote(pacote: Pacote, assinatura: Assinatura) {
   const usos = usosDoCiclo(assinatura);
   return pacote.itens.map((i) => {
     const usados = usos.filter((u) => u.servicoId === i.servicoId).length;
@@ -75,7 +114,17 @@ export function saldoDoPacote(pacote, assinatura) {
 }
 
 /** Pode usar o pacote para o serviço na data? → { ok: true } | { ok: false, motivo } */
-export function podeUsarPacote({ pacote, assinatura, servicoId, data }) {
+export function podeUsarPacote({
+  pacote,
+  assinatura,
+  servicoId,
+  data,
+}: {
+  pacote: Pacote;
+  assinatura: Assinatura;
+  servicoId: number;
+  data: string;
+}): { ok: boolean; motivo?: string } {
   if (assinatura.cancelada)
     return { ok: false, motivo: 'Este pacote foi cancelado.' };
   if (data < assinatura.inicio) {
@@ -141,7 +190,10 @@ export function podeUsarPacote({ pacote, assinatura, servicoId, data }) {
 }
 
 /** Novo ciclo de um pacote recorrente: começa no dia seguinte ao fim do atual; o saldo zera. */
-export function renovarAssinatura(pacote, assinatura) {
+export function renovarAssinatura<A extends Assinatura>(
+  pacote: Pick<Pacote, 'tipo' | 'validadeDias'>,
+  assinatura: A,
+): A | null {
   if (pacote.tipo !== 'recorrente') return null;
   return {
     ...assinatura,
@@ -155,7 +207,11 @@ export function renovarAssinatura(pacote, assinatura) {
  * cliente não perde dias); já vencido, começa no dia do pagamento. Só o pacote
  * recorrente renova: o de compra única é vendido de novo (null).
  */
-export function cicloDaRenovacao(pacote, anterior, hoje) {
+export function cicloDaRenovacao(
+  pacote: Pick<Pacote, 'tipo' | 'validadeDias'>,
+  anterior: { fim?: string | null },
+  hoje: string,
+): { inicio: string; fim: string } | null {
   if (pacote.tipo !== 'recorrente') return null;
   const inicio =
     anterior.fim && anterior.fim >= hoje ? somarDias(anterior.fim, 1) : hoje;

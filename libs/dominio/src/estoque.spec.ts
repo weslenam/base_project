@@ -7,7 +7,7 @@ import {
   motivoParcelasInvalidas,
   sugestaoDeCompra,
   totalDaCompra,
-} from './estoque.js';
+} from './estoque.ts';
 
 // Planejamento 0027 (parte 1).
 

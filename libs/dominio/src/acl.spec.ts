@@ -12,8 +12,8 @@ import {
   podeAgirNoBalcao,
   podeMarcarNaAgenda,
   papelSemMenu,
-} from './permissoes.js';
-import { MODULOS, moduloDoCatalogo, transicaoDeModulo } from './modulos.js';
+} from './permissoes.ts';
+import { MODULOS, moduloDoCatalogo, transicaoDeModulo } from './modulos.ts';
 
 describe('permissões', () => {
   it('chaves únicas no formato recurso.acao', () => {
@@ -24,7 +24,7 @@ describe('permissões', () => {
   it('papéis padrão só usam permissões do catálogo; Dono tem todas e é protegido', () => {
     for (const p of PAPEIS_PADRAO)
       expect(permissoesInvalidas(p.permissoes)).toEqual([]);
-    const dono = PAPEIS_PADRAO.find((p) => p.chave === 'dono');
+    const dono = PAPEIS_PADRAO.find((p) => p.chave === 'dono')!;
     expect(dono.protegido).toBe(true);
     expect(dono.permissoes.sort()).toEqual([...CHAVES_DE_PERMISSAO].sort());
   });
@@ -117,7 +117,7 @@ describe('hierarquia fixa (ADR 0010, planejamento 0023)', () => {
 describe('módulos', () => {
   it('gateway, fidelidade e pacotes são serviços adicionais', () => {
     for (const m of ['pagamentos_online', 'fidelidade', 'pacotes']) {
-      expect(moduloDoCatalogo(m).tipo).toBe('adicional');
+      expect(moduloDoCatalogo(m)?.tipo).toBe('adicional');
     }
     expect(MODULOS.some((m) => m.tipo === 'incluso')).toBe(true);
   });
@@ -220,16 +220,14 @@ describe('agenda: quem ajuda x quem gerencia', () => {
   });
 
   it('Barbeiro remove só o bloqueio que criou', () => {
-    const bloqueio = (criadoPor) => ({
+    const bloqueio = (criadoPor: number | null) => ({
       bloqueio: true,
       criadoPor,
       barbeiroUsuarioId: 7,
     });
     expect(podeAgirNaAgenda(barbeiro, bloqueio(7), 'cancelado')).toBe(true);
     expect(podeAgirNaAgenda(barbeiro, bloqueio(3), 'cancelado')).toBe(false);
-    expect(podeAgirNaAgenda(barbeiro, bloqueio(null), 'cancelado')).toBe(
-      false,
-    );
+    expect(podeAgirNaAgenda(barbeiro, bloqueio(null), 'cancelado')).toBe(false);
   });
 
   it('item sem autor ou pessoa sem permissão: nada', () => {
@@ -256,7 +254,8 @@ describe('balcão: Barbeiro só age no que é seu', () => {
   });
 
   it('inicia só consigo: o que já é dele ou avulso sem barbeiro', () => {
-    const iniciar = (alvo) => podeAgirNoBalcao(barbeiro, 'iniciar', alvo);
+    const iniciar = (alvo: Parameters<typeof podeAgirNoBalcao>[2]) =>
+      podeAgirNoBalcao(barbeiro, 'iniciar', alvo);
     // Avulso "Primeiro livre": pode puxar para si.
     expect(iniciar({ barbeiroId: null, destinoUsuarioId: 7 })).toBe(true);
     // Já é dele.
@@ -281,7 +280,10 @@ describe('balcão: Barbeiro só age no que é seu', () => {
         true,
       );
       expect(
-        podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 9, criadoPor: 7 }),
+        podeAgirNoBalcao(barbeiro, acao, {
+          barbeiroUsuarioId: 9,
+          criadoPor: 7,
+        }),
       ).toBe(false);
     }
   });
@@ -292,18 +294,24 @@ describe('balcão: Barbeiro só age no que é seu', () => {
         true,
       );
       expect(
-        podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 9, criadoPor: 7 }),
+        podeAgirNoBalcao(barbeiro, acao, {
+          barbeiroUsuarioId: 9,
+          criadoPor: 7,
+        }),
       ).toBe(true);
       expect(
-        podeAgirNoBalcao(barbeiro, acao, { barbeiroUsuarioId: 9, criadoPor: 3 }),
+        podeAgirNoBalcao(barbeiro, acao, {
+          barbeiroUsuarioId: 9,
+          criadoPor: 3,
+        }),
       ).toBe(false);
     }
   });
 
   it('quem gerencia age em tudo; sem caixa nem agenda, nada', () => {
-    expect(podeAgirNoBalcao(recepcao, 'finalizar', { barbeiroUsuarioId: 9 })).toBe(
-      true,
-    );
+    expect(
+      podeAgirNoBalcao(recepcao, 'finalizar', { barbeiroUsuarioId: 9 }),
+    ).toBe(true);
     expect(
       podeAgirNoBalcao({ usuarioId: 7, permissoes: ['agenda.ver'] }, 'ver'),
     ).toBe(false);

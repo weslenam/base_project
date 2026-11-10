@@ -6,8 +6,8 @@ import {
   motivoParaUsarPremio,
   saldoDeFidelidade,
   validarConfigFidelidade,
-} from './fidelidade.js';
-import { motivoParaNaoReceber, totalDaComanda } from './caixa.js';
+} from './fidelidade.ts';
+import { motivoParaNaoReceber, totalDaComanda } from './caixa.ts';
 import {
   cicloDaRenovacao,
   podeUsarPacote,
@@ -15,8 +15,9 @@ import {
   saldoDoPacote,
   validarPacote,
   vigenciaDoPacote,
-} from './pacotes.js';
-import { diasEntre, inicioDaSemana, somarMeses } from './agenda.js';
+} from './pacotes.ts';
+import type { Pacote, UsoDePacote } from './pacotes.ts';
+import { diasEntre, inicioDaSemana, somarMeses } from './agenda.ts';
 
 const config = {
   selos: { ativo: true, necessarios: 10, premioServicoId: 1, validadeMeses: 6 },
@@ -49,13 +50,13 @@ describe('datas auxiliares', () => {
 describe('fidelidade', () => {
   // Planejamento 0037: o que o banco recusaria vira 400, não 500.
   it('validade em meses inteiros e percentual com até 2 casas', () => {
-    const comSelos = (validadeMeses) => ({
+    const comSelos = (validadeMeses: number) => ({
       ...config,
       selos: { ...config.selos, validadeMeses },
     });
     expect(validarConfigFidelidade(comSelos(1.5))).toContain('1 mês');
     expect(validarConfigFidelidade(comSelos(3))).toBeNull();
-    const comCashback = (percentual) => ({
+    const comCashback = (percentual: number) => ({
       ...config,
       cashback: { ativo: true, percentual, validadeDias: 90 },
     });
@@ -244,7 +245,7 @@ describe('resgate na comanda (planejamento 0034)', () => {
     const ganho = creditosDaComanda(cm, config, '2026-11-07').movimentos.find(
       (m) => m.tipo === 'cashback',
     );
-    expect(ganho.valor).toBe(3.5); // 5% de 70
+    expect(ganho?.valor).toBe(3.5); // 5% de 70
     expect(
       motivoParaNaoReceber({ ...cm, cashbackUsado: 81, forma: 'pix' }),
     ).toMatch(/cashback não pode passar/);
@@ -270,7 +271,11 @@ describe('pacotes', () => {
     ],
     limites: { intervaloMinimoDias: 7, maximoPorSemana: 2 },
   };
-  const assinatura = (pacote, usos = [], inicio = '2026-11-02') => ({
+  const assinatura = (
+    pacote: Pacote,
+    usos: UsoDePacote[] = [],
+    inicio = '2026-11-02',
+  ) => ({
     ...vigenciaDoPacote(pacote, inicio),
     usos,
   });
@@ -446,7 +451,7 @@ describe('pacotes', () => {
     ).toContain('Renove');
     const nova = renovarAssinatura(clubeLivre, a);
     expect(nova).toMatchObject({ inicio: '2026-12-02', fim: '2027-01-01' });
-    expect(saldoDoPacote(clubeLivre, nova)[0].usados).toBe(0);
+    expect(saldoDoPacote(clubeLivre, nova!)[0]?.usados).toBe(0);
     expect(
       renovarAssinatura(quatroCortes, assinatura(quatroCortes)),
     ).toBeNull();

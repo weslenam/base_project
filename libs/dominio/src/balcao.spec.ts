@@ -5,7 +5,7 @@ import {
   podeTransitar,
   situacaoDosBarbeiros,
   sugerirEncaixe,
-} from './balcao.js';
+} from './balcao.ts';
 
 const barbeiros = [
   { id: 1, nome: 'João', inicio: '09:00', fim: '19:00' },
@@ -46,8 +46,10 @@ describe('fila', () => {
 });
 
 describe('encaixe sem atropelar quem agendou', () => {
-  const situacao = (atendimentos, agora = '10:00') =>
-    situacaoDosBarbeiros({ barbeiros, atendimentos, agora });
+  const situacao = (
+    atendimentos: Parameters<typeof situacaoDosBarbeiros>[0]['atendimentos'],
+    agora = '10:00',
+  ) => situacaoDosBarbeiros({ barbeiros, atendimentos, agora });
 
   it('barbeiro livre com janela suficiente pode atender agora', () => {
     const s = situacao([

@@ -5,7 +5,7 @@ import {
   mesclarConfigBarbearia,
   momentoNoFuso,
   validarConfigBarbearia,
-} from './barbearia.js';
+} from './barbearia.ts';
 
 const valida = () => mesclarConfigBarbearia({});
 
@@ -90,7 +90,7 @@ describe('janela do agendamento online', () => {
   const config = mesclarConfigBarbearia({});
   // 2026-11-07 é sábado (fecha 17:00); 2026-11-08, domingo (fechado).
   const agora = { data: '2026-11-07', hora: '10:15' };
-  const janela = (data, extra = {}) =>
+  const janela = (data: string, extra = {}) =>
     janelaDoAgendamentoOnline({ config, barbeiro, data, agora, ...extra });
 
   it('junta o horário da barbearia com o expediente do barbeiro', () => {

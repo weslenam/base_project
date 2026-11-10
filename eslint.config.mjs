@@ -13,6 +13,12 @@ export default [
       '**/vitest.config.*.timestamp*',
     ],
   },
+  // Nos testes, `!` depois de um find/consulta é aceitável: se vier vazio, o
+  // teste falha de qualquer jeito.
+  {
+    files: ['**/*.spec.ts'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
   {
     files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.vue'],
     rules: {

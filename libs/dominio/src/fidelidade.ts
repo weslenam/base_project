@@ -1,8 +1,38 @@
 // Fidelidade (planejamento 0015): selos e/ou cashback, a barbearia escolhe.
-import { totalDaComanda } from './caixa.js';
-import { somarDias, somarMeses } from './agenda.js';
+import { totalDaComanda } from './caixa.ts';
+import type { Comanda, Valor } from './caixa.ts';
+import { somarDias, somarMeses } from './agenda.ts';
 
-export const FIDELIDADE_PADRAO = Object.freeze({
+/** Configuração da fidelidade da barbearia (selos e/ou cashback). */
+export interface ConfigFidelidade {
+  selos: {
+    ativo: boolean;
+    necessarios: number;
+    premioServicoId: number | null;
+    validadeMeses: number | null;
+  };
+  cashback: { ativo: boolean; percentual: number; validadeDias: number };
+}
+
+/** Movimento do extrato: crédito (selo, cashback) ou gasto (resgate_selos, uso_cashback). */
+export interface MovimentoFidelidade {
+  tipo: 'selo' | 'cashback' | 'resgate_selos' | 'uso_cashback' | string;
+  valor: number;
+  data?: string | null;
+  expiraEm?: string | null;
+  comandaId?: number | null;
+}
+
+/** Saldo do cliente calculado do extrato. */
+export interface SaldoFidelidade {
+  selos: number;
+  necessarios: number;
+  premiosDisponiveis: number;
+  faltamParaPremio: number;
+  cashback: number;
+}
+
+export const FIDELIDADE_PADRAO: Readonly<ConfigFidelidade> = Object.freeze({
   selos: {
     ativo: false,
     necessarios: 10,
@@ -13,29 +43,43 @@ export const FIDELIDADE_PADRAO = Object.freeze({
 });
 
 /** Motivo de configuração inválida, ou null. */
-export function validarConfigFidelidade({ selos, cashback }) {
+export function validarConfigFidelidade({
+  selos,
+  cashback,
+}: {
+  selos?: Partial<ConfigFidelidade['selos']> | null;
+  cashback?: Partial<ConfigFidelidade['cashback']> | null;
+}): string | null {
   if (selos?.ativo) {
-    if (!(Number.isInteger(selos.necessarios) && selos.necessarios >= 2)) {
+    if (
+      !(Number.isInteger(selos.necessarios) && Number(selos.necessarios) >= 2)
+    ) {
       return 'O cartão precisa de pelo menos 2 selos para o prêmio.';
     }
     if (!selos.premioServicoId)
       return 'Escolha o serviço que o cliente ganha ao completar os selos.';
     if (
       selos.validadeMeses != null &&
-      !(Number.isInteger(selos.validadeMeses) && selos.validadeMeses >= 1)
+      !(
+        Number.isInteger(selos.validadeMeses) &&
+        Number(selos.validadeMeses) >= 1
+      )
     ) {
       return 'A validade dos selos precisa ser de pelo menos 1 mês (ou sem validade).';
     }
   }
   if (cashback?.ativo) {
     // Até 2 casas, como a coluna numeric(5,2) guarda (planejamento 0037).
-    const p = cashback.percentual;
+    const p = Number(cashback.percentual);
     const duasCasas = Math.abs(Math.round(p * 100) - p * 100) < 1e-6;
     if (!(p >= 0.1 && p <= 50 && duasCasas)) {
       return 'O cashback precisa ficar entre 0,1% e 50%, com até 2 casas decimais.';
     }
     if (
-      !(Number.isInteger(cashback.validadeDias) && cashback.validadeDias >= 1)
+      !(
+        Number.isInteger(cashback.validadeDias) &&
+        Number(cashback.validadeDias) >= 1
+      )
     ) {
       return 'A validade do cashback precisa ser de pelo menos 1 dia.';
     }
@@ -49,12 +93,16 @@ export function validarConfigFidelidade({ selos, cashback }) {
  * - selo: 1 se houver ao menos um serviço PAGO (serviço usado por pacote, a R$ 0, não conta)
  * - cashback: % do total pago, arredondado para baixo no centavo
  */
-export function creditosDaComanda(comanda, config, data) {
+export function creditosDaComanda(
+  comanda: Comanda,
+  config: ConfigFidelidade,
+  data: string,
+): { movimentos: MovimentoFidelidade[] } {
   const nada = { movimentos: [] };
   if (comanda.estado !== 'paga' || !comanda.clienteId) return nada;
-  const movimentos = [];
+  const movimentos: MovimentoFidelidade[] = [];
   const temServicoPago = (comanda.itens ?? []).some(
-    (i) => i.tipo === 'servico' && i.preco > 0,
+    (i) => i.tipo === 'servico' && Number(i.preco) > 0,
   );
   if (config.selos?.ativo && temServicoPago) {
     movimentos.push({
@@ -91,7 +139,11 @@ export function creditosDaComanda(comanda, config, data) {
  *   selo (+1) · resgate_selos (−N) · cashback (+R$) · uso_cashback (−R$)
  * Créditos vencidos (expiraEm < hoje) não contam.
  */
-export function saldoDeFidelidade(movimentos, config, hoje) {
+export function saldoDeFidelidade(
+  movimentos: MovimentoFidelidade[],
+  config: Pick<ConfigFidelidade, 'selos'> | Partial<ConfigFidelidade>,
+  hoje: string,
+): SaldoFidelidade {
   const selos = consumirPorVencimento(
     movimentos,
     'selo',
@@ -121,8 +173,14 @@ export function saldoDeFidelidade(movimentos, config, hoje) {
  * consome créditos que já existiam e ainda valiam na data dele (sem data:
  * os válidos hoje). Sobra de crédito vencido não conta.
  */
-function consumirPorVencimento(movimentos, credito, gasto, hoje) {
-  const valeEm = (m, dia) => !m.expiraEm || m.expiraEm >= dia;
+function consumirPorVencimento(
+  movimentos: MovimentoFidelidade[],
+  credito: string,
+  gasto: string,
+  hoje: string,
+): number {
+  const valeEm = (m: MovimentoFidelidade, dia: string) =>
+    !m.expiraEm || m.expiraEm >= dia;
   const creditos = movimentos
     .filter((m) => m.tipo === credito)
     .map((m) => ({ ...m, resto: Math.round(m.valor * 100) }))
@@ -149,7 +207,15 @@ function consumirPorVencimento(movimentos, credito, gasto, hoje) {
 }
 
 /** Motivo para não usar o prêmio dos selos nesta comanda, ou null se pode. */
-export function motivoParaUsarPremio({ config, saldo, clienteId }) {
+export function motivoParaUsarPremio({
+  config,
+  saldo,
+  clienteId,
+}: {
+  config?: ConfigFidelidade | null;
+  saldo?: Pick<SaldoFidelidade, 'selos'> | null;
+  clienteId?: number | null;
+}): string | null {
   if (!clienteId)
     return 'Identifique o cliente para usar o prêmio da fidelidade.';
   if (!config?.selos?.ativo || !config.selos.premioServicoId)
@@ -163,7 +229,13 @@ export function motivoParaUsarPremio({ config, saldo, clienteId }) {
  * Quanto de cashback dá para usar: o saldo, limitado ao que falta pagar da
  * comanda (subtotal menos desconto).
  */
-export function limiteDeCashback({ saldo, comanda }) {
+export function limiteDeCashback({
+  saldo,
+  comanda,
+}: {
+  saldo?: Pick<SaldoFidelidade, 'cashback'> | null;
+  comanda: Comanda;
+}): number {
   const { subtotal, desconto } = totalDaComanda({
     ...comanda,
     cashbackUsado: 0,
@@ -173,7 +245,15 @@ export function limiteDeCashback({ saldo, comanda }) {
 }
 
 /** Motivo para não usar este valor de cashback, ou null se pode. */
-export function motivoParaUsarCashback({ valor, saldo, comanda }) {
+export function motivoParaUsarCashback({
+  valor,
+  saldo,
+  comanda,
+}: {
+  valor: Valor;
+  saldo?: Pick<SaldoFidelidade, 'cashback'> | null;
+  comanda: Comanda;
+}): string | null {
   const v = Math.round(Number(valor || 0) * 100);
   if (!v) return null;
   if (v < 0) return 'Informe um valor de cashback válido.';

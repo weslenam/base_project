@@ -1,20 +1,45 @@
 // Estoque e compras (planejamento 0027, parte 1). Regras puras: a API grava os
 // movimentos e o saldo; aqui ficam as contas.
-import { somarDias } from './agenda.js';
+import { somarDias } from './agenda.ts';
+import type { ItemComanda, Valor } from './caixa.ts';
 
 export const TIPOS_DE_PRODUTO = Object.freeze(['revenda', 'consumivel']);
 export const UNIDADES = Object.freeze(['un', 'ml', 'g', 'cx', 'par']);
 
 /** Quantidades com até 3 casas (0,5 un; 12,25 ml) e valores em centavos. */
-export const arredondarQuantidade = (n) => Math.round(Number(n) * 1000) / 1000;
-const centavos = (v) => Math.round(Number(v) * 100);
-const reais = (c) => c / 100;
+export const arredondarQuantidade = (n: Valor): number =>
+  Math.round(Number(n) * 1000) / 1000;
+const centavos = (v: Valor): number => Math.round(Number(v) * 100);
+const reais = (c: number): number => c / 100;
+
+/** Produto como as regras de estoque o enxergam. */
+export interface ProdutoEstoque {
+  id: number;
+  nome?: string;
+  tipo?: 'revenda' | 'consumivel' | string;
+  saldo?: Valor;
+  estoqueMinimo?: Valor;
+}
+
+/** Linha da ficha técnica: quanto de um consumível o serviço gasta. */
+export interface LinhaDeFicha {
+  servicoId: number;
+  produtoId: number;
+  quantidade: Valor;
+}
+
+/** Baixa de estoque gerada pela comanda paga. */
+export interface Baixa {
+  produtoId: number;
+  tipo: 'venda' | 'consumo_servico';
+  quantidade: number;
+}
 
 /**
  * Produtos que pedem compra: saldo no mínimo ou abaixo (com mínimo definido)
  * ou negativo. Sugestão: voltar ao dobro do mínimo (ou ao zero, se não houver mínimo).
  */
-export function sugestaoDeCompra(produtos = []) {
+export function sugestaoDeCompra(produtos: ProdutoEstoque[] = []) {
   return produtos
     .filter(
       (p) =>
@@ -46,11 +71,29 @@ export function sugestaoDeCompra(produtos = []) {
  * - fichas: [{ servicoId, produtoId, quantidade }]
  * - produtos: Map/obj por id com { tipo } dos produtos ativos
  */
-export function baixasDaComanda({ itens = [], fichas = [], produtos = {} }) {
-  const doProduto = (id) =>
-    produtos instanceof Map ? produtos.get(id) : produtos[id];
-  const total = new Map();
-  const somar = (produtoId, tipo, quantidade) => {
+export function baixasDaComanda({
+  itens = [],
+  fichas = [],
+  produtos = {},
+}: {
+  itens?: ItemComanda[];
+  fichas?: LinhaDeFicha[];
+  produtos?:
+    | Map<number, Pick<ProdutoEstoque, 'tipo'>>
+    | Record<number, Pick<ProdutoEstoque, 'tipo'>>;
+}): Baixa[] {
+  const doProduto = (id: number | undefined) =>
+    id == null
+      ? undefined
+      : produtos instanceof Map
+        ? produtos.get(id)
+        : produtos[id];
+  const total = new Map<string, Baixa>();
+  const somar = (
+    produtoId: number,
+    tipo: Baixa['tipo'],
+    quantidade: number,
+  ) => {
     const chave = `${tipo}:${produtoId}`;
     const atual = total.get(chave) ?? { produtoId, tipo, quantidade: 0 };
     atual.quantidade = arredondarQuantidade(atual.quantidade - quantidade);
@@ -59,7 +102,7 @@ export function baixasDaComanda({ itens = [], fichas = [], produtos = {} }) {
   for (const item of itens) {
     const qtd = Math.max(1, Number(item.quantidade) || 1);
     if (item.tipo === 'produto') {
-      if (doProduto(item.refId)?.tipo === 'revenda')
+      if (item.refId != null && doProduto(item.refId)?.tipo === 'revenda')
         somar(item.refId, 'venda', qtd);
     } else if (item.tipo === 'servico') {
       for (const f of fichas.filter((x) => x.servicoId === item.refId)) {
@@ -72,14 +115,25 @@ export function baixasDaComanda({ itens = [], fichas = [], produtos = {} }) {
 }
 
 /** Diferença do inventário (contado − saldo); null quando não muda nada. */
-export function ajusteDeInventario(saldo, contado) {
+export function ajusteDeInventario(
+  saldo: Valor,
+  contado: Valor,
+): number | null {
   if (!(Number(contado) >= 0)) return null;
   const diferenca = arredondarQuantidade(Number(contado) - Number(saldo));
   return diferenca === 0 ? null : diferenca;
 }
 
 /** Total da compra: itens + frete − desconto; motivo quando não fecha. */
-export function totalDaCompra({ itens = [], frete = 0, desconto = 0 }) {
+export function totalDaCompra({
+  itens = [],
+  frete = 0,
+  desconto = 0,
+}: {
+  itens?: { custoUnitario: Valor; quantidade: Valor }[];
+  frete?: Valor;
+  desconto?: Valor;
+}) {
   const subtotal = itens.reduce(
     (s, i) => s + Math.round(centavos(i.custoUnitario) * Number(i.quantidade)),
     0,
@@ -98,9 +152,12 @@ export function totalDaCompra({ itens = [], frete = 0, desconto = 0 }) {
  * `intervaloDias`.
  */
 export function dividirParcelas(
-  total,
-  quantidade,
-  { primeiroVencimento, intervaloDias = 30 },
+  total: Valor,
+  quantidade: Valor,
+  {
+    primeiroVencimento,
+    intervaloDias = 30,
+  }: { primeiroVencimento: string; intervaloDias?: Valor },
 ) {
   const n = Math.max(1, Math.floor(Number(quantidade) || 1));
   const emCentavos = centavos(total);
@@ -114,7 +171,10 @@ export function dividirParcelas(
 }
 
 /** Parcelas informadas à mão precisam somar o total da compra. */
-export function motivoParcelasInvalidas(parcelas = [], total) {
+export function motivoParcelasInvalidas(
+  parcelas: { valor: Valor; vencimento?: string | null }[] = [],
+  total: Valor,
+): string | null {
   if (!parcelas.length) return 'Informe ao menos uma parcela.';
   if (parcelas.some((p) => !(Number(p.valor) > 0) || !p.vencimento))
     return 'Cada parcela precisa de valor e vencimento.';
@@ -128,17 +188,17 @@ export function motivoParcelasInvalidas(parcelas = [], total) {
  * Documento do fornecedor: vazio (opcional), CPF (11 dígitos) ou CNPJ (14),
  * com os dígitos verificadores conferidos. Recebe só dígitos.
  */
-export function documentoValido(digitos) {
+export function documentoValido(digitos: string | null | undefined): boolean {
   const d = String(digitos ?? '');
   if (!d) return true;
   if (!/^\d+$/.test(d) || /^(\d)\1+$/.test(d)) return false;
-  const dv = (base, pesos) => {
+  const dv = (base: string, pesos: number[]) => {
     const soma = [...base].reduce((t, n, i) => t + Number(n) * pesos[i], 0);
     const resto = soma % 11;
     return resto < 2 ? 0 : 11 - resto;
   };
   if (d.length === 11) {
-    const p = (n) => Array.from({ length: n }, (_, i) => n + 1 - i);
+    const p = (n: number) => Array.from({ length: n }, (_, i) => n + 1 - i);
     return (
       dv(d.slice(0, 9), p(9)) === Number(d[9]) &&
       dv(d.slice(0, 10), p(10)) === Number(d[10])

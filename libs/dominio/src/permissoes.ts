@@ -2,7 +2,31 @@
 // Front e API usam este mesmo catálogo; as permissões de cada papel vêm daqui,
 // não do banco.
 
-export const PERMISSOES = Object.freeze([
+/** Permissão do catálogo; `modulo` = só vale com o módulo ativo. */
+export interface Permissao {
+  chave: string;
+  grupo: string;
+  descricao: string;
+  modulo?: string;
+}
+
+/** Papel fixo (ADR 0010). */
+export interface Papel {
+  chave: string;
+  nome: string;
+  nivel: number;
+  protegido: boolean;
+  semMenu?: boolean;
+  permissoes: string[];
+}
+
+/** Quem age: a conta e as permissões efetivas dela. */
+export interface QuemAge {
+  usuarioId?: number | null;
+  permissoes?: string[];
+}
+
+export const PERMISSOES: readonly Permissao[] = Object.freeze([
   {
     chave: 'agenda.ver_propria',
     grupo: 'Agenda',
@@ -125,7 +149,7 @@ export const PERMISSOES = Object.freeze([
   },
 ]);
 
-export const CHAVES_DE_PERMISSAO = Object.freeze(
+export const CHAVES_DE_PERMISSAO: readonly string[] = Object.freeze(
   PERMISSOES.map((p) => p.chave),
 );
 
@@ -136,7 +160,7 @@ const SO_DO_DONO = ['barbearia.configurar', 'modulos.gerenciar'];
  * Os quatro papéis fixos, do nível 1 (topo) ao 4 (ADR 0010, planejamento 0023).
  * Não há papéis personalizados.
  */
-export const PAPEIS_PADRAO = Object.freeze([
+export const PAPEIS_PADRAO: readonly Papel[] = Object.freeze([
   {
     chave: 'dono',
     nome: 'Dono',
@@ -185,7 +209,9 @@ export const PAPEIS_PADRAO = Object.freeze([
 ]);
 
 /** Pode marcar agendamentos e bloquear horários (em qualquer coluna)? */
-export const podeMarcarNaAgenda = (permissoes = []) =>
+export const podeMarcarNaAgenda = (
+  permissoes: readonly string[] = [],
+): boolean =>
   permissoes.includes('agenda.gerenciar') ||
   permissoes.includes('agenda.ajudar');
 
@@ -196,14 +222,22 @@ export const podeMarcarNaAgenda = (permissoes = []) =>
  * criou; faltou também nos atendimentos em que ela é o barbeiro; atendido só
  * nos próprios atendimentos, como "finalizar" no Balcão (planejamento 0037).
  * Se a transição em si é válida, quem decide é o ciclo do atendimento.
- *
- * @param {{ usuarioId: number, permissoes: string[] }} quem
- * @param {{ bloqueio?: boolean, criadoPor?: number|null, barbeiroUsuarioId?: number|null }} item
  */
-export function podeAgirNaAgenda(quem, item, estado) {
+export function podeAgirNaAgenda(
+  quem: QuemAge | null | undefined,
+  item:
+    | {
+        bloqueio?: boolean;
+        criadoPor?: number | null;
+        barbeiroUsuarioId?: number | null;
+      }
+    | null
+    | undefined,
+  estado: string,
+): boolean {
   const permissoes = quem?.permissoes ?? [];
   if (permissoes.includes('agenda.gerenciar')) return true;
-  if (!permissoes.includes('agenda.ajudar') || quem.usuarioId == null)
+  if (!permissoes.includes('agenda.ajudar') || quem?.usuarioId == null)
     return false;
   const criou = item?.criadoPor != null && item.criadoPor === quem.usuarioId;
   if (item?.bloqueio) return criou;
@@ -223,18 +257,35 @@ export function podeAgirNaAgenda(quem, item, estado) {
  * barbeiro ("Primeiro livre", planejamento 0037); finalizar e pausa só os
  * próprios; desistência e falta na própria coluna ou no que criou.
  *
- * @param {{ usuarioId: number, permissoes: string[] }} quem
- * @param {'ver'|'checkin'|'avulso'|'receber'|'iniciar'|'finalizar'|'desistir'|'no_show'|'pausa'} acao
- * @param {{ barbeiroId?: number|null, barbeiroUsuarioId?: number|null, criadoPor?: number|null, destinoUsuarioId?: number|null }} alvo
- *   barbeiroId/barbeiroUsuarioId: barbeiro atual do atendimento (null = sem
- *   barbeiro); destinoUsuarioId: conta de quem vai atender (iniciar).
+ * `alvo.barbeiroId`/`barbeiroUsuarioId`: barbeiro atual do atendimento (null =
+ * sem barbeiro); `destinoUsuarioId`: conta de quem vai atender (iniciar).
  */
-export function podeAgirNoBalcao(quem, acao, alvo = {}) {
+export function podeAgirNoBalcao(
+  quem: QuemAge | null | undefined,
+  acao:
+    | 'ver'
+    | 'checkin'
+    | 'avulso'
+    | 'receber'
+    | 'iniciar'
+    | 'finalizar'
+    | 'desistir'
+    | 'no_show'
+    | 'pausa'
+    | string,
+  alvo: {
+    barbeiroId?: number | null;
+    barbeiroUsuarioId?: number | null;
+    criadoPor?: number | null;
+    destinoUsuarioId?: number | null;
+  } = {},
+): boolean {
   const permissoes = quem?.permissoes ?? [];
   if (permissoes.includes('agenda.gerenciar')) return true;
-  if (!permissoes.includes('caixa.operar') || quem.usuarioId == null)
+  if (!permissoes.includes('caixa.operar') || quem?.usuarioId == null)
     return false;
-  const eu = (id) => id != null && id === quem.usuarioId;
+  const eu = (id: number | null | undefined) =>
+    id != null && id === quem.usuarioId;
   switch (acao) {
     case 'ver':
     case 'checkin':
@@ -258,59 +309,68 @@ export function podeAgirNoBalcao(quem, acao, alvo = {}) {
 }
 
 /** Permissões fora do catálogo (para recusar com 400). */
-export const permissoesInvalidas = (lista = []) =>
+export const permissoesInvalidas = (lista: readonly string[] = []): string[] =>
   lista.filter((p) => !CHAVES_DE_PERMISSAO.includes(p));
 
 /**
  * Permissões que valem de fato: as do papel, menos as que dependem de
  * módulo inativo na barbearia.
  */
-export function permissoesEfetivas(doPapel = [], modulosAtivos = []) {
+export function permissoesEfetivas(
+  doPapel: readonly string[] = [],
+  modulosAtivos: readonly string[] = [],
+): string[] {
   return doPapel.filter((chave) => {
     const p = PERMISSOES.find((x) => x.chave === chave);
     return p && (!p.modulo || modulosAtivos.includes(p.modulo));
   });
 }
 
-const papelFixo = (chave) => PAPEIS_PADRAO.find((p) => p.chave === chave);
+const papelFixo = (chave: string | null | undefined): Papel | undefined =>
+  PAPEIS_PADRAO.find((p) => p.chave === chave);
 
 /** O papel usa o app sem menu (só a Agenda e o Perfil)? */
-export const papelSemMenu = (chave) => Boolean(papelFixo(chave)?.semMenu);
+export const papelSemMenu = (chave: string | null | undefined): boolean =>
+  Boolean(papelFixo(chave)?.semMenu);
 
 /** Nível do papel (1 = Dono, 4 = Barbeiro). Chave desconhecida: null. */
-export const nivelDoPapel = (chave) => papelFixo(chave)?.nivel ?? null;
+export const nivelDoPapel = (chave: string | null | undefined): number | null =>
+  papelFixo(chave)?.nivel ?? null;
 
 /**
  * Permissões fixas do papel, pela chave (vazio se desconhecida). A API usa
  * isto, e não a coluna do banco: nem um dado adulterado dá acesso.
  */
-export const permissoesDoPapel = (chave) => [
-  ...(papelFixo(chave)?.permissoes ?? []),
-];
+export const permissoesDoPapel = (
+  chave: string | null | undefined,
+): string[] => [...(papelFixo(chave)?.permissoes ?? [])];
 
 /**
  * Hierarquia estrita (ADR 0010): só se age sobre quem está ABAIXO, nunca acima
  * nem na lateral. Vale para convidar, dar papel, trocar papel, desativar e
  * remover. Ninguém dá o papel Dono (não há nível acima de 1).
  */
-export function podeAgirSobre(chaveDeQuemAge, chaveDoAlvo) {
+export function podeAgirSobre(
+  chaveDeQuemAge: string | null | undefined,
+  chaveDoAlvo: string | null | undefined,
+): boolean {
   const eu = nivelDoPapel(chaveDeQuemAge);
   const alvo = nivelDoPapel(chaveDoAlvo);
   return eu !== null && alvo !== null && alvo > eu;
 }
 
 /** Papéis que quem tem `chave` pode dar (os de nível abaixo do seu). */
-export const papeisAbaixoDe = (chave) =>
+export const papeisAbaixoDe = (chave: string | null | undefined): string[] =>
   PAPEIS_PADRAO.filter((p) => podeAgirSobre(chave, p.chave)).map(
     (p) => p.chave,
   );
 
 /** Permissões agrupadas para montar telas (ex.: checklist de papéis). */
 export function permissoesPorGrupo() {
-  const grupos = new Map();
+  const grupos = new Map<string, Permissao[]>();
   for (const p of PERMISSOES) {
     if (!grupos.has(p.grupo)) grupos.set(p.grupo, []);
-    grupos.get(p.grupo).push(p);
+    grupos.get(p.grupo)?.push(p);
   }
   return [...grupos].map(([grupo, permissoes]) => ({ grupo, permissoes }));
 }

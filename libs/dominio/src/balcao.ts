@@ -1,6 +1,42 @@
 // Balcão (planejamento 0020, especificação docs/atendimento/balcao.md):
 // ciclo de vida do atendimento, fila e encaixe sem atropelar quem agendou.
-import { paraHora, paraMinutos } from './agenda.js';
+import { paraHora, paraMinutos } from './agenda.ts';
+import type { Intervalo } from './agenda.ts';
+
+/** Atendimento como as regras do balcão o enxergam. */
+export interface AtendimentoBalcao {
+  id: number;
+  estado: string;
+  barbeiroId?: number | null;
+  servicoId?: number | null;
+  inicio?: string | null;
+  fim?: string | null;
+  chegouAs?: string | null;
+  iniciadoAs?: string | null;
+  duracao?: number | null;
+  confirmadoEm?: string | null;
+}
+
+/** Barbeiro com expediente e pausa. */
+export interface BarbeiroBalcao {
+  id: number;
+  nome: string;
+  inicio: string;
+  fim: string;
+  emPausa?: boolean;
+}
+
+/** Situação de um barbeiro agora (ver situacaoDosBarbeiros). */
+export interface SituacaoDoBarbeiro {
+  id: number;
+  nome: string;
+  expediente: Intervalo;
+  estado: 'pausa' | 'ocupado' | 'livre';
+  atual: AtendimentoBalcao | null;
+  livreEm: string;
+  restanteMin: number;
+  reservados: AtendimentoBalcao[];
+}
 
 export const ESTADOS_DE_ATENDIMENTO = Object.freeze([
   'agendado',
@@ -14,14 +50,14 @@ export const ESTADOS_DE_ATENDIMENTO = Object.freeze([
   'cancelado',
 ]);
 
-const TRANSICOES = {
+const TRANSICOES: Record<string, string[]> = {
   agendado: ['chegou', 'no_show', 'cancelado'],
   chegou: ['em_atendimento', 'desistiu', 'cancelado'],
   na_fila: ['em_atendimento', 'desistiu'],
   em_atendimento: ['finalizado'],
   finalizado: ['pago'],
 };
-export const podeTransitar = (de, para) =>
+export const podeTransitar = (de: string, para: string): boolean =>
   Boolean(TRANSICOES[de]?.includes(para));
 
 /** Configurações do balcão por barbearia (com os padrões da especificação). */
@@ -35,33 +71,39 @@ export const BALCAO_PADRAO = Object.freeze({
  * A agenda (tela atual) ainda fala o vocabulário antigo; esta é a tradução
  * do status do atendimento para ela.
  */
-export function estadoNaAgenda({ estado, confirmadoEm }) {
+export function estadoNaAgenda({
+  estado,
+  confirmadoEm,
+}: Pick<AtendimentoBalcao, 'estado' | 'confirmadoEm'>): string {
   if (estado === 'agendado') return confirmadoEm ? 'confirmado' : 'pendente';
-  return (
-    {
-      chegou: 'confirmado',
-      na_fila: 'pendente',
-      em_atendimento: 'confirmado',
-      finalizado: 'atendido',
-      pago: 'atendido',
-      no_show: 'faltou',
-      desistiu: 'cancelado',
-      cancelado: 'cancelado',
-    }[estado] ?? estado
-  );
+  const traducao: Record<string, string> = {
+    chegou: 'confirmado',
+    na_fila: 'pendente',
+    em_atendimento: 'confirmado',
+    finalizado: 'atendido',
+    pago: 'atendido',
+    no_show: 'faltou',
+    desistiu: 'cancelado',
+    cancelado: 'cancelado',
+  };
+  return traducao[estado] ?? estado;
 }
 
 /** Agendado que ainda segura o horário: não chegou e não passou da tolerância. */
-const seguraHorario = (a, agora, tolerancia) =>
+const seguraHorario = (
+  a: AtendimentoBalcao,
+  agora: string,
+  tolerancia: number,
+): boolean =>
   (a.estado === 'agendado' &&
-    paraMinutos(a.inicio) + tolerancia >= paraMinutos(agora)) ||
+    paraMinutos(a.inicio ?? '') + tolerancia >= paraMinutos(agora)) ||
   (a.estado === 'chegou' && !atrasado(a, tolerancia));
 
 /** Chegou depois do horário marcado + tolerância. */
-export const atrasado = (a, tolerancia) =>
+export const atrasado = (a: AtendimentoBalcao, tolerancia: number): boolean =>
   a.estado === 'chegou' &&
   Boolean(a.chegouAs) &&
-  paraMinutos(a.chegouAs) > paraMinutos(a.inicio) + tolerancia;
+  paraMinutos(a.chegouAs ?? '') > paraMinutos(a.inicio ?? '') + tolerancia;
 
 /**
  * Ordem da fila (especificação):
@@ -69,14 +111,16 @@ export const atrasado = (a, tolerancia) =>
  *  2. agendado atrasado: perde o horário reservado, mas fica à frente dos avulsos;
  *  3. avulsos por ordem de chegada.
  */
-export function ordenarFila(
-  itens,
-  tolerancia = BALCAO_PADRAO.toleranciaMinutos,
-) {
-  const grupo = (a) =>
+export function ordenarFila<A extends AtendimentoBalcao>(
+  itens: A[],
+  tolerancia: number = BALCAO_PADRAO.toleranciaMinutos,
+): A[] {
+  const grupo = (a: A) =>
     a.estado === 'chegou' ? (atrasado(a, tolerancia) ? 2 : 1) : 3;
-  const chave = (a) =>
-    grupo(a) === 1 ? paraMinutos(a.inicio) : paraMinutos(a.chegouAs ?? '00:00');
+  const chave = (a: A) =>
+    grupo(a) === 1
+      ? paraMinutos(a.inicio ?? '')
+      : paraMinutos(a.chegouAs ?? '00:00');
   return itens
     .filter((a) => a.estado === 'chegou' || a.estado === 'na_fila')
     .slice()
@@ -92,7 +136,12 @@ export function situacaoDosBarbeiros({
   atendimentos,
   agora,
   tolerancia = BALCAO_PADRAO.toleranciaMinutos,
-}) {
+}: {
+  barbeiros: BarbeiroBalcao[];
+  atendimentos: AtendimentoBalcao[];
+  agora: string;
+  tolerancia?: number;
+}): SituacaoDoBarbeiro[] {
   return barbeiros.map((b) => {
     const meus = atendimentos.filter((a) => a.barbeiroId === b.id);
     const atual = meus.find((a) => a.estado === 'em_atendimento') ?? null;
@@ -103,12 +152,18 @@ export function situacaoDosBarbeiros({
     const reservados = meus
       .filter((a) => a.inicio && seguraHorario(a, agora, tolerancia))
       .filter((a) => a.id !== atual?.id)
-      .sort((x, y) => paraMinutos(x.inicio) - paraMinutos(y.inicio));
+      .sort(
+        (x, y) => paraMinutos(x.inicio ?? '') - paraMinutos(y.inicio ?? ''),
+      );
     return {
       id: b.id,
       nome: b.nome,
       expediente: { inicio: b.inicio, fim: b.fim },
-      estado: b.emPausa ? 'pausa' : atual ? 'ocupado' : 'livre',
+      estado: (b.emPausa
+        ? 'pausa'
+        : atual
+          ? 'ocupado'
+          : 'livre') as SituacaoDoBarbeiro['estado'],
       atual,
       livreEm,
       restanteMin: atual ? Math.max(0, fimAtual - paraMinutos(agora)) : 0,
@@ -118,11 +173,17 @@ export function situacaoDosBarbeiros({
 }
 
 /** Primeiro minuto >= t em que cabe `duracao + folga` antes do próximo reservado. */
-function primeiraJanela(t, reservados, duracao, folga, fimExpediente) {
+function primeiraJanela(
+  t: number,
+  reservados: AtendimentoBalcao[],
+  duracao: number,
+  folga: number,
+  fimExpediente: number,
+): number | null {
   let inicio = t;
   for (const r of reservados) {
-    const ri = paraMinutos(r.inicio);
-    const rf = paraMinutos(r.fim);
+    const ri = paraMinutos(r.inicio ?? '');
+    const rf = paraMinutos(r.fim ?? '');
     if (rf <= inicio) continue;
     if (ri - inicio >= duracao + folga) break;
     inicio = Math.max(inicio, rf);
@@ -146,12 +207,19 @@ export function sugerirEncaixe({
   duracao,
   agora,
   folga = BALCAO_PADRAO.folgaMinutos,
+}: {
+  situacao: SituacaoDoBarbeiro[];
+  fila?: AtendimentoBalcao[];
+  duracoes?: Record<number, number>;
+  duracao: number;
+  agora: string;
+  folga?: number;
 }) {
   const ativos = situacao.filter((s) => s.estado !== 'pausa');
   const t = new Map(ativos.map((s) => [s.id, paraMinutos(s.livreEm)]));
-  const proximoInicio = (s, dur) =>
+  const proximoInicio = (s: SituacaoDoBarbeiro, dur: number) =>
     primeiraJanela(
-      t.get(s.id),
+      t.get(s.id) ?? 0,
       s.reservados,
       dur,
       folga,
@@ -159,11 +227,14 @@ export function sugerirEncaixe({
     );
 
   for (const item of fila) {
-    const dur = item.duracao ?? duracoes[item.servicoId] ?? 30;
+    const dur =
+      item.duracao ??
+      (item.servicoId != null ? duracoes[item.servicoId] : undefined) ??
+      30;
     const candidatos = item.barbeiroId
       ? ativos.filter((s) => s.id === item.barbeiroId)
       : ativos;
-    let melhor = null;
+    let melhor: { s: SituacaoDoBarbeiro; ini: number } | null = null;
     for (const s of candidatos) {
       const ini = proximoInicio(s, dur);
       if (ini !== null && (melhor === null || ini < melhor.ini))
@@ -191,6 +262,7 @@ export function sugerirEncaixe({
   });
   const possiveis = porBarbeiro.filter((p) => p.inicioPrevisto !== null);
   const primeiroLivre =
-    possiveis.sort((a, b) => a.esperaMin - b.esperaMin)[0] ?? null;
+    possiveis.sort((a, b) => (a.esperaMin ?? 0) - (b.esperaMin ?? 0))[0] ??
+    null;
   return { porBarbeiro, primeiroLivre };
 }

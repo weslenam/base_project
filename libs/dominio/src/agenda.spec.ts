@@ -9,7 +9,7 @@ import {
   paraMinutos,
   sobrepoe,
   somarDias,
-} from './agenda.js';
+} from './agenda.ts';
 
 describe('horas', () => {
   it('converte ida e volta', () => {

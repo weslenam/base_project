@@ -3,10 +3,11 @@ import {
   ticketMedio,
   transicaoPelaPlataforma,
   variacao,
-} from './plataforma.js';
+} from './plataforma.ts';
 
 const agora = new Date('2026-11-08T12:00:00Z');
-const diasAtras = (n) => new Date(agora - n * 86_400_000).toISOString();
+const diasAtras = (n: number) =>
+  new Date(agora.getTime() - n * 86_400_000).toISOString();
 
 describe('seloDeAtividade', () => {
   it('suspensa vence qualquer movimento', () => {

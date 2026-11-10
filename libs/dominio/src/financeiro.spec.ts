@@ -5,8 +5,8 @@ import {
   totaisDasContas,
   validarBaixa,
   validarConta,
-} from './financeiro.js';
-import { resumoDoCaixa } from './caixa.js';
+} from './financeiro.ts';
+import { resumoDoCaixa } from './caixa.ts';
 
 // Planejamento 0027, parte 2 (fatia 2A): contas a pagar e a receber e o
 // efeito da baixa em dinheiro no caixa do dia.
@@ -80,7 +80,7 @@ describe('baixa no caixa', () => {
       movimentoDaBaixa(conta({ tipo: 'receber' }), {
         forma: 'dinheiro_caixa',
         valorPago: 50,
-      }).tipo,
+      })?.tipo,
     ).toBe('entrada');
     expect(
       movimentoDaBaixa(conta(), { forma: 'pix', valorPago: 10 }),

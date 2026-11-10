@@ -5,7 +5,7 @@ import {
   motivoParaNaoReceber,
   resumoDoCaixa,
   totalDaComanda,
-} from './caixa.js';
+} from './caixa.ts';
 
 const itens = [
   { preco: 45, quantidade: 1 },

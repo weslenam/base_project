@@ -8,8 +8,47 @@ export const FORMAS_DE_PAGAMENTO = Object.freeze([
   { valor: 'credito', rotulo: 'Crédito' },
 ]);
 
-const emCentavos = (reais) => Math.round(Number(reais || 0) * 100);
-const emReais = (centavos) => centavos / 100;
+const emCentavos = (reais: number | string | null | undefined): number =>
+  Math.round(Number(reais || 0) * 100);
+const emReais = (centavos: number): number => centavos / 100;
+
+/** Valor em reais que pode chegar como número ou texto (formulário, banco). */
+export type Valor = number | string | null | undefined;
+
+/** Item de comanda (planejamentos 0008, 0015 e 0034). */
+export interface ItemComanda {
+  /** Sem tipo, conta como serviço. */
+  tipo?: 'servico' | 'produto' | 'pacote' | string;
+  refId?: number;
+  nome?: string;
+  preco?: Valor;
+  quantidade?: number;
+  barbeiroId?: number | null;
+  /** Serviço usado por pacote (R$ 0). */
+  assinaturaId?: number;
+  /** Item do prêmio da fidelidade. */
+  premio?: boolean;
+}
+
+/** Comanda (o que as regras de caixa usam dela). */
+export interface Comanda {
+  id?: number;
+  estado?: 'aberta' | 'paga' | 'cancelada' | string;
+  forma?: string | null;
+  itens?: ItemComanda[];
+  desconto?: Valor;
+  cashbackUsado?: Valor;
+  clienteId?: number | null;
+  barbeiroId?: number | null;
+  data?: string;
+  hora?: string;
+}
+
+/** Saída ou entrada da gaveta vinda do financeiro (planejamento 0027). */
+export interface MovimentoDeCaixa {
+  tipo: 'saida' | 'entrada' | string;
+  valor: Valor;
+}
 
 /**
  * Totais de uma comanda { itens: [{ tipo, preco, quantidade }], desconto }:
@@ -19,7 +58,7 @@ export function totalDaComanda({
   itens = [],
   desconto = 0,
   cashbackUsado = 0,
-}) {
+}: Comanda) {
   let servicos = 0;
   let produtos = 0;
   for (const i of itens) {
@@ -48,7 +87,7 @@ export function motivoParaNaoReceber({
   desconto = 0,
   cashbackUsado = 0,
   forma,
-}) {
+}: Comanda): string | null {
   if (!itens.length)
     return 'Inclua pelo menos um serviço ou produto antes de receber.';
   const { subtotal } = totalDaComanda({ itens });
@@ -73,6 +112,10 @@ export function resumoDoCaixa({
   valorInicial = 0,
   comandas = [],
   movimentos = [],
+}: {
+  valorInicial?: Valor;
+  comandas?: Comanda[];
+  movimentos?: MovimentoDeCaixa[];
 }) {
   const porForma = Object.fromEntries(
     FORMAS_DE_PAGAMENTO.map((f) => [f.valor, 0]),
@@ -84,12 +127,12 @@ export function resumoDoCaixa({
   for (const c of comandas) {
     if (c.estado !== 'paga') continue;
     const t = totalDaComanda(c);
-    porForma[c.forma] += emCentavos(t.total);
+    porForma[String(c.forma)] += emCentavos(t.total);
     cashback += emCentavos(t.cashback);
     pagas += 1;
   }
   const total = Object.values(porForma).reduce((a, b) => a + b, 0);
-  const soma = (tipo) =>
+  const soma = (tipo: string) =>
     movimentos
       .filter((m) => m.tipo === tipo)
       .reduce((a, m) => a + emCentavos(m.valor), 0);
@@ -112,7 +155,7 @@ export function resumoDoCaixa({
 }
 
 /** Diferença entre o dinheiro contado e o esperado (positivo = sobra). */
-export const diferencaDeCaixa = (contado, esperado) =>
+export const diferencaDeCaixa = (contado: Valor, esperado: Valor): number =>
   emReais(emCentavos(contado) - emCentavos(esperado));
 
 /**
@@ -120,7 +163,7 @@ export const diferencaDeCaixa = (contado, esperado) =>
  * valor bruto dos itens; o desconto entra só no total gasto.
  * `comandas` em qualquer ordem, cada uma com `data` (AAAA-MM-DD) e `hora`.
  */
-export function resumoDeComandas(comandas = []) {
+export function resumoDeComandas(comandas: Comanda[] = []) {
   const pagas = comandas
     .filter((c) => c.estado === 'paga')
     .sort((a, b) => (`${a.data} ${a.hora}` < `${b.data} ${b.hora}` ? 1 : -1));
@@ -133,7 +176,11 @@ export function resumoDeComandas(comandas = []) {
     produtos += emCentavos(t.produtos);
     total += emCentavos(t.total);
   }
-  let ultimoServico = null;
+  let ultimoServico: {
+    nome: string | undefined;
+    data: string | undefined;
+    barbeiroId: number | null | undefined;
+  } | null = null;
   for (const c of pagas) {
     const item = (c.itens ?? []).find((i) => i.tipo === 'servico');
     if (item) {

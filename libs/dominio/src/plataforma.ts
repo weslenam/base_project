@@ -1,7 +1,7 @@
 // BarberTime Business Center (planejamento 0028, ADR 0018): regras dos indicadores
 // que a equipe da plataforma acompanha. Só números agregados, nunca dado de cliente.
 
-import { moduloDoCatalogo, transicaoDeModulo } from './modulos.js';
+import { moduloDoCatalogo, transicaoDeModulo } from './modulos.ts';
 
 export const SELOS_DE_ATIVIDADE = Object.freeze([
   'nova',
@@ -16,7 +16,9 @@ export const DIAS_PARA_PARADA = 7;
 export const DIAS_DE_NOVA = 14;
 
 const DIA_MS = 86_400_000;
-const dias = (de, ate) => (new Date(ate) - new Date(de)) / DIA_MS;
+type Instante = Date | string | number;
+const dias = (de: Instante, ate: Instante): number =>
+  (new Date(ate).getTime() - new Date(de).getTime()) / DIA_MS;
 
 /**
  * Selo de saúde da barbearia na lista do Business Center.
@@ -28,7 +30,12 @@ export function seloDeAtividade({
   ultimaComandaPaga = null,
   suspensaEm = null,
   agora = new Date(),
-}) {
+}: {
+  criadaEm: Instante;
+  ultimaComandaPaga?: Instante | null;
+  suspensaEm?: Instante | null;
+  agora?: Instante;
+}): 'nova' | 'ativa' | 'parada' | 'suspensa' {
   if (suspensaEm) return 'suspensa';
   if (ultimaComandaPaga && dias(ultimaComandaPaga, agora) < DIAS_PARA_PARADA)
     return 'ativa';
@@ -36,10 +43,14 @@ export function seloDeAtividade({
   return 'parada';
 }
 
-const centavos = (v) => Math.round(Number(v) * 100);
+const centavos = (v: number | string | null | undefined): number =>
+  Math.round(Number(v) * 100);
 
 /** Faturamento dividido pelos atendimentos pagos, em reais com 2 casas. */
-export function ticketMedio(faturamento, quantidade) {
+export function ticketMedio(
+  faturamento: number | string | null | undefined,
+  quantidade: number,
+): number {
   if (!quantidade) return 0;
   return Math.round(centavos(faturamento) / quantidade) / 100;
 }
@@ -48,7 +59,7 @@ export function ticketMedio(faturamento, quantidade) {
  * Variação percentual do mês atual sobre o anterior, com 1 casa.
  * null quando não há base (mês anterior zerado): a tela mostra "novo" em vez de ∞.
  */
-export function variacao(atual, anterior) {
+export function variacao(atual: number, anterior: number): number | null {
   if (!Number(anterior)) return null;
   return Math.round(((atual - anterior) / anterior) * 1000) / 10;
 }
@@ -64,7 +75,11 @@ export const ACOES_DE_MODULO_DA_PLATAFORMA = Object.freeze([
  * contratação é confirmada à mão). Diferente da barbearia, o operador ativa um
  * adicional sem pedido e desativa também o que está só solicitado.
  */
-export function transicaoPelaPlataforma(chave, estadoAtual = 'inativo', acao) {
+export function transicaoPelaPlataforma(
+  chave: string,
+  estadoAtual = 'inativo',
+  acao: string,
+): { estado?: string; erro?: string } {
   const modulo = moduloDoCatalogo(chave);
   if (!modulo) return { erro: 'Módulo desconhecido.' };
   if (acao === 'confirmar_contratacao')

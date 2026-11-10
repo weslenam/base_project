@@ -1,6 +1,6 @@
 // Configurações da barbearia (planejamento 0017, ADR 0012): dados do negócio,
 // não preferências de exibição. Catálogo fechado, usado pela API e pelo front.
-import { BALCAO_PADRAO } from './balcao.js';
+import { BALCAO_PADRAO } from './balcao.ts';
 
 /** 0 = domingo ... 6 = sábado (igual a Date#getDay). */
 export const DIAS_DA_SEMANA = Object.freeze([
@@ -13,24 +13,56 @@ export const DIAS_DA_SEMANA = Object.freeze([
   'Sábado',
 ]);
 
-export const CONFIG_BARBEARIA_PADRAO = Object.freeze({
-  contato: { telefone: null, endereco: '', instagram: '' },
-  funcionamento: DIAS_DA_SEMANA.map((_, dia) => ({
-    dia,
-    aberto: dia !== 0,
-    abre: '09:00',
-    fecha: dia === 6 ? '17:00' : '19:00',
-  })),
+/** Horário de um dia da semana (0 = domingo). */
+export interface DiaDeFuncionamento {
+  dia: number;
+  aberto: boolean;
+  abre: string;
+  fecha: string;
+}
+
+/** Configurações da barbearia (ADR 0012). */
+export interface ConfigBarbearia {
+  contato: { telefone: string | null; endereco: string; instagram: string };
+  funcionamento: DiaDeFuncionamento[];
   agendamento: {
-    antecedenciaMinimaHoras: 2,
-    diasAFrente: 30,
-    cancelamentoAteHoras: 2,
+    antecedenciaMinimaHoras: number;
+    diasAFrente: number;
+    cancelamentoAteHoras: number;
+  };
+  paginaPublica: { modo: string };
+  balcao: typeof BALCAO_PADRAO;
+}
+
+/** Configuração gravada: pode vir parcial (antiga ou vazia). */
+export type ConfigBarbeariaGravada = {
+  contato?: Partial<ConfigBarbearia['contato']>;
+  funcionamento?: Partial<DiaDeFuncionamento>[];
+  agendamento?: Partial<ConfigBarbearia['agendamento']>;
+  paginaPublica?: Partial<ConfigBarbearia['paginaPublica']>;
+  balcao?: Partial<ConfigBarbearia['balcao']>;
+} | null;
+
+export const CONFIG_BARBEARIA_PADRAO: Readonly<ConfigBarbearia> = Object.freeze(
+  {
+    contato: { telefone: null, endereco: '', instagram: '' },
+    funcionamento: DIAS_DA_SEMANA.map((_, dia) => ({
+      dia,
+      aberto: dia !== 0,
+      abre: '09:00',
+      fecha: dia === 6 ? '17:00' : '19:00',
+    })),
+    agendamento: {
+      antecedenciaMinimaHoras: 2,
+      diasAFrente: 30,
+      cancelamentoAteHoras: 2,
+    },
+    /** publica | com_link (exige o token do link) | desativada (ADR 0013). Começa desativada. */
+    paginaPublica: { modo: 'desativada' },
+    /** Balcão (planejamento 0020): folga entre atendimentos, tolerância de atraso. */
+    balcao: { ...BALCAO_PADRAO },
   },
-  /** publica | com_link (exige o token do link) | desativada (ADR 0013). Começa desativada. */
-  paginaPublica: { modo: 'desativada' },
-  /** Balcão (planejamento 0020): folga entre atendimentos, tolerância de atraso. */
-  balcao: { ...BALCAO_PADRAO },
-});
+);
 
 export const MODOS_DA_PAGINA_PUBLICA = Object.freeze([
   {
@@ -76,8 +108,9 @@ export function momentoNoFuso(
   };
 }
 
-const minutos = (h) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
-const hhmm = (m) =>
+const minutos = (h: string): number =>
+  Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+const hhmm = (m: number): string =>
   `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
 /**
@@ -86,7 +119,17 @@ const hhmm = (m) =>
  * barbearia, o expediente do barbeiro e a antecedência mínima.
  * Devolve { inicio, fim, aPartirDe? } para usar em horariosLivres.
  */
-export function janelaDoAgendamentoOnline({ config, barbeiro, data, agora }) {
+export function janelaDoAgendamentoOnline({
+  config,
+  barbeiro,
+  data,
+  agora,
+}: {
+  config: ConfigBarbeariaGravada;
+  barbeiro: { inicio: string; fim: string };
+  data: string;
+  agora: { data: string; hora: string };
+}): { inicio: string; fim: string; aPartirDe?: string } | null {
   const c = mesclarConfigBarbearia(config);
   if (data < agora.data) return null;
   const limite = new Date(`${agora.data}T12:00:00Z`);
@@ -103,7 +146,8 @@ export function janelaDoAgendamentoOnline({ config, barbeiro, data, agora }) {
   const antecede =
     minutos(agora.hora) + c.agendamento.antecedenciaMinimaHoras * 60;
   const diasDepois = Math.round(
-    (new Date(`${data}T12:00:00Z`) - new Date(`${agora.data}T12:00:00Z`)) /
+    (new Date(`${data}T12:00:00Z`).getTime() -
+      new Date(`${agora.data}T12:00:00Z`).getTime()) /
       86_400_000,
   );
   const aPartirDeMin = antecede - diasDepois * 1440;
@@ -123,10 +167,12 @@ const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 const INSTAGRAM = /^@?[A-Za-z0-9._]{1,30}$/;
 export const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-const copia = (v) => JSON.parse(JSON.stringify(v));
+const copia = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 /** Completa o que vier gravado com os padrões (configuração antiga ou vazia). */
-export function mesclarConfigBarbearia(gravada = {}) {
+export function mesclarConfigBarbearia(
+  gravada: ConfigBarbeariaGravada = {},
+): ConfigBarbearia {
   const p = copia(CONFIG_BARBEARIA_PADRAO);
   const g = gravada ?? {};
   return {
@@ -148,7 +194,7 @@ export function validarConfigBarbearia({
   agendamento,
   paginaPublica,
   balcao,
-} = {}) {
+}: ConfigBarbeariaGravada & object = {}): string | null {
   if (!contato || !Array.isArray(funcionamento) || !agendamento) {
     return 'Configuração incompleta.';
   }
@@ -167,13 +213,13 @@ export function validarConfigBarbearia({
   if (funcionamento.length !== 7)
     return 'Informe o horário dos 7 dias da semana.';
   for (const d of funcionamento) {
-    const nome = DIAS_DA_SEMANA[d?.dia];
+    const nome = DIAS_DA_SEMANA[d?.dia ?? -1];
     if (!nome) return 'Dia da semana inválido.';
     if (!d.aberto) continue;
     if (!HORA.test(d.abre ?? '') || !HORA.test(d.fecha ?? '')) {
       return `${nome}: informe abertura e fechamento (HH:MM).`;
     }
-    if (d.abre >= d.fecha)
+    if ((d.abre ?? '') >= (d.fecha ?? ''))
       return `${nome}: o fechamento precisa ser depois da abertura.`;
   }
   if (new Set(funcionamento.map((d) => d.dia)).size !== 7) {
@@ -190,20 +236,20 @@ export function validarConfigBarbearia({
 
   if (balcao) {
     const { folgaMinutos: f, toleranciaMinutos: t } = balcao;
-    if (!(Number.isInteger(f) && f >= 0 && f <= 60))
+    if (!(Number.isInteger(f) && Number(f) >= 0 && Number(f) <= 60))
       return 'A folga entre atendimentos precisa ficar entre 0 e 60 minutos.';
-    if (!(Number.isInteger(t) && t >= 0 && t <= 60))
+    if (!(Number.isInteger(t) && Number(t) >= 0 && Number(t) <= 60))
       return 'A tolerância de atraso precisa ficar entre 0 e 60 minutos.';
   }
 
-  const rotulos = {
+  const rotulos: Record<string, string> = {
     antecedenciaMinimaHoras: 'A antecedência mínima',
     diasAFrente: 'O limite de dias à frente',
     cancelamentoAteHoras: 'O prazo de cancelamento',
   };
   for (const [campo, { min, max }] of Object.entries(LIMITES_DO_AGENDAMENTO)) {
-    const v = agendamento[campo];
-    if (!(Number.isInteger(v) && v >= min && v <= max)) {
+    const v = (agendamento as Record<string, unknown>)[campo];
+    if (!(Number.isInteger(v) && Number(v) >= min && Number(v) <= max)) {
       return `${rotulos[campo]} precisa ser um número inteiro entre ${min} e ${max}.`;
     }
   }

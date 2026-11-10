@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapa 1 concluída; próxima: etapa 2)
+- **Status:** Em andamento (etapas 1 e 2 concluídas; próxima: etapa 3)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -47,7 +47,7 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 ## Etapas (uma por PR)
 
 - [x] 1. **Base:** `tsconfig.base.json` com `strict`, targets `typecheck` no Nx (`tsc --noEmit` e `vue-tsc`) dentro do `pnpm verificar`, ESLint com `typescript-eslint`, Vite e Vitest com TS. O `allowJs` fica ligado só enquanto houver JS. ADR 0022 e atualização das skills e regras.
-- [ ] 2. **`libs/dominio`** em TS: tipos das entidades (comanda, conta, assinatura etc.) e regras puras.
+- [x] 2. **`libs/dominio`** em TS: tipos das entidades (comanda, conta, assinatura etc.) e regras puras.
 - [ ] 3. **`libs/ui-utils` e `libs/ui-tokens`** em TS.
 - [ ] 4. **`libs/contratos`:** tipos das respostas e dos corpos da API.
 - [ ] 5. **API, infraestrutura:** Kysely, `comBarbearia` e `emTransacao` com `trx`, tipos gerados do banco, plugins do Fastify tipados (sessão, contexto, `exigir`) e teste de isolamento.
@@ -84,3 +84,9 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
   - Dependências: `vue-tsc` e `kysely-codegen` (desenvolvimento) e `kysely` na API.
   - ADR 0022 aceito; ADR 0008 substituído; ADR 0009 com a parte do ORM substituída. Skills `design-system` e `mudancas-cirurgicas` e agente `implementador` atualizados.
   - Verificado: `pnpm verificar` (28 tarefas) e integração (146).
+- 2026-11-10: **etapa 2 concluída.** `libs/dominio` em TypeScript strict: 13 arquivos de regra e 9 de teste (`git mv`, histórico preservado), sem erro de tipo.
+  - Tipos exportados pelo `index.ts`: `ItemComanda`, `Comanda`, `MovimentoDeCaixa`, `Permissao`, `Papel`, `QuemAge`, `ConfigBarbearia`, `AtendimentoBalcao`, `SituacaoDoBarbeiro`, `ConfigFidelidade`, `MovimentoFidelidade`, `SaldoFidelidade`, `Pacote`, `Assinatura`, `ProdutoEstoque`, `Conta` e outros.
+  - Nenhuma regra mudou: os 124 testes passaram sem mudar o que verificam (só tipos e `!` em resultados de `find`).
+  - Ajustes de tipo que refletem o uso real: no item de comanda, `tipo` e `preco` são opcionais (sem tipo conta como serviço); `podeUsarPacote` devolve `{ ok, motivo? }`.
+  - Comprovado: a API (Node 22, sem compilar) importa o domínio em `.ts`; os apps compilam (Vite); integração (146) e layout (89) verdes.
+  - Testes podem usar `!` (regra liberada só em `*.spec.ts`), e os `tsconfig` ganharam os tipos globais do Vitest.

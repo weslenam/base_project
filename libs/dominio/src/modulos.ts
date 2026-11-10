@@ -2,7 +2,15 @@
 // ativa e desativa. "adicional": serviço contratado; a barbearia solicita e ele só fica
 // ativo quando a contratação é confirmada.
 
-export const MODULOS = Object.freeze([
+/** Módulo do catálogo (ADR 0011). */
+export interface Modulo {
+  chave: string;
+  nome: string;
+  descricao: string;
+  tipo: 'incluso' | 'adicional' | string;
+}
+
+export const MODULOS: readonly Modulo[] = Object.freeze([
   {
     chave: 'agendamento_online',
     nome: 'Agendamento online',
@@ -77,18 +85,22 @@ export const ESTADOS_DE_MODULO = Object.freeze([
   'ativo',
 ]);
 
-export const moduloDoCatalogo = (chave) =>
+export const moduloDoCatalogo = (chave: string): Modulo | null =>
   MODULOS.find((m) => m.chave === chave) ?? null;
 
 /**
  * Próximo estado de um módulo para uma ação, ou { erro } explicando a recusa.
  * Ações: ativar | desativar | solicitar | cancelar_solicitacao | confirmar_contratacao
  */
-export function transicaoDeModulo(chave, estadoAtual = 'inativo', acao) {
+export function transicaoDeModulo(
+  chave: string,
+  estadoAtual = 'inativo',
+  acao: string,
+): { estado?: string; erro?: string } {
   const modulo = moduloDoCatalogo(chave);
   if (!modulo) return { erro: 'Módulo desconhecido.' };
   const adicional = modulo.tipo === 'adicional';
-  const tabela = {
+  const tabela: Record<string, () => { estado?: string; erro?: string }> = {
     ativar: () =>
       adicional
         ? {

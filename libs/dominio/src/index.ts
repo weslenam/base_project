@@ -11,7 +11,7 @@ export {
   hojeIso,
   somarDias,
   diaDaSemana,
-} from './agenda.js';
+} from './agenda.ts';
 export {
   FORMAS_DE_PAGAMENTO,
   totalDaComanda,
@@ -19,7 +19,7 @@ export {
   resumoDoCaixa,
   diferencaDeCaixa,
   resumoDeComandas,
-} from './caixa.js';
+} from './caixa.ts';
 export {
   PERMISSOES,
   CHAVES_DE_PERMISSAO,
@@ -35,20 +35,20 @@ export {
   podeAgirNaAgenda,
   podeAgirNoBalcao,
   papelSemMenu,
-} from './permissoes.js';
+} from './permissoes.ts';
 export {
   ACOES_DAS_PERMISSOES,
   historiaDoPapel,
   resumoDoPapel,
-} from './historias.js';
+} from './historias.ts';
 export {
   MODULOS,
   CHAVES_DE_MODULO,
   ESTADOS_DE_MODULO,
   moduloDoCatalogo,
   transicaoDeModulo,
-} from './modulos.js';
-export { somarMeses, diasEntre, inicioDaSemana, diaEMes } from './agenda.js';
+} from './modulos.ts';
+export { somarMeses, diasEntre, inicioDaSemana, diaEMes } from './agenda.ts';
 export {
   FIDELIDADE_PADRAO,
   validarConfigFidelidade,
@@ -57,7 +57,7 @@ export {
   limiteDeCashback,
   motivoParaUsarCashback,
   motivoParaUsarPremio,
-} from './fidelidade.js';
+} from './fidelidade.ts';
 export {
   TIPOS_DE_PACOTE,
   validarPacote,
@@ -66,7 +66,7 @@ export {
   podeUsarPacote,
   renovarAssinatura,
   cicloDaRenovacao,
-} from './pacotes.js';
+} from './pacotes.ts';
 export {
   DIAS_DA_SEMANA,
   CONFIG_BARBEARIA_PADRAO,
@@ -77,7 +77,7 @@ export {
   validarConfigBarbearia,
   momentoNoFuso,
   janelaDoAgendamentoOnline,
-} from './barbearia.js';
+} from './barbearia.ts';
 export {
   ESTADOS_DE_ATENDIMENTO,
   BALCAO_PADRAO,
@@ -87,7 +87,7 @@ export {
   ordenarFila,
   situacaoDosBarbeiros,
   sugerirEncaixe,
-} from './balcao.js';
+} from './balcao.ts';
 export {
   TIPOS_DE_PRODUTO,
   UNIDADES,
@@ -99,7 +99,7 @@ export {
   dividirParcelas,
   motivoParcelasInvalidas,
   documentoValido,
-} from './estoque.js';
+} from './estoque.ts';
 export {
   SELOS_DE_ATIVIDADE,
   DIAS_PARA_PARADA,
@@ -109,7 +109,7 @@ export {
   variacao,
   ACOES_DE_MODULO_DA_PLATAFORMA,
   transicaoPelaPlataforma,
-} from './plataforma.js';
+} from './plataforma.ts';
 export {
   TIPOS_DE_CONTA,
   FORMAS_DE_BAIXA,
@@ -118,4 +118,28 @@ export {
   validarBaixa,
   movimentoDaBaixa,
   totaisDasContas,
-} from './financeiro.js';
+} from './financeiro.ts';
+
+// Tipos do domínio (planejamento 0040).
+export type { Intervalo } from './agenda.ts';
+export type { Valor, ItemComanda, Comanda, MovimentoDeCaixa } from './caixa.ts';
+export type { Permissao, Papel, QuemAge } from './permissoes.ts';
+export type { Modulo } from './modulos.ts';
+export type {
+  DiaDeFuncionamento,
+  ConfigBarbearia,
+  ConfigBarbeariaGravada,
+} from './barbearia.ts';
+export type {
+  AtendimentoBalcao,
+  BarbeiroBalcao,
+  SituacaoDoBarbeiro,
+} from './balcao.ts';
+export type {
+  ConfigFidelidade,
+  MovimentoFidelidade,
+  SaldoFidelidade,
+} from './fidelidade.ts';
+export type { Pacote, UsoDePacote, Assinatura } from './pacotes.ts';
+export type { ProdutoEstoque, LinhaDeFicha, Baixa } from './estoque.ts';
+export type { Conta, BaixaDeConta } from './financeiro.ts';
