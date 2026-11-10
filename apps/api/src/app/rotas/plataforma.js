@@ -189,9 +189,15 @@ async function painel(c, hoje) {
       'select itens, desconto, cashback_usado as "cashbackUsado", forma, estado from comandas where caixa_id = $1',
       [cx.id],
     );
+    // Saídas e entradas da gaveta pelo financeiro (issue #26).
+    const { rows: movimentos } = await c.query(
+      'select tipo, valor from movimentos_caixa where caixa_id = $1 and estornado_em is null',
+      [cx.id],
+    );
     const r = resumoDoCaixa({
       valorInicial: cx.valorInicial,
       comandas: doCaixa,
+      movimentos,
     });
     caixaAtual = {
       data: cx.data,

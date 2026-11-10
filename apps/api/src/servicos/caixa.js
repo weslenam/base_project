@@ -104,9 +104,21 @@ async function trazerParaOCaixaDeHoje(c, cm, caixa) {
 export async function caixaComResumo(c, caixa) {
   if (!caixa) return null;
   const comandas = await comandasDoCaixa(c, caixa.id);
+  // Saídas e entradas da gaveta vindas do financeiro (planejamento 0027,
+  // parte 2). Só os totais vão para o resumo: a descrição das contas fica com
+  // quem tem financeiro.gerenciar.
+  const { rows: movimentos } = await c.query(
+    `select tipo, valor from movimentos_caixa
+      where caixa_id = $1 and estornado_em is null`,
+    [caixa.id],
+  );
   return {
     ...caixa,
-    resumo: resumoDoCaixa({ valorInicial: caixa.valorInicial, comandas }),
+    resumo: resumoDoCaixa({
+      valorInicial: caixa.valorInicial,
+      comandas,
+      movimentos,
+    }),
   };
 }
 
@@ -131,6 +143,9 @@ export async function abrirCaixa(c, barbeariaId, { valorInicial }) {
 
 export async function fecharCaixa(c, { dinheiroContado }) {
   const caixa = await exigirCaixaAberto(c);
+  // Trava o caixa: uma baixa em dinheiro do financeiro ao mesmo tempo espera
+  // e depois vê o caixa fechado (issue #28).
+  await c.query('select 1 from caixas where id = $1 for update', [caixa.id]);
   const { resumo } = await caixaComResumo(c, caixa);
   if (resumo.abertas) {
     const n = resumo.abertas;

@@ -65,9 +65,15 @@ export function motivoParaNaoReceber({
 
 /**
  * Resumo do caixa: recebido por forma de pagamento (só comandas pagas), total,
- * dinheiro esperado na gaveta (troco inicial + vendas em dinheiro) e comandas em aberto.
+ * dinheiro esperado na gaveta (troco inicial + vendas em dinheiro + entradas −
+ * saídas) e comandas em aberto. `movimentos` são as saídas e entradas da gaveta
+ * vindas do financeiro (planejamento 0027, parte 2): [{ tipo, valor }].
  */
-export function resumoDoCaixa({ valorInicial = 0, comandas = [] }) {
+export function resumoDoCaixa({
+  valorInicial = 0,
+  comandas = [],
+  movimentos = [],
+}) {
   const porForma = Object.fromEntries(
     FORMAS_DE_PAGAMENTO.map((f) => [f.valor, 0]),
   );
@@ -83,13 +89,23 @@ export function resumoDoCaixa({ valorInicial = 0, comandas = [] }) {
     pagas += 1;
   }
   const total = Object.values(porForma).reduce((a, b) => a + b, 0);
+  const soma = (tipo) =>
+    movimentos
+      .filter((m) => m.tipo === tipo)
+      .reduce((a, m) => a + emCentavos(m.valor), 0);
+  const saidas = soma('saida');
+  const entradas = soma('entrada');
   return {
     porForma: Object.fromEntries(
       Object.entries(porForma).map(([f, c]) => [f, emReais(c)]),
     ),
     totalRecebido: emReais(total),
     cashback: emReais(cashback),
-    dinheiroEsperado: emReais(emCentavos(valorInicial) + porForma.dinheiro),
+    saidas: emReais(saidas),
+    entradas: emReais(entradas),
+    dinheiroEsperado: emReais(
+      emCentavos(valorInicial) + porForma.dinheiro + entradas - saidas,
+    ),
     pagas,
     abertas: comandas.filter((c) => c.estado === 'aberta').length,
   };

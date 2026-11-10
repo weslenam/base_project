@@ -320,7 +320,26 @@ describe('painel da barbearia', () => {
     expect(lista.find((x) => x.id === b.id).faturamentoMes).toBe(230);
     const p = (await n.get(`/api/plataforma/barbearias/${b.id}`)).corpo;
     expect(p.faturamento.atual).toBe(230);
-    expect(p.caixa).toMatchObject({ totalRecebido: 230, dinheiroEsperado: 330 });
+    expect(p.caixa).toMatchObject({
+      totalRecebido: 230,
+      dinheiroEsperado: 330,
+    });
+  });
+
+  it('#26: a gaveta no painel desconta as saídas do financeiro', async () => {
+    const b = await barbeariaComMovimento();
+    await comoSuperusuario((c) =>
+      c.query(
+        `insert into movimentos_caixa (barbearia_id, caixa_id, tipo, valor, descricao)
+         select $1, id, 'saida', 40, 'Conta de luz' from caixas
+          where barbearia_id = $1 and aberto`,
+        [b.id],
+      ),
+    );
+    const op = await novoOperador();
+    const { n } = await entrarComo(op);
+    const p = (await n.get(`/api/plataforma/barbearias/${b.id}`)).corpo;
+    expect(p.caixa.dinheiroEsperado).toBe(300);
   });
 
   it('barbearia inexistente: 404', async () => {

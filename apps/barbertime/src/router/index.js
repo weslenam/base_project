@@ -121,6 +121,25 @@ export const rotas = [
       menu: { titulo: 'Fornecedores', icone: 'fornecedor', grupo: 'Estoque' },
     },
   },
+  // Financeiro (planejamento 0027, parte 2): só com o módulo "financeiro".
+  {
+    path: '/financeiro/contas',
+    component: () => import('../telas/financeiro/ContasView.vue'),
+    meta: {
+      permissoes: ['financeiro.gerenciar'],
+      modulo: 'financeiro',
+      menu: { titulo: 'Contas', icone: 'financeiro', grupo: 'Financeiro' },
+    },
+  },
+  {
+    path: '/financeiro/cadastros',
+    component: () => import('../telas/financeiro/CadastrosView.vue'),
+    meta: {
+      permissoes: ['financeiro.gerenciar'],
+      modulo: 'financeiro',
+      menu: { titulo: 'Categorias', icone: 'categoria', grupo: 'Financeiro' },
+    },
+  },
   {
     path: '/configuracoes',
     component: () => import('../telas/administracao/ConfiguracoesView.vue'),

@@ -85,25 +85,21 @@ describe('Barbeiro ajudando na agenda', () => {
     expect(dele.status).toBe(201);
     expect(dele.corpo.criadoPor).toBe(barbeiro.id);
     expect(daRecepcao.corpo.criadoPor).toBe(recepcao.id);
-    const lista = (await barbeiro.n.get(`/api/agendamentos?data=${dia}`))
-      .corpo;
+    const lista = (await barbeiro.n.get(`/api/agendamentos?data=${dia}`)).corpo;
     expect(lista.map((a) => a.id).sort()).toEqual(
       [daRecepcao.corpo.id, dele.corpo.id].sort(),
     );
   });
 
   it('confirma e cancela só o que marcou', async () => {
-    const { barbeiro, recepcao, leo, marcos, agendar, mudar } =
-      await montada();
+    const { barbeiro, recepcao, leo, marcos, agendar, mudar } = await montada();
     const deOutro = (await agendar(recepcao, leo, '09:00')).corpo;
     const naColunaDele = (await agendar(recepcao, marcos, '09:00')).corpo;
     const dele = (await agendar(barbeiro, leo, '10:00')).corpo;
 
     for (const estado of ['confirmado', 'cancelado']) {
       expect((await mudar(barbeiro, deOutro.id, estado)).status).toBe(403);
-      expect((await mudar(barbeiro, naColunaDele.id, estado)).status).toBe(
-        403,
-      );
+      expect((await mudar(barbeiro, naColunaDele.id, estado)).status).toBe(403);
     }
     expect((await mudar(barbeiro, dele.id, 'confirmado')).status).toBe(200);
     expect((await mudar(barbeiro, dele.id, 'cancelado')).status).toBe(200);
@@ -112,8 +108,7 @@ describe('Barbeiro ajudando na agenda', () => {
   });
 
   it('marca falta na coluna dele e no que marcou; no dos outros, não', async () => {
-    const { barbeiro, recepcao, leo, marcos, agendar, mudar } =
-      await montada();
+    const { barbeiro, recepcao, leo, marcos, agendar, mudar } = await montada();
     const deOutro = (await agendar(recepcao, leo, '09:00')).corpo;
     const naColunaDele = (await agendar(recepcao, marcos, '09:00')).corpo;
     const dele = (await agendar(barbeiro, leo, '10:00')).corpo;
@@ -121,9 +116,7 @@ describe('Barbeiro ajudando na agenda', () => {
       expect((await mudar(recepcao, a.id, 'confirmado')).status).toBe(200);
 
     expect((await mudar(barbeiro, deOutro.id, 'faltou')).status).toBe(403);
-    expect((await mudar(barbeiro, naColunaDele.id, 'faltou')).status).toBe(
-      200,
-    );
+    expect((await mudar(barbeiro, naColunaDele.id, 'faltou')).status).toBe(200);
     expect((await mudar(barbeiro, dele.id, 'faltou')).status).toBe(200);
   });
 

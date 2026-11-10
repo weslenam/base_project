@@ -5,6 +5,7 @@ import { config } from '../src/infra/config.js';
 import { migrar, prepararPapelDaAplicacao } from '../src/infra/migrar.js';
 import banco from '../src/infra/banco.js';
 import { criarBarbearia } from '../src/servicos/barbearias.js';
+import { garantirCategoriasPadrao } from '../src/servicos/estoque.js';
 import identidade from '../src/identidade/index.js';
 import { semearOperacao, temPerfil } from './operacao-exemplo.js';
 import { criarOperador } from '../src/servicos/operadores.js';
@@ -36,12 +37,14 @@ if (existe.rowCount) {
   await fastify.comBarbearia(existe.rows[0].id, (c) =>
     c.query(
       `insert into barbearia_modulos (barbearia_id, modulo, estado)
-       select $1, m, 'ativo' from unnest(array['fidelidade', 'pacotes']) m
+       select $1, m, 'ativo' from unnest(array['fidelidade', 'pacotes', 'financeiro']) m
        on conflict (barbearia_id, modulo) do nothing`,
       [existe.rows[0].id],
     ),
   );
-  console.log('Semente já aplicada (módulos Fidelidade e Pacotes garantidos).');
+  console.log(
+    'Semente já aplicada (módulos Fidelidade, Pacotes e Financeiro garantidos).',
+  );
 } else {
   const { barbearia, papeis } = await criarBarbearia(fastify, {
     nome: 'Barbearia do Zé',
@@ -66,7 +69,7 @@ if (existe.rowCount) {
     }
     // Comissões (incluso) e, como se a contratação já estivesse confirmada,
     // os adicionais Fidelidade e Pacotes (planejamento 0015).
-    for (const modulo of ['comissoes', 'fidelidade', 'pacotes']) {
+    for (const modulo of ['comissoes', 'fidelidade', 'pacotes', 'financeiro']) {
       await c.query(
         "insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, $2, 'ativo')",
         [barbearia.id, modulo],
@@ -216,6 +219,29 @@ await fastify.comBarbearia(modelo.id, async (c) => {
     [modelo.id, clube, inicio, fim],
   );
   console.log('Pacotes de exemplo criados (Clube do corte e 4 cortes).');
+});
+
+// Financeiro da barbearia modelo (planejamento 0027, parte 2): categorias
+// padrão e três contas para testar (aluguel, luz vencida e aluguel de cadeira).
+await fastify.comBarbearia(modelo.id, async (c) => {
+  const ja = await c.query(
+    "select 1 from contas where origem = 'manual' limit 1",
+  );
+  if (ja.rowCount) return;
+  await garantirCategoriasPadrao(c, modelo.id);
+  const hoje = momentoNoFuso(new Date()).data;
+  for (const [tipo, descricao, categoria, valor, dias] of [
+    ['pagar', 'Aluguel do salão', 'Aluguel', 1800, 5],
+    ['pagar', 'Conta de luz', 'Energia', 320.45, -2],
+    ['receber', 'Aluguel da cadeira (Léo)', 'Aluguel de cadeira', 600, 3],
+  ])
+    await c.query(
+      `insert into contas (barbearia_id, tipo, descricao, categoria_id, valor, vencimento)
+       select $1, $2, $3, id, $5, $6 from categorias_financeiras
+        where tipo = $2 and nome = $4`,
+      [modelo.id, tipo, descricao, categoria, valor, somarDias(hoje, dias)],
+    );
+  console.log('Contas de exemplo criadas no financeiro.');
 });
 
 // Movimento de exemplo para o painel do Business Center (planejamento 0028).
