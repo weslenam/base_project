@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   DsAcao,
@@ -14,17 +15,23 @@ import { podeAgirNaAgenda } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { semMenu, useSessao } from '../../sessao/sessao.ts';
-import { seloDoEstado } from '../estados.js';
+import { seloDoEstado } from '../estados.ts';
+import type { Atendimento, Detalhe } from '../../dados/modelos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ id: { type: Number, default: null } });
-const emit = defineEmits(['alterado', 'comanda']);
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  id: { type: Number as PropType<number | null>, default: null },
+});
+const emit = defineEmits<{
+  alterado: [agendamento: Atendimento];
+  comanda: [comandaId: number];
+}>();
 
 const { confirmar, advertir } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 const router = useRouter();
-const agendamento = ref(null);
+const agendamento = ref<Detalhe | null>(null);
 
 watch(aberto, async (abriu) => {
   agendamento.value = null;
@@ -32,7 +39,7 @@ watch(aberto, async (abriu) => {
     agendamento.value = await api.agendamentos.obter(props.id);
 });
 
-const selo = computed(() => seloDoEstado(agendamento.value?.estado));
+const selo = computed(() => seloDoEstado(agendamento.value?.estado ?? ''));
 const bloqueio = computed(() => agendamento.value?.estado === 'bloqueado');
 const titulo = computed(() =>
   bloqueio.value ? 'Horário bloqueado' : 'Agendamento',
@@ -41,7 +48,7 @@ const titulo = computed(() =>
 // Só aparece o que a API vai aceitar (planejamento 0035): quem só ajuda na
 // agenda mexe no que marcou e nos próprios atendimentos.
 const { sessao, pode } = useSessao();
-const permite = (estado) =>
+const permite = (estado: string) =>
   podeAgirNaAgenda(
     {
       usuarioId: sessao.value?.usuario?.id,
@@ -68,9 +75,11 @@ const temAcao = computed(() => {
   return false;
 });
 
-async function mudar(estado, mensagemDeSucesso) {
+async function mudar(estado: string, mensagemDeSucesso: string) {
+  const id = props.id;
+  if (id === null) return;
   const salvo = await executar(() =>
-    api.agendamentos.alterarEstado(props.id, estado),
+    api.agendamentos.alterarEstado(id, estado),
   );
   if (!salvo) return;
   notificar.sucesso(mensagemDeSucesso);
@@ -78,11 +87,11 @@ async function mudar(estado, mensagemDeSucesso) {
   emit('alterado', salvo);
 }
 
-const nome = () => agendamento.value.clienteNome;
+const nome = () => agendamento.value?.clienteNome;
 
 async function cancelar() {
   const ok =
-    agendamento.value.estado === 'confirmado'
+    agendamento.value?.estado === 'confirmado'
       ? await advertir(
           `${nome()} já confirmou presença. Cancelar mesmo assim? Avise o cliente pelo telefone.`,
           { textoOk: 'Cancelar agendamento', textoCancelar: 'Manter' },
@@ -109,9 +118,9 @@ async function marcarFalta() {
 }
 
 async function abrirComanda() {
-  const comanda = await executar(() =>
-    api.comandas.abrirDoAgendamento(props.id),
-  );
+  const id = props.id;
+  if (id === null) return;
+  const comanda = await executar(() => api.comandas.abrirDoAgendamento(id));
   if (!comanda) return;
   aberto.value = false;
   // Sem a tela Caixa (Barbeiro), a comanda abre na própria Agenda

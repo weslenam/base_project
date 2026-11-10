@@ -184,3 +184,13 @@ export async function escolherNoSelect(rotulo: string, textoDaOpcao: string) {
   escolhida.click();
   await flushPromises();
 }
+
+/** App montado por `montarApp`. */
+export type AppMontado = Awaited<ReturnType<typeof montarApp>>;
+
+/** Elemento do documento pelo seletor; falha o teste se não existir. */
+export function elemento<T extends Element = HTMLElement>(seletor: string): T {
+  const el = document.querySelector<T>(seletor);
+  if (!el) throw new Error(`Elemento não encontrado: ${seletor}`);
+  return el;
+}

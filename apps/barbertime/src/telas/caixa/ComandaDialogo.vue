@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsAbas,
   DsAcao,
@@ -24,27 +25,66 @@ import {
 } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
-import { rotuloDaForma, seloDaComanda } from './rotulos.js';
+import { rotuloDaForma, seloDaComanda } from './rotulos.ts';
 import BuscaCliente from '../clientes/BuscaCliente.vue';
 import { moduloAtivo } from '../../sessao/sessao.ts';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type {
+  ConfigFidelidade,
+  ItemComanda,
+  SaldoFidelidade,
+} from '@barbertime/dominio';
+import type {
+  Assinatura,
+  Barbeiro,
+  Cliente,
+  Comanda,
+  Produto,
+  Servico,
+} from '../../dados/modelos.ts';
+
+/** Comanda na tela: a da API ou uma nova, ainda sem id. */
+type ComandaEmEdicao = Pick<
+  Comanda,
+  | 'clienteId'
+  | 'barbeiroId'
+  | 'itens'
+  | 'desconto'
+  | 'premioFidelidade'
+  | 'cashbackUsado'
+  | 'forma'
+  | 'estado'
+> &
+  Partial<Pick<Comanda, 'id' | 'hora' | 'clienteNome'>>;
+type TipoDeItem = 'servico' | 'produto';
+/** Item da tabela: o da comanda, com o índice e o subtotal. */
+type LinhaDoItem = ItemComanda & { id: number; subtotal: number };
 
 // Comanda (planejamentos 0008 e 0010): itens em abas de serviço e produto à
 // esquerda; pagamento estilo PDV à direita.
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ id: { type: Number, default: null } });
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  id: { type: Number as PropType<number | null>, default: null },
+});
 
 const { confirmar, negar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const barbeiros = ref([]);
-const catalogo = ref({ servico: [], produto: [] });
-const comanda = ref(null);
-const aba = ref('servico');
-const novoItem = ref({ id: null, quantidade: 1 });
+const barbeiros = ref<Barbeiro[]>([]);
+const catalogo = ref<{ servico: Servico[]; produto: Produto[] }>({
+  servico: [],
+  produto: [],
+});
+const comanda = ref<ComandaEmEdicao | null>(null);
+const aba = ref<TipoDeItem>('servico');
+const novoItem = ref<{ id: number | null; quantidade: number }>({
+  id: null,
+  quantidade: 1,
+});
 const ocupado = ref(false);
 // Pacotes do cliente (planejamento 0015): usar o pacote num serviço da comanda.
-const assinaturas = ref([]);
+const assinaturas = ref<Assinatura[]>([]);
 const usarPacote = ref(false);
 watch(
   () => comanda.value?.clienteId,
@@ -66,11 +106,23 @@ watch(pacoteDisponivel, (p) => (usarPacote.value = Boolean(p)));
 
 // Fidelidade na comanda (planejamento 0034): saldo do cliente e resgate do
 // prêmio e do cashback. A API confere tudo de novo ao receber.
-const fidelidade = ref(null);
+const fidelidade = ref<{
+  config: ConfigFidelidade;
+  saldo: SaldoFidelidade;
+} | null>(null);
 let pedidoDeSaldo = 0;
 watch(
-  () => [comanda.value, comanda.value?.clienteId],
-  async ([atual, id], [anterior, antigo] = []) => {
+  (): [ComandaEmEdicao | null, number | null | undefined] => [
+    comanda.value,
+    comanda.value?.clienteId,
+  ],
+  async (
+    [atual, id]: [ComandaEmEdicao | null, number | null | undefined],
+    [anterior, antigo]: [ComandaEmEdicao | null, number | null | undefined] = [
+      null,
+      undefined,
+    ],
+  ) => {
     // Trocar de cliente NA MESMA comanda desfaz o resgate do anterior; abrir
     // outra comanda (outro objeto) mantém o resgate dela (planejamento 0037).
     if (
@@ -99,11 +151,13 @@ watch(
 const podeUsarPremio = computed(
   () =>
     Boolean(fidelidade.value) &&
-    (comanda.value.premioFidelidade ||
-      !motivoParaUsarPremio({
-        ...fidelidade.value,
-        clienteId: comanda.value.clienteId,
-      })),
+    Boolean(
+      comanda.value?.premioFidelidade ||
+        !motivoParaUsarPremio({
+          ...fidelidade.value,
+          clienteId: comanda.value?.clienteId,
+        }),
+    ),
 );
 const nomeDoPremio = computed(
   () =>
@@ -115,7 +169,7 @@ const limiteCashback = computed(() =>
   fidelidade.value
     ? limiteDeCashback({
         saldo: fidelidade.value.saldo,
-        comanda: comanda.value,
+        comanda: comanda.value ?? {},
       })
     : 0,
 );
@@ -167,11 +221,12 @@ const titulo = computed(() =>
     ? `Comanda #${props.id}${comanda.value ? ` · ${comanda.value.hora}` : ''}`
     : 'Nova comanda',
 );
-const totais = computed(() =>
-  comanda.value ? totalDaComanda(comanda.value) : null,
-);
+const totais = computed(() => totalDaComanda(comanda.value ?? {}));
 
-const TIPOS = {
+const TIPOS: Record<
+  TipoDeItem,
+  { singular: string; plural: string; vazio: string }
+> = {
   servico: {
     singular: 'serviço',
     plural: 'Serviços',
@@ -184,12 +239,12 @@ const TIPOS = {
   },
 };
 
-const itensDo = (tipo) =>
+const itensDo = (tipo: string): LinhaDoItem[] =>
   (comanda.value?.itens ?? [])
     .map((item, indice) => ({
       ...item,
       id: indice,
-      subtotal: item.preco * item.quantidade,
+      subtotal: Number(item.preco) * Number(item.quantidade),
     }))
     .filter(
       (item) => (item.tipo === 'produto' ? 'produto' : 'servico') === tipo,
@@ -198,43 +253,46 @@ const itensDo = (tipo) =>
 const abas = computed(() =>
   Object.entries(TIPOS).map(([valor, t]) => ({
     valor,
-    rotulo: `${t.plural} (${itensDo(valor).reduce((n, i) => n + i.quantidade, 0)})`,
+    rotulo: `${t.plural} (${itensDo(valor).reduce((n, i) => n + Number(i.quantidade), 0)})`,
   })),
 );
 
 const opcoesBarbeiros = computed(() =>
   barbeiros.value.map((b) => ({ valor: b.id, rotulo: b.nome })),
 );
-const opcoesDoCatalogo = (tipo) =>
-  catalogo.value[tipo].map((x) => ({
+const opcoesDoCatalogo = (tipo: TipoDeItem) =>
+  (catalogo.value[tipo] as (Servico | Produto)[]).map((x) => ({
     valor: x.id,
     rotulo: `${x.nome} · ${formatarMoeda(x.preco)}`,
   }));
 
-const colunasItens = [
+const colunasItens: ColunaDaTabela<LinhaDoItem>[] = [
   { campo: 'nome', titulo: 'Item' },
   { campo: 'quantidade', titulo: 'Qtd.', alinhamento: 'centro' },
   {
     campo: 'preco',
     titulo: 'Preço',
     alinhamento: 'fim',
-    formatar: formatarMoeda,
+    formatar: (v) => formatarMoeda(v as number),
   },
   {
     campo: 'subtotal',
     titulo: 'Subtotal',
     alinhamento: 'fim',
-    formatar: formatarMoeda,
+    formatar: (v) => formatarMoeda(v as number),
   },
   { campo: 'acoes', titulo: '' },
 ];
 
-async function incluir(tipo) {
-  const ref = catalogo.value[tipo].find((x) => x.id === novoItem.value.id);
-  if (!ref) return;
+async function incluir(tipo: TipoDeItem) {
+  const atual = comanda.value;
+  const ref = (catalogo.value[tipo] as (Servico | Produto)[]).find(
+    (x) => x.id === novoItem.value.id,
+  );
+  if (!ref || !atual) return;
   if (tipo === 'servico' && usarPacote.value && pacoteDisponivel.value) {
     const assinatura = pacoteDisponivel.value;
-    const jaNaComanda = comanda.value.itens
+    const jaNaComanda = atual.itens
       .filter((i) => i.assinaturaId === assinatura.id)
       .map((i) => i.refId);
     const r = await api.assinaturas.podeUsar({
@@ -243,39 +301,43 @@ async function incluir(tipo) {
       jaNaComanda,
     });
     if (!r.ok) {
-      await negar(r.motivo);
+      await negar(String(r.motivo));
       return;
     }
-    comanda.value.itens.push({
+    atual.itens.push({
       tipo: 'servico',
       refId: ref.id,
       nome: `${ref.nome} (pacote)`,
       preco: 0,
       quantidade: 1,
-      barbeiroId: comanda.value.barbeiroId,
+      barbeiroId: atual.barbeiroId,
       assinaturaId: assinatura.id,
     });
     novoItem.value = { id: null, quantidade: 1 };
     return;
   }
-  comanda.value.itens.push({
+  atual.itens.push({
     tipo,
     refId: ref.id,
     nome: ref.nome,
-    preco: ref.preco,
+    preco: ref.preco ?? 0,
     quantidade: Math.max(1, Number(novoItem.value.quantidade) || 1),
-    barbeiroId: comanda.value.barbeiroId,
+    barbeiroId: atual.barbeiroId,
   });
   novoItem.value = { id: null, quantidade: 1 };
 }
 
-function remover(indice) {
-  const [item] = comanda.value.itens.splice(indice, 1);
-  if (item?.premio) comanda.value.premioFidelidade = false;
+function remover(indice: number) {
+  const atual = comanda.value;
+  if (!atual) return;
+  const [item] = atual.itens.splice(indice, 1);
+  if (item?.premio) atual.premioFidelidade = false;
 }
 
 async function salvarRascunho() {
-  const salva = await executar(() => api.comandas.salvar(comanda.value));
+  const atual = comanda.value;
+  if (!atual) return undefined;
+  const salva = await executar(() => api.comandas.salvar(atual));
   if (salva) comanda.value = salva;
   return salva;
 }
@@ -291,7 +353,7 @@ async function salvar() {
 
 async function receber() {
   ocupado.value = true;
-  const forma = comanda.value.forma;
+  const forma = comanda.value?.forma;
   const salva = await salvarRascunho();
   const paga =
     salva && (await executar(() => api.comandas.receber(salva.id, { forma })));
@@ -309,7 +371,9 @@ async function receber() {
 }
 
 async function cancelar() {
-  if (!props.id) {
+  // O id é lido antes da confirmação: a comanda que se cancela é a da tela.
+  const id = props.id;
+  if (!id) {
     aberto.value = false;
     return;
   }
@@ -319,7 +383,7 @@ async function cancelar() {
     textoCancelar: 'Manter',
   });
   if (!ok) return;
-  const feita = await executar(() => api.comandas.cancelar(props.id));
+  const feita = await executar(() => api.comandas.cancelar(id));
   if (!feita) return;
   notificar.sucesso('Comanda cancelada.');
   aberto.value = false;

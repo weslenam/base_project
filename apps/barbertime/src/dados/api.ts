@@ -1937,7 +1937,7 @@ export function criarApi({
           motivo: String(motivo ?? '').trim() || 'Bloqueado',
         };
         banco.agendamentos.push(novo);
-        return copia(completar(novo));
+        return copia(comoBloqueio(novo));
       },
       /** pendente → confirmado → atendido | faltou; qualquer um (menos atendido) → cancelado. */
       async alterarEstado(id, estado) {

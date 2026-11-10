@@ -1,18 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { permissoesDoPapel } from '@barbertime/dominio';
 import {
-  sessaoCom,
   clicar,
   clicarContendo,
+  elemento,
   esperar,
   montarApp,
+  sessaoCom,
   simularApi,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
 // Planejamento 0020 (fase 1): tela do Balcão com a API simulada.
 
-let app;
+let app: AppMontado | undefined;
 afterEach(() => {
   app?.unmount();
   document.body.innerHTML = '';
@@ -28,6 +30,7 @@ const PAINEL = (extra = {}) => ({
     {
       id: 1,
       nome: 'João',
+      usuarioId: null as number | null,
       estado: 'ocupado',
       restanteMin: 20,
       atual: {
@@ -41,6 +44,7 @@ const PAINEL = (extra = {}) => ({
     {
       id: 2,
       nome: 'Léo',
+      usuarioId: null as number | null,
       estado: 'livre',
       restanteMin: 0,
       atual: null,
@@ -85,14 +89,12 @@ describe('balcão', () => {
     await esperar(() =>
       expect(texto()).toContain('Pode começar agora com Léo'),
     );
-    const agora = document.querySelector(
-      'section[aria-label="Agora"]',
-    ).textContent;
+    const agora = elemento('section[aria-label="Agora"]').textContent;
     expect(agora).toMatch(/João.*Ocupado · 20 min/);
     expect(agora).toContain('Próximo: 15:00 Ana');
-    expect(
-      document.querySelector('section[aria-label="Próximos"]').textContent,
-    ).toContain('Ana');
+    expect(elemento('section[aria-label="Próximos"]').textContent).toContain(
+      'Ana',
+    );
   });
 
   it('iniciar usa o barbeiro sugerido; check-in chama a API', async () => {
@@ -108,7 +110,7 @@ describe('balcão', () => {
     app = await montarApp('/balcao');
     await clicar('Iniciar');
     await esperar(() => expect(texto()).toContain('começou com Léo'));
-    expect(chamadas.find((c) => c.url.endsWith('/iniciar')).corpo).toEqual({
+    expect(chamadas.find((c) => c.url.endsWith('/iniciar'))?.corpo).toEqual({
       barbeiroId: 2,
     });
     await clicar('Check-in');
@@ -159,7 +161,7 @@ describe('balcão', () => {
     await esperar(() =>
       expect(texto()).toContain('Cliente balcão entrou na fila (Barba)'),
     );
-    expect(chamadas.find((c) => c.metodo === 'POST').corpo).toEqual({
+    expect(chamadas.find((c) => c.metodo === 'POST')?.corpo).toEqual({
       servicoId: 2,
       barbeiroId: null,
       telefone: null,
@@ -194,17 +196,17 @@ describe('balcão do Barbeiro', () => {
     await esperar(() =>
       expect(texto()).toContain('Pode começar agora com Léo'),
     );
-    const agora = (nome) =>
-      document.querySelector(`article[aria-label="${nome}"]`).textContent;
+    const agora = (nome: string) =>
+      elemento(`article[aria-label="${nome}"]`).textContent;
     expect(agora('João')).toContain('Finalizar');
     expect(agora('João')).toContain('Pausa');
     expect(agora('Léo')).not.toContain('Pausa');
-    const fila = document.querySelector('ol[aria-label="Fila"]').textContent;
+    const fila = elemento('ol[aria-label="Fila"]').textContent;
     expect(fila).not.toContain('Iniciar');
     expect(fila).not.toContain('Desistiu');
     // Check-in e as abas Balcão / Agenda continuam.
     expect(texto()).toContain('Check-in');
-    const abas = document.querySelector('[aria-label="Navegação principal"]');
+    const abas = elemento('[aria-label="Navegação principal"]');
     expect(abas.textContent).toContain('Balcão');
     expect(abas.textContent).toContain('Agenda');
   });

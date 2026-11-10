@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -19,7 +19,9 @@ import { useAcao } from '../../dados/useAcao.ts';
 import { useSessao } from '../../sessao/sessao.ts';
 import ComandaDialogo from './ComandaDialogo.vue';
 import FecharCaixa from './FecharCaixa.vue';
-import { rotuloDaForma, seloDaComanda } from './rotulos.js';
+import { rotuloDaForma, seloDaComanda } from './rotulos.ts';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Caixa, Comanda } from '../../dados/modelos.ts';
 
 const route = useRoute();
 const router = useRouter();
@@ -29,23 +31,28 @@ const executar = useAcao();
 const { pode } = useSessao();
 const podeAbrirCaixa = computed(() => pode('caixa.abrir'));
 
-const caixa = ref(undefined);
-const comandas = ref([]);
-const trocoInicial = ref(0);
+/** undefined: carregando; null: o caixa de hoje ainda não foi aberto. */
+const caixa = ref<Caixa | null | undefined>(undefined);
+const comandas = ref<Comanda[]>([]);
+const trocoInicial = ref<number | null>(0);
 const comandaAberta = ref(false);
-const comandaId = ref(null);
+const comandaId = ref<number | null>(null);
 const fechamentoAberto = ref(false);
 
-const colunas = [
+const colunas: ColunaDaTabela<Comanda>[] = [
   { campo: 'hora', titulo: 'Hora' },
   { campo: 'clienteNome', titulo: 'Cliente' },
   { campo: 'barbeiroNome', titulo: 'Barbeiro' },
-  { campo: 'forma', titulo: 'Pagamento', formatar: rotuloDaForma },
+  {
+    campo: 'forma',
+    titulo: 'Pagamento',
+    formatar: (v) => rotuloDaForma(v as string | null),
+  },
   {
     campo: 'total',
     titulo: 'Total',
     alinhamento: 'fim',
-    formatar: formatarMoeda,
+    formatar: (v) => formatarMoeda(v as number),
   },
   { campo: 'estado', titulo: 'Situação' },
 ];
@@ -57,7 +64,7 @@ async function carregar() {
   ]);
 }
 
-function abrirComanda(id = null) {
+function abrirComanda(id: number | null = null) {
   comandaId.value = id;
   comandaAberta.value = true;
 }
@@ -136,8 +143,8 @@ const formas = FORMAS_DE_PAGAMENTO;
           }}</span>
         </p>
         <DsSelo v-if="caixa.diferenca === 0" estado="confirmado">Bateu</DsSelo>
-        <DsSelo v-else-if="caixa.diferenca < 0" estado="faltou">
-          Faltaram {{ formatarMoeda(-caixa.diferenca) }}
+        <DsSelo v-else-if="(caixa.diferenca ?? 0) < 0" estado="faltou">
+          Faltaram {{ formatarMoeda(-(caixa.diferenca ?? 0)) }}
         </DsSelo>
         <DsSelo v-else estado="pendente"
           >Sobraram {{ formatarMoeda(caixa.diferenca) }}</DsSelo

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
@@ -17,6 +17,13 @@ import { useAcao } from '../../dados/useAcao.ts';
 import { useSessao } from '../../sessao/sessao.ts';
 import ComandaDialogo from '../caixa/ComandaDialogo.vue';
 import AvulsoDialogo from './AvulsoDialogo.vue';
+import type { Selo } from '../estados.ts';
+import type {
+  Atendimento,
+  BarbeiroBalcao,
+  NaFila,
+  Painel,
+} from '../../dados/modelos.ts';
 
 // Balcão (planejamento 0020, fase 1; especificação docs/atendimento/balcao.md):
 // Agora · Fila e chegadas · Próximos, com "+ Avulso" sempre à mão.
@@ -28,18 +35,18 @@ const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const painel = ref(null);
+const painel = ref<Painel | null>(null);
 const avulsoAberto = ref(false);
-const comandaId = ref(null);
+const comandaId = ref<number | null>(null);
 const comandaAberta = ref(false);
-const trocoInicial = ref(0);
-const ocupado = ref(null); // id do item com ação em andamento
+const trocoInicial = ref<number | null>(0);
+const ocupado = ref<number | string | null>(null); // id do item com ação em andamento
 
 async function carregar() {
   const p = await executar(() => balcao.painel());
   if (p) painel.value = p;
 }
-let timer;
+let timer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
   carregar();
   timer = setInterval(carregar, ATUALIZAR_MS);
@@ -50,7 +57,11 @@ watch(comandaAberta, (aberta) => {
 });
 
 /** Executa uma ação do balcão e recarrega; devolve o resultado. */
-async function agir(id, chamada, mensagem) {
+async function agir<T>(
+  id: number | string,
+  chamada: () => Promise<T>,
+  mensagem?: (r: T) => string,
+): Promise<T | undefined> {
   ocupado.value = id;
   const r = await executar(chamada);
   ocupado.value = null;
@@ -63,7 +74,10 @@ async function agir(id, chamada, mensagem) {
 // consigo, finaliza e pausa os próprios, e marca desistência e falta na
 // própria coluna ou no que lançou.
 const { sessao, pode: temPermissao } = useSessao();
-const pode = (acao, alvo = {}) =>
+const pode = (
+  acao: string,
+  alvo: Parameters<typeof podeAgirNoBalcao>[2] = {},
+) =>
   podeAgirNoBalcao(
     {
       usuarioId: sessao.value?.usuario?.id,
@@ -73,30 +87,30 @@ const pode = (acao, alvo = {}) =>
     alvo,
   );
 const podeAbrirCaixa = computed(() => temPermissao('caixa.abrir'));
-const contaDoBarbeiro = (id) =>
+const contaDoBarbeiro = (id: number | null) =>
   painel.value?.barbeiros.find((b) => b.id === id)?.usuarioId ?? null;
-const podeIniciar = (f) =>
+const podeIniciar = (f: NaFila) =>
   pode('iniciar', {
     destinoUsuarioId: contaDoBarbeiro(f.barbeiroSugeridoId ?? f.barbeiroId),
   });
 
-const nomeDoBarbeiro = (id) =>
+const nomeDoBarbeiro = (id: number | null) =>
   painel.value?.barbeiros.find((b) => b.id === id)?.nome ?? 'Primeiro livre';
 
-const SELO_BARBEIRO = {
+const SELO_BARBEIRO: Record<BarbeiroBalcao['estado'], Selo> = {
   livre: { estado: 'confirmado', texto: 'Livre' },
   ocupado: { estado: 'fila', texto: 'Ocupado' },
   pausa: { estado: 'neutro', texto: 'Pausa' },
 };
 
-const iniciar = (item) =>
+const iniciar = (item: NaFila) =>
   agir(
     item.id,
     () => balcao.iniciar(item.id, item.barbeiroSugeridoId ?? item.barbeiroId),
     (a) => `${a.clienteNome} começou com ${a.barbeiroNome}.`,
   );
 
-async function desistir(item) {
+async function desistir(item: Atendimento) {
   const ok = await confirmar(
     `${item.clienteNome} desistiu de esperar? A comanda aberta é cancelada.`,
     { textoOk: 'Desistiu', textoCancelar: 'Continua na fila' },
@@ -104,7 +118,7 @@ async function desistir(item) {
   if (ok) await agir(item.id, () => balcao.desistir(item.id));
 }
 
-async function marcarFalta(item) {
+async function marcarFalta(item: Atendimento) {
   const ok = await confirmar(
     `${item.clienteNome} não veio ao horário das ${item.inicio}? Isso registra a falta.`,
     { textoOk: 'Marcar falta', textoCancelar: 'Aguardar' },
@@ -112,42 +126,49 @@ async function marcarFalta(item) {
   if (ok) await agir(item.id, () => balcao.noShow(item.id));
 }
 
-const checkin = (item) =>
+const checkin = (item: Atendimento) =>
   agir(
     item.id,
     () => balcao.checkin(item.id),
     (a) => `${a.clienteNome} chegou.`,
   );
 
-const finalizar = (b) =>
-  agir(
-    b.atual.id,
-    () => balcao.finalizar(b.atual.id),
+async function finalizar(b: BarbeiroBalcao) {
+  const atual = b.atual;
+  if (!atual) return;
+  await agir(
+    atual.id,
+    () => balcao.finalizar(atual.id),
     (a) => {
       // Finalizou: já abre a comanda para cobrar.
       if (a.comandaId) cobrar(a.comandaId);
       return `${a.clienteNome} finalizado. Hora de cobrar.`;
     },
   );
+}
 
-const pausar = (b) =>
+const pausar = (b: BarbeiroBalcao) =>
   agir(
     `p${b.id}`,
     () => balcao.pausa(b.id, b.estado !== 'pausa'),
     (r) => (r.emPausa ? `${b.nome} em pausa.` : `${b.nome} voltou.`),
   );
 
-function cobrar(id) {
+/** A cobrar só lista quem tem comanda aberta. */
+function cobrar(id: number | null) {
+  if (id === null) return;
   comandaId.value = id;
   comandaAberta.value = true;
 }
 
 async function abrirCaixa() {
-  const r = await agir('caixa', () => balcao.abrirCaixa(trocoInicial.value));
+  const r = await agir('caixa', () =>
+    balcao.abrirCaixa(trocoInicial.value ?? 0),
+  );
   if (r) notificar.sucesso('Caixa aberto. Bom trabalho!');
 }
 
-const espera = (min) =>
+const espera = (min: number | null) =>
   min == null ? '—' : min === 0 ? 'agora' : `~${min} min`;
 const servicos = computed(() => painel.value?.servicos ?? []);
 </script>

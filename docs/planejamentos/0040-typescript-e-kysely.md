@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A feita, faltam as telas)
+- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A e 9B feitas)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -216,3 +216,14 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
   - **Sessão, rotas e testes:** `RouteMeta` declarado, `useAcao` genérico e apoio dos testes tipado.
   - **Telas:** continuam em JS, convertidas por pasta nas próximas partes (9B em diante).
   - **Balcão:** as respostas ficam `unknown` até a tela do balcão ganhar o contrato dela.
+- 2026-11-10 — Etapa 9B (operação): telas de agenda, balcão e caixa com `lang="ts"`, mais `estados.ts`, `caixa/rotulos.ts` e os testes `agendaAtalhos`, `balcao` e `caixa` em TS.
+  - **Contrato do balcão:** novo `balcao.ts` na `libs/contratos` (`PainelDoBalcao`, `EncaixeDoBalcao`, `ItemDaFila`...). A API anota o retorno das rotas com ele, e o compilador confere que bate.
+  - **Modelos das telas:** `src/dados/modelos.ts` traz os apelidos do JSON (`Barbeiro`, `Atendimento`, `Comanda`, `Painel`...).
+  - **Lib de UI:** o `DsEscolha` aceita lista `readonly` (`FORMAS_DE_PAGAMENTO`), e o `EstadoVisual` é exportado.
+  - **Apoio dos testes:** `elemento()` e `AppMontado`.
+  - **Da revisão:**
+    - o `cancelar` da comanda guarda o id antes da confirmação;
+    - agendar e bloquear avisam quando falta a escolha, em vez de não fazer nada;
+    - `ComandaEmEdicao` vem do modelo `Comanda`;
+    - os selos só aceitam estados conhecidos (`Object.hasOwn`).
+  - **Pendência para a etapa 10:** tipar o `formatar` do `ColunaDaTabela` pelo campo da coluna, para tirar os casts `(v) => formatarMoeda(v as number)`.

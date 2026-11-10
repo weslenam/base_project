@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsBotao,
   DsDialogo,
@@ -10,19 +11,30 @@ import {
 } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { Barbeiro, Bloqueio } from '../../dados/modelos.ts';
+import type { NovoBloqueio } from '../../dados/tipos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
+const aberto = defineModel<boolean>({ default: false });
 const props = defineProps({
   data: { type: String, required: true },
   /** Barbeiro já escolhido (atalho na coluna da agenda). */
-  barbeiroId: { type: Number, default: null },
+  barbeiroId: { type: Number as PropType<number | null>, default: null },
 });
-const emit = defineEmits(['criado']);
+const emit = defineEmits<{ criado: [bloqueio: Bloqueio] }>();
 
 const notificar = useNotificacao();
 const executar = useAcao();
-const barbeiros = ref([]);
-const form = ref({});
+const barbeiros = ref<Barbeiro[]>([]);
+/** O barbeiro pode faltar até a escolha no formulário (obrigatório). */
+const form = ref<
+  Omit<NovoBloqueio, 'barbeiroId'> & { barbeiroId: number | null }
+>({
+  barbeiroId: null,
+  data: '',
+  inicio: '',
+  fim: '',
+  motivo: '',
+});
 
 watch(aberto, async (abriu) => {
   if (!abriu) return;
@@ -41,7 +53,14 @@ const opcoes = computed(() =>
 );
 
 async function bloquear() {
-  const criado = await executar(() => api.agendamentos.bloquear(form.value));
+  const { barbeiroId, ...resto } = form.value;
+  if (barbeiroId == null) {
+    notificar.aviso('Escolha o barbeiro.');
+    return;
+  }
+  const criado = await executar(() =>
+    api.agendamentos.bloquear({ ...resto, barbeiroId }),
+  );
   if (!criado) return;
   notificar.sucesso(`Horário bloqueado para ${criado.barbeiroNome}.`);
   aberto.value = false;

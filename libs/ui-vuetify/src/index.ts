@@ -33,6 +33,7 @@ export { default as DsFormulario } from './componentes/DsFormulario.vue';
 export { default as DsTextarea } from './componentes/DsTextarea.vue';
 export { NOMES_DE_ICONES } from './icones.ts';
 export type { NomeDoIcone } from './icones.ts';
+export type { EstadoVisual } from './internos/estados.ts';
 export type {
   Aba,
   AbaDeNavegacao,

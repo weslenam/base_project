@@ -3,14 +3,16 @@ import { api } from '../dados/api.ts';
 import {
   clicar,
   clicarContendo,
+  elemento,
   esperar,
   montarApp,
   preencher,
   sessaoCom,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   vi.restoreAllMocks();
@@ -18,11 +20,15 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-const normalizar = (t) => t.replace(/\s/g, ' ');
-const abrirLinha = (trecho) =>
-  [...document.querySelectorAll('td')]
-    .find((td) => td.textContent.includes(trecho))
-    .click();
+const normalizar = (t: string | null | undefined) =>
+  String(t).replace(/\s/g, ' ');
+const abrirLinha = (trecho: string) => {
+  const celula = [...document.querySelectorAll('td')].find((td) =>
+    (td.textContent ?? '').includes(trecho),
+  );
+  if (!celula) throw new Error(`Linha com "${trecho}" não apareceu`);
+  celula.click();
+};
 
 describe('caixa', () => {
   it('mostra o resumo do dia por forma de pagamento e as comandas', async () => {
@@ -69,14 +75,15 @@ describe('caixa', () => {
 });
 
 describe('comanda com abas e pagamento estilo PDV', () => {
-  const painelVisivel = () =>
-    [...document.querySelectorAll('[role="tabpanel"]')].find(
-      (p) => p.style.display !== 'none',
-    );
+  const painelVisivel = () => {
+    const painel = [
+      ...document.querySelectorAll<HTMLElement>('[role="tabpanel"]'),
+    ].find((p) => p.style.display !== 'none');
+    if (!painel) throw new Error('Nenhum painel de aba visível');
+    return painel;
+  };
   const resumo = () =>
-    normalizar(
-      document.querySelector('section[aria-label="Pagamento"]').textContent,
-    );
+    normalizar(elemento('section[aria-label="Pagamento"]').textContent);
 
   it('separa serviços e produtos em abas, cada uma com seu total', async () => {
     app = await montarApp('/caixa');
@@ -94,7 +101,7 @@ describe('comanda com abas e pagamento estilo PDV', () => {
     );
     expect(painelVisivel().textContent).not.toContain('Óleo para barba');
 
-    document.querySelectorAll('[role="tab"]')[1].click();
+    document.querySelectorAll<HTMLElement>('[role="tab"]')[1]?.click();
     await esperar(() =>
       expect(painelVisivel().textContent).toContain('Óleo para barba'),
     );
