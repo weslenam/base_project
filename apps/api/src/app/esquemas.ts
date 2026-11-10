@@ -9,7 +9,10 @@
  * confusão de tipo (ex.: `{ "email": { "$ne": null } }`).
  */
 
-export const texto = (max) => ({ type: ['string', 'null'], maxLength: max });
+export const texto = (max: number) => ({
+  type: ['string', 'null'],
+  maxLength: max,
+});
 export const inteiro = { type: ['integer', 'null'] };
 export const numero = { type: ['number', 'null'] };
 export const logico = { type: ['boolean', 'null'] };
@@ -52,11 +55,11 @@ export const campoHora = {
 };
 
 /** `{ body: { type: 'object', properties } }` (corpo ausente vira `{}` na guarda). */
-export const corpo = (properties) => ({
+export const corpo = (properties: Record<string, unknown>) => ({
   body: { type: 'object', properties },
 });
 
-export const query = (properties) => ({
+export const query = (properties: Record<string, unknown>) => ({
   querystring: { type: 'object', properties },
 });
 

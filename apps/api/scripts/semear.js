@@ -1,9 +1,9 @@
 // Dados de desenvolvimento: pnpm nx run api:semear (idempotente).
 // Barbearia modelo + um usuário por papel. SENHAS SÓ PARA DESENVOLVIMENTO.
 import Fastify from 'fastify';
-import { config } from '../src/infra/config.js';
-import { migrar, prepararPapelDaAplicacao } from '../src/infra/migrar.js';
-import banco from '../src/infra/banco.js';
+import { config } from '../src/infra/config.ts';
+import { migrar, prepararPapelDaAplicacao } from '../src/infra/migrar.ts';
+import banco from '../src/infra/banco.ts';
 import { criarBarbearia } from '../src/servicos/barbearias.js';
 import { garantirCategoriasPadrao } from '../src/servicos/estoque.js';
 import identidade from '../src/identidade/index.js';

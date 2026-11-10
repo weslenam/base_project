@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 concluídas; próxima: etapa 4)
+- **Status:** Em andamento (etapas 1 a 3 e 5 concluídas; próxima: etapa 6, com dois agentes)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -17,6 +17,8 @@
 > mas eu acho q vale converter agora para typescript + orm
 
 - **Quando:** 2026-11-09 · **Origem:** Conversa com o assistente (entrevista `grill-me`)
+> divida então a conversao 5 e 6 em dois agentes (2026-11-10)
+
 - **Esclarecimentos:**
   - Financeiro → **fechar a 2A, pausar a 2B**. A 2A entrou na `main` pelo PR #31, e a 2B volta depois, já em TypeScript.
   - Ferramenta de banco → **Kysely** (query builder tipado, com os tipos gerados do banco).
@@ -50,12 +52,43 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 - [x] 2. **`libs/dominio`** em TS: tipos das entidades (comanda, conta, assinatura etc.) e regras puras.
 - [x] 3. **`libs/ui-utils` e `libs/ui-tokens`** em TS.
 - [ ] 4. **`libs/contratos`:** tipos das respostas e dos corpos da API.
-- [ ] 5. **API, infraestrutura:** Kysely, `comBarbearia` e `emTransacao` com `trx`, tipos gerados do banco, plugins do Fastify tipados (sessão, contexto, `exigir`) e teste de isolamento.
+- [x] 5. **API, infraestrutura:** Kysely, `comBarbearia` e `emTransacao` com `trx`, tipos gerados do banco, plugins do Fastify tipados (sessão, contexto, `exigir`) e teste de isolamento.
 - [ ] 6. **API, serviços e rotas** convertidos para TS + Kysely, módulo a módulo: cadastros e clientes; agenda e balcão; caixa, fidelidade e pacotes; estoque e financeiro; plataforma e autenticação. Os testes de integração viram TS.
 - [ ] 7. **`libs/ui-vuetify` e `libs/ui-contrato`:** componentes `Ds*` com `<script setup lang="ts">` e props tipadas.
 - [ ] 8. **`apps/business-center`** (pequeno: 15 arquivos).
 - [ ] 9. **`apps/barbertime`:** camada de dados tipada pelos contratos e telas com `lang="ts"`, por pasta.
 - [ ] 10. **Fechamento:** desligar `allowJs`, remover o `jsconfig.json`, rodar `/code-review` e `security-review` gerais e atualizar os índices.
+
+## Guia da etapa 6 (para os agentes)
+
+Base pronta na etapa 5: `apps/api/src/infra/banco.ts` (Kysely na transação), `banco-tipos.ts` (gerado), `app/tipos-fastify.ts` (o que o Fastify tem pendurado), os arquivos compartilhados já em `.ts` e o teste de isolamento `integracao/kysely.spec.ts`. **Exemplo de referência:** `servicos/agenda.ts`.
+
+**Como converter um arquivo:**
+
+1. `git mv x.js x.ts` e troque, **em todos os importadores**, `'./x.js'` por `'./x.ts'`. O Node exige a extensão certa.
+2. Tipos explícitos em tudo o que é exportado (parâmetros e retornos), com `strict` e só sintaxe apagável (sem `enum` nem `namespace`). Use os tipos do `@barbertime/dominio`.
+3. **SQL → Kysely:**
+   - Use `c.db` (o `c` é a `Conexao` que o `fastify.naBarbearia` ou o `emTransacao` entrega). As colunas vêm em camelCase (`CamelCasePlugin`), então os `as "camelCase"` somem.
+   - **Nunca** crie outro Kysely, nunca use `c.db.transaction()` e nunca guarde o `c.db` para usar fora do callback. O isolamento entre barbearias depende disso.
+   - `for update` → `.forUpdate()`. CTE com `update`, `union` ou funções do schema (`app.*`): use o `sql` do Kysely, sempre com parâmetros (nada de concatenar texto vindo da requisição), e explique o motivo num comentário.
+   - Inserção: o `barbeariaId` sai do `req.contexto` (nunca do corpo).
+4. **Rotas:** `export default async function (fastify: FastifyInstance)`. Tipe `req.body`, `req.params` e `req.query` pelo genérico da rota (`fastify.post<{ Body: …; Params: … }>`). Mantenha os schemas do ADR 0014.
+5. **Contratos (etapa 4):** o formato das respostas que o front consome vira tipo exportado num arquivo `contratos.ts` do módulo (ex.: `servicos/caixa.contratos.ts`). A `libs/contratos` junta tudo na etapa 9.
+6. **Testes de integração do módulo:** `git mv *.spec.js *.spec.ts`, tipando o mínimo. O `Resposta.corpo` do `navegador` é `any` de propósito.
+7. **Nada de `?? ''` ou `!` só para calar o tipo** em código de segurança ou de dinheiro: trate o caso vazio de propósito (issue #33).
+8. **Comportamento idêntico:** os testes existentes passam sem mudar o que verificam. Diferença de comportamento encontrada é bug: abra uma issue (seção "Bugs e branches") e não a corrija de passagem.
+9. Ao terminar: `pnpm verificar:tudo` verde, `/code-review` e `security-review` no diff, depois commit, push e PR.
+
+**Divisão dos arquivos** (sem arquivos em comum; o `app.ts` tem um bloco de imports por agente, separado por linhas):
+
+| Agente A, operação | Agente B, cadastros, acesso e plataforma |
+|---|---|
+| `servicos/`: `caixa`, `estoque`, `fidelidade`, `pacotes`, `financeiro` | `servicos/`: `barbearias`, `operadores` |
+| `rotas/`: `agenda`, `balcao`, `caixa`, `estoque`, `fidelidade`, `pacotes`, `financeiro` | `rotas/`: `autenticacao`, `barbearia`, `cadastros`, `clientes`, `modulos`, `pagamentos`, `papeis`, `plataforma`, `publico`, `saude`, `senha`, `usuarios` |
+| `integracao/`: `agendaBarbeiro`, `balcao`, `balcaoBarbeiro`, `correcoes`, `estoque`, `fidelidade`, `financeiro`, `pacotes` | `identidade/*`, `pagamentos/*`, `app/plugins/*`, `scripts/*` |
+| | `integracao/`: `administracao`, `configuracoes`, `isolamento`, `negocio`, `plataforma`, `seguranca` |
+
+Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `seguranca/*`, `servicos/agenda.ts`, `integracao/apoio.ts`) já estão convertidos. Cada agente só mexe no próprio bloco de imports do `app.ts`.
 
 ## Critérios de pronto
 
@@ -92,3 +125,27 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
   - Comprovado: a API (Node 22, sem compilar) importa o domínio em `.ts`; os apps compilam (Vite); integração (146) e layout (89) verdes.
   - Testes podem usar `!` (regra liberada só em `*.spec.ts`), e os `tsconfig` ganharam os tipos globais do Vitest.
 - 2026-11-10: **etapa 3 concluída.** `libs/ui-utils` (formatação e máscaras) e `libs/ui-tokens` em TS. O gerador de tokens virou `scripts/gerar-tokens.ts` (roda direto no Node, com os tipos do `tokens.json`) e passou a gerar `src/tokens.ts`; o teste confere que o arquivo gerado está atualizado. `pnpm verificar` e layout (89) verdes, depois de reiniciar o `pnpm dev`.
+- 2026-11-10: etapas 1 a 3 juntas na `main` pelo PR #32. Combinado: cada etapa vai para push, PR e merge logo que fica verde. A etapa 4 (contratos) entra junto com a conversão da API, criando cada contrato com a rota correspondente. Divisão: a etapa 5 é feita primeiro, aqui, porque é a base comum. Depois do merge dela, **dois agentes em paralelo** (cada um numa cópia isolada) dividem os módulos da etapa 6 e abrem um PR cada. Resposta à pergunta "como dividir": **"5 antes; 6 em dois agentes"**.
+- 2026-11-10: **etapa 5 concluída.**
+  - **Tipos do banco:** `banco-tipos.ts` gerado pelo `kysely-codegen` (camelCase, `bigint` e `numeric` como número, `date` como texto). Comandos `pnpm banco:tipos` e `api:banco-tipos-conferir`, este último dentro do `verificar:tudo`. O arquivo gerado não passa pelo Prettier (a conferência compara com a saída do gerador).
+  - **`banco.ts`:** a transação entrega `c.query` (SQL do driver) e `c.db` (Kysely na mesma conexão). O `c.db` recusa consultas depois que a transação acaba.
+  - **`tipos-fastify.ts`:** `naBarbearia`, `exigir`, `req.contexto` e outros, tipados.
+  - **Desvio do plano:** os arquivos compartilhados entraram nesta etapa (`infra/*`, `app.ts`, `esquemas`, `seguranca/*`, `servicos/agenda`, `main`, utilitários dos testes). Se ficassem com um dos agentes, cada renomeação mexeria nos arquivos do outro. O `servicos/agenda.ts` já usa o Kysely e serve de exemplo.
+  - **Teste de isolamento** (`kysely.spec.ts`): só a barbearia da transação; RLS recusa gravar em outra; `db` guardado não roda depois; driver e Kysely na mesma transação.
+  - **Ajustes de tipo sem mudar comportamento:** a `@fastify/rate-limit` declara `isExceeded` só quando o pedido não foi liberado, e a opção `cache` fica fora dos tipos de `createRateLimit`.
+  - **Verificado:** `verificar:tudo` e layout (89) verdes, com o `pnpm dev` reiniciado.
+  - **Revisão (`/code-review`) da etapa 5:**
+    - corrigidos, com teste de regressão:
+      - #33 (alta): `conferirSenha` aceitava qualquer senha com hash truncado, por causa de um `?? ''` posto na conversão. Agora hash ou sal vazio nunca confere;
+      - #34: `engines` passa a `>=22.18`, porque o Node roda `.ts` direto;
+      - #35: rollback que falha mantém o erro original e descarta a conexão.
+    - endurecidos:
+      - `c.db.transaction()` e `startTransaction()` lançam erro;
+      - o Kysely só é montado quando a rota usa `c.db`;
+      - nomes de limite tipados (`NomeDoLimite`);
+      - `confirmadoEm` aceita `Date` no domínio.
+    - pendências:
+      - a conferência dos tipos do banco usa o banco de desenvolvimento, não um recém-migrado: se o banco local estiver atrasado, ela erra;
+      - `ocupadosDoDia` mantém o mesmo filtro de antes (só `inicio` não nulo);
+      - o parâmetro `ignorarId` não tem quem o use (já era assim).
+  - **Lição:** um `?? ''` posto só para calar o tipo pode mudar o comportamento. Em código de segurança, trate o caso vazio explicitamente. Isso entra no guia da etapa 6.

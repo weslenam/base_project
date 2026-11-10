@@ -6,15 +6,15 @@ import {
   naGrade,
   sobrepoe,
 } from '@barbertime/dominio';
-import { invalido, naoEncontrado } from '../../infra/erros.js';
+import { invalido, naoEncontrado } from '../../infra/erros.ts';
 import {
   agora,
   buscarBarbeiro,
   buscarServico,
   criarAgendamento,
   ocupadosDoDia,
-} from '../../servicos/agenda.js';
-import { chaves } from '../../seguranca/limites.js';
+} from '../../servicos/agenda.ts';
+import { chaves } from '../../seguranca/limites.ts';
 import {
   campoData,
   campoHora,
@@ -24,7 +24,7 @@ import {
   query,
   TAM,
   texto,
-} from '../esquemas.js';
+} from '../esquemas.ts';
 
 /**
  * Página pública de agendamento (planejamento 0019, ADR 0013). Sem sessão.

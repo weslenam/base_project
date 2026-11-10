@@ -1,11 +1,11 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { invalido } from '../infra/erros.js';
+import { invalido } from '../infra/erros.ts';
 import {
   conferirSenha,
   gerarHashDeSenha,
   hashFalso,
   SENHA_MINIMA,
-} from '../seguranca/senha.js';
+} from '../seguranca/senha.ts';
 import {
   COOKIE,
   criarSessao,
@@ -14,7 +14,7 @@ import {
   lerSessao,
   opcoesDoCookie,
   trocarBarbeariaDaSessao,
-} from '../seguranca/sessao.js';
+} from '../seguranca/sessao.ts';
 
 /**
  * Identidade "propria" (ADR 0016, planejamento 0025 S3): sessão opaca em cookie

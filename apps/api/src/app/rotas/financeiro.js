@@ -1,4 +1,4 @@
-import { agora } from '../../servicos/agenda.js';
+import { agora } from '../../servicos/agenda.ts';
 import {
   baixarConta,
   cancelarConta,
@@ -19,7 +19,7 @@ import {
   logico,
   query,
   texto,
-} from '../esquemas.js';
+} from '../esquemas.ts';
 
 // Financeiro (planejamento 0027, parte 2, fatia 2A): contas a pagar e a
 // receber e categorias. financeiro.gerenciar só vale com o módulo "financeiro"

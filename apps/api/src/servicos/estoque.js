@@ -4,7 +4,7 @@ import {
   motivoParcelasInvalidas,
   totalDaCompra,
 } from '@barbertime/dominio';
-import { conflito, invalido, naoEncontrado } from '../infra/erros.js';
+import { conflito, invalido, naoEncontrado } from '../infra/erros.ts';
 
 // Estoque e compras (planejamento 0027, parte 1). Sempre numa transação com RLS (c).
 // O saldo fica em produtos.saldo e muda só aqui, junto com o movimento.

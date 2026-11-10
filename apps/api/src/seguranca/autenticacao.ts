@@ -1,7 +1,9 @@
 import fp from 'fastify-plugin';
 import cookie from '@fastify/cookie';
 import { permissoesDoPapel, permissoesEfetivas } from '@barbertime/dominio';
-import { naoAutenticado, proibido } from '../infra/erros.js';
+import type { FastifyRequest } from 'fastify';
+import { naoAutenticado, proibido } from '../infra/erros.ts';
+import type { ContextoDaBarbearia } from '../app/tipos-fastify.ts';
 
 export const BARBEARIA_SUSPENSA =
   'Esta barbearia está suspensa. Fale com o suporte do BarberTime.';
@@ -18,14 +20,17 @@ export default fp(async function autenticacao(fastify) {
   await fastify.register(cookie);
 
   fastify.decorateRequest('sessao', null);
-  fastify.decorateRequest('contexto', null);
+  // Começa vazio; as guardas preenchem (o tipo é o de depois da guarda).
+  fastify.decorateRequest('contexto', null as never);
 
   // A sessão vem da identidade (ADR 0016), seja qual for a implementação.
   fastify.addHook('onRequest', async (req) => {
     req.sessao = await fastify.identidade.lerSessao(req);
   });
 
-  async function carregarContexto(req) {
+  async function carregarContexto(
+    req: FastifyRequest,
+  ): Promise<ContextoDaBarbearia> {
     if (req.contexto) return req.contexto;
     if (!req.sessao) throw naoAutenticado();
     const { usuarioId, barbeariaId } = req.sessao;

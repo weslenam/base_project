@@ -6,7 +6,7 @@
   "type": "module",
   "packageManager": "pnpm@12.18.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
     "dev": "nx run-many -t serve -p barbertime business-center api",
@@ -15,12 +15,13 @@
     "lint": "nx run-many -t lint",
     "format": "nx format:write",
     "verificar": "nx run-many -t lint,typecheck,test,build",
-    "verificar:tudo": "nx run-many -t lint,typecheck,test,build && nx run api:integracao",
+    "verificar:tudo": "nx run-many -t lint,typecheck,test,build && nx run api:banco-tipos-conferir && nx run api:integracao",
     "verificar:layout": "nx run e2e-layout:e2e",
     "navegador": "bash scripts/preparar-navegador.sh",
     "banco": "supabase start && nx run api:migrar && nx run api:semear",
     "banco:parar": "supabase stop",
-    "banco:compose": "docker compose up -d --wait postgres redis mailpit && nx run api:semear"
+    "banco:compose": "docker compose up -d --wait postgres redis mailpit && nx run api:semear",
+    "banco:tipos": "nx run api:banco-tipos"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

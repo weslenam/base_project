@@ -4,9 +4,9 @@ import {
   arredondarQuantidade,
   paraMinutos,
 } from '@barbertime/dominio';
-import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
-import { agora } from '../../servicos/agenda.js';
-import { TAM, campoHora, corpo, escalar, inteiro, texto } from '../esquemas.js';
+import { conflito, invalido, naoEncontrado } from '../../infra/erros.ts';
+import { agora } from '../../servicos/agenda.ts';
+import { TAM, campoHora, corpo, escalar, inteiro, texto } from '../esquemas.ts';
 
 // Serviços, produtos e equipe (planejamento 0019). Exclusão lógica: o histórico
 // de agendamentos e comandas continua apontando para o registro.

@@ -1,6 +1,6 @@
 import { resumoDeComandas } from '@barbertime/dominio';
-import { invalido, naoEncontrado } from '../../infra/erros.js';
-import { buscarAtendimento } from '../../servicos/agenda.js';
+import { invalido, naoEncontrado } from '../../infra/erros.ts';
+import { buscarAtendimento } from '../../servicos/agenda.ts';
 import {
   SELECT_COMANDA,
   abrirCaixa,
@@ -23,7 +23,7 @@ import {
   logico,
   query,
   texto,
-} from '../esquemas.js';
+} from '../esquemas.ts';
 
 // Caixa do dia e comandas (planejamento 0020, fase 1) + resumo e comandas do
 // cliente (planejamento 0016), agora pelo banco.

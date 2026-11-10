@@ -1,5 +1,5 @@
-import { chaves } from '../../seguranca/limites.js';
-import { corpo, TAM, texto } from '../esquemas.js';
+import { chaves } from '../../seguranca/limites.ts';
+import { corpo, TAM, texto } from '../esquemas.ts';
 
 /**
  * "Esqueci a senha" (planejamento 0023, ADRs 0010 e 0014). Ninguém troca a senha

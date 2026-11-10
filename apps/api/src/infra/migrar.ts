@@ -13,35 +13,40 @@ export const PASTA_DE_MIGRACOES = fileURLToPath(
   new URL('../../../../supabase/migrations', import.meta.url),
 );
 
-const versaoDe = (arquivo) => arquivo.split('_')[0];
+const versaoDe = (arquivo: string): string => arquivo.split('_')[0];
 
-export function migracoesDisponiveis() {
+export function migracoesDisponiveis(): string[] {
   return readdirSync(PASTA_DE_MIGRACOES)
     .filter((f) => /^\d+_.+\.sql$/.test(f))
     .sort();
 }
 
-async function versoesAplicadas(c) {
+async function versoesAplicadas(c: pg.Client): Promise<Set<string>> {
   await c.query(
     `create table if not exists public.migracoes_aplicadas (
        versao text primary key, nome text not null, aplicada_em timestamptz not null default now())`,
   );
   const proprias = (
     await c.query('select versao from public.migracoes_aplicadas')
-  ).rows.map((r) => r.versao);
+  ).rows.map((r: { versao: string }) => r.versao);
   const { rows: cli } = await c.query(
     "select to_regclass('supabase_migrations.schema_migrations') is not null as existe",
   );
   const doCli = cli[0].existe
     ? (
-        await c.query('select version from supabase_migrations.schema_migrations')
-      ).rows.map((r) => r.version)
+        await c.query(
+          'select version from supabase_migrations.schema_migrations',
+        )
+      ).rows.map((r: { version: string }) => r.version)
     : [];
   return new Set([...proprias, ...doCli]);
 }
 
 /** Aplica as migrações pendentes com o superusuário, cada uma numa transação. */
-export async function migrar(databaseUrl, { log = () => undefined } = {}) {
+export async function migrar(
+  databaseUrl: string,
+  { log = () => undefined }: { log?: (linha: string) => void } = {},
+): Promise<void> {
   const c = new pg.Client({ connectionString: databaseUrl });
   await c.connect();
   try {
@@ -61,7 +66,9 @@ export async function migrar(databaseUrl, { log = () => undefined } = {}) {
         log(`migração aplicada: ${arquivo}`);
       } catch (erro) {
         await c.query('rollback');
-        throw new Error(`Falha na migração ${arquivo}: ${erro.message}`);
+        throw new Error(
+          `Falha na migração ${arquivo}: ${(erro as Error).message}`,
+        );
       }
     }
   } finally {
@@ -73,7 +80,10 @@ export async function migrar(databaseUrl, { log = () => undefined } = {}) {
  * Dá LOGIN e senha ao papel da aplicação (criado sem login pela baseline),
  * a partir de DATABASE_URL. A senha nunca vai para o git.
  */
-export async function prepararPapelDaAplicacao(databaseUrlMigracao, databaseUrl) {
+export async function prepararPapelDaAplicacao(
+  databaseUrlMigracao: string,
+  databaseUrl: string,
+): Promise<void> {
   const { username, password } = new URL(databaseUrl);
   if (username !== 'barbertime_app')
     throw new Error('DATABASE_URL precisa usar o papel barbertime_app.');

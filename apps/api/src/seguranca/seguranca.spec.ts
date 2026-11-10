@@ -1,12 +1,13 @@
 import Fastify from 'fastify';
-import { app } from '../app/app.js';
-import { problemaDeForma, LIMITES_DE_ENTRADA } from './entrada.js';
-import { conferirSenha, hashFalso } from './senha.js';
+import type { FastifyInstance, InjectOptions } from 'fastify';
+import { app } from '../app/app.ts';
+import { problemaDeForma, LIMITES_DE_ENTRADA } from './entrada.ts';
+import { conferirSenha, hashFalso } from './senha.ts';
 
 // Proteções da API sem banco (ADR 0014, planejamento 0022). Tudo aqui é barrado
 // antes do handler, então nenhuma requisição chega ao Postgres.
 
-let servidor;
+let servidor: FastifyInstance;
 beforeEach(async () => {
   servidor = Fastify();
   servidor.register(app);
@@ -14,7 +15,7 @@ beforeEach(async () => {
 });
 afterEach(() => servidor.close());
 
-const pedir = (opcoes) => servidor.inject(opcoes);
+const pedir = (opcoes: InjectOptions) => servidor.inject(opcoes);
 
 describe('cabeçalhos de segurança', () => {
   it('toda resposta traz os cabeçalhos do helmet', async () => {
@@ -93,7 +94,7 @@ describe('entrada malformada não chega ao banco', () => {
       payload: '{"email":"a@b.c","__proto__":{"admin":true}}',
     });
     expect(poluido.statusCode).toBe(400);
-    expect({}.admin).toBeUndefined();
+    expect(({} as { admin?: unknown }).admin).toBeUndefined();
   });
 
   it('schema: tipo errado e texto longo demais no login viram 400', async () => {
@@ -114,12 +115,12 @@ describe('entrada malformada não chega ao banco', () => {
   });
 
   it('guarda de forma: aninhamento, listas e textos gigantes', async () => {
-    let fundo = 'x';
+    let fundo: unknown = 'x';
     for (let i = 0; i < 20; i++) fundo = { a: fundo };
     const r = await pedir({
       method: 'POST',
       url: '/api/clientes',
-      payload: fundo,
+      payload: fundo as object,
     });
     expect(r.statusCode).toBe(400);
     expect(r.json().mensagem).toBe(
@@ -168,5 +169,18 @@ describe('senha', () => {
     expect(h).toMatch(/^scrypt\$16384\$8\$1\$/);
     expect(await hashFalso()).toBe(h);
     expect(await conferirSenha('qualquer', h)).toBe(false);
+  });
+});
+
+describe('#33: hash de senha corrompido', () => {
+  it('#33: hash truncado ou vazio nunca confere', async () => {
+    for (const guardado of [
+      'scrypt$16384$8$1',
+      'scrypt$16384$8$1$$',
+      'scrypt$16384$8$1$c2Fs$',
+      'scrypt$16384$8$1$$aGFzaA==',
+      '',
+    ])
+      expect(await conferirSenha('qualquer-coisa', guardado)).toBe(false);
   });
 });

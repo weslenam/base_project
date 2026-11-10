@@ -4,9 +4,9 @@ import {
   invalido,
   naoEncontrado,
   proibido,
-} from '../../infra/erros.js';
+} from '../../infra/erros.ts';
 import { validarNovoUsuario } from '../../servicos/barbearias.js';
-import { TAM, corpo, inteiro, logico, texto } from '../esquemas.js';
+import { TAM, corpo, inteiro, logico, texto } from '../esquemas.ts';
 
 const LISTAR = `
   select u.id, u.nome, u.email, v.ativo, p.id as "papelId", p.nome as "papelNome",

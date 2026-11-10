@@ -1,4 +1,4 @@
-import { agora } from '../../servicos/agenda.js';
+import { agora } from '../../servicos/agenda.ts';
 import { salvarComanda } from '../../servicos/caixa.js';
 import {
   assinaturasDoCliente,
@@ -10,7 +10,7 @@ import {
   salvarPacote,
   venderPacote,
 } from '../../servicos/pacotes.js';
-import { TAM, corpo, escalar, inteiro, texto } from '../esquemas.js';
+import { TAM, corpo, escalar, inteiro, texto } from '../esquemas.ts';
 
 // Pacotes e assinaturas no banco (planejamento 0034, etapa B). Tudo exige o
 // módulo "pacotes" ativo (ADR 0011). Montar exige pacotes.gerenciar; vender e

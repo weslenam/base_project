@@ -7,7 +7,7 @@
 import { randomBytes } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
-import { config } from '../src/infra/config.js';
+import { config } from '../src/infra/config.ts';
 import { criarOperador } from '../src/servicos/operadores.js';
 
 const { positionals, values } = parseArgs({

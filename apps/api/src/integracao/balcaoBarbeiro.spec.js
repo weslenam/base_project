@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { criarServidor, navegador, novaBarbearia, unico } from './apoio.js';
+import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
 
 // Planejamento 0036: o Barbeiro no Balcão. Vê, faz check-in, lança avulso e
 // recebe; inicia só consigo, finaliza e pausa só os próprios; desistência e

@@ -6,7 +6,7 @@ import {
   navegador,
   novaBarbearia,
   unico,
-} from './apoio.js';
+} from './apoio.ts';
 
 // Planejamento 0026: correções da revisão do PR #3 e achados N3 a N11 do 0025.
 

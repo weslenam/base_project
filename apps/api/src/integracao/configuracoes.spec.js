@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { criarServidor, navegador, novaBarbearia, unico } from './apoio.js';
+import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
 
 // Planejamento 0017: configurações da barbearia, perfil e troca de senha.
 // Planejamento 0023: a senha provisória definida pelo Dono saiu.

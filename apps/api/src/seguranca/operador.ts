@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import fp from 'fastify-plugin';
-import { config } from '../infra/config.js';
-import { naoAutenticado } from '../infra/erros.js';
+import { config } from '../infra/config.ts';
+import { naoAutenticado } from '../infra/erros.ts';
+import type { ExecutorSql } from '../infra/banco.ts';
 
 // Sessão dos operadores do Business Center (planejamento 0028, ADR 0018).
 // Identidade separada da dos usuários de barbearia: cookie próprio, restrito ao
@@ -11,9 +12,13 @@ export const COOKIE_OPERADOR = 'bt_operador';
 export const CAMINHO_DO_COOKIE = '/api/plataforma';
 export const HORAS_DE_SESSAO = 8;
 
-const hash = (token) => createHash('sha256').update(token).digest('hex');
+const hash = (token: string): string =>
+  createHash('sha256').update(token).digest('hex');
 
-export async function criarSessaoDeOperador(db, operadorId) {
+export async function criarSessaoDeOperador(
+  db: ExecutorSql,
+  operadorId: number,
+): Promise<string> {
   const token = randomBytes(32).toString('base64url');
   await db.query(
     'insert into sessoes_operador (id_hash, operador_id, expira_em) values ($1, $2, $3)',
@@ -26,7 +31,10 @@ export async function criarSessaoDeOperador(db, operadorId) {
   return token;
 }
 
-export const encerrarSessaoDeOperador = (db, token) =>
+export const encerrarSessaoDeOperador = (
+  db: ExecutorSql,
+  token: string | null | undefined,
+) =>
   db.query('delete from sessoes_operador where id_hash = $1', [
     hash(token ?? ''),
   ]);

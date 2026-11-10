@@ -6,7 +6,7 @@ import {
   saldoDeFidelidade,
   validarConfigFidelidade,
 } from '@barbertime/dominio';
-import { conflito, invalido } from '../infra/erros.js';
+import { conflito, invalido } from '../infra/erros.ts';
 
 // Fidelidade no banco (planejamento 0034, etapa A; regras do 0015). Tudo roda
 // no contexto da barbearia (RLS). O extrato só recebe inserções: o saldo é a

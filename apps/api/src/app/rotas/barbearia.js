@@ -3,8 +3,8 @@ import {
   SLUG,
   validarConfigBarbearia,
 } from '@barbertime/dominio';
-import { conflito, invalido } from '../../infra/erros.js';
-import { TAM, corpo, texto } from '../esquemas.js';
+import { conflito, invalido } from '../../infra/erros.ts';
+import { TAM, corpo, texto } from '../esquemas.ts';
 
 const LER =
   'select id, nome, slug, configuracoes, token_publico from barbearias where id = $1';

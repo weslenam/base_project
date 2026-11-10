@@ -5,7 +5,7 @@ import {
   validarPacote,
   vigenciaDoPacote,
 } from '@barbertime/dominio';
-import { conflito, invalido, naoEncontrado } from '../infra/erros.js';
+import { conflito, invalido, naoEncontrado } from '../infra/erros.ts';
 
 // Pacotes e assinaturas no banco (planejamento 0034, etapa B; regras do 0015).
 // Tudo roda no contexto da barbearia (RLS). A venda e a renovação abrem uma

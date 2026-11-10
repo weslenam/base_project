@@ -3,7 +3,7 @@ import {
   paraMinutos,
   podeAgirNaAgenda,
 } from '@barbertime/dominio';
-import { invalido, naoEncontrado, proibido } from '../../infra/erros.js';
+import { invalido, naoEncontrado, proibido } from '../../infra/erros.ts';
 import {
   SELECT_ATENDIMENTO,
   SELECT_BLOQUEIO,
@@ -16,7 +16,7 @@ import {
   criarAgendamento,
   ocupadosDoDia,
   validarHorario,
-} from '../../servicos/agenda.js';
+} from '../../servicos/agenda.ts';
 import { cancelarComanda } from '../../servicos/caixa.js';
 import {
   campoData,
@@ -26,7 +26,7 @@ import {
   inteiro,
   query,
   texto,
-} from '../esquemas.js';
+} from '../esquemas.ts';
 
 // Agenda interna (planejamentos 0019 e 0020). Lê `atendimentos` + `bloqueios` e
 // fala o vocabulário da tela atual (pendente, confirmado, atendido, faltou...).

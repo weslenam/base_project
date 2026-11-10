@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso } from '@barbertime/dominio';
-import { criarServidor, navegador, novaBarbearia, unico } from './apoio.js';
+import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
 
 // Planejamento 0019 (parte 1): cadastros, clientes, agenda e página pública.
 
