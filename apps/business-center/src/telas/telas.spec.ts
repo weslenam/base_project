@@ -7,7 +7,7 @@ import {
   montarApp,
   preencher,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 
 // Telas do Business Center (planejamento 0028).
 
@@ -158,8 +158,9 @@ describe('barbearias', () => {
     expect(texto()).toContain('Barbearia do Zé');
     expect(texto()).toMatch(/R\$\s1\.500,00/);
     const parada = [...document.querySelectorAll('button')].find((b) =>
-      b.textContent.includes('Parada'),
+      (b.textContent ?? '').includes('Parada'),
     );
+    if (!parada) throw new Error('Botão "Parada" não apareceu');
     parada.click();
     await esperar(() => expect(texto()).not.toContain('Barbearia do Zé'));
     expect(texto()).toContain('Studio Parado');
@@ -198,7 +199,7 @@ describe('painel da barbearia', () => {
     const feita = chamadas.find((c) =>
       c.chave.includes('confirmar_contratacao'),
     );
-    expect(feita.corpo).toEqual({ motivo: 'Contrato assinado' });
+    expect(feita?.corpo).toEqual({ motivo: 'Contrato assinado' });
   });
 
   it('suspende com motivo', async () => {

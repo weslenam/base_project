@@ -29,9 +29,10 @@
   },
   "type": "module",
   "dependencies": {
+    "@barbertime/contratos": "workspace:*",
+    "@barbertime/dominio": "workspace:*",
     "@barbertime/ui-tokens": "workspace:*",
     "@barbertime/ui-utils": "workspace:*",
-    "@barbertime/ui-vuetify": "workspace:*",
-    "@barbertime/dominio": "workspace:*"
+    "@barbertime/ui-vuetify": "workspace:*"
   }
 }

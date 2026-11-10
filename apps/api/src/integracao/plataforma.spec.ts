@@ -16,7 +16,7 @@ import type {
   BarbeariaNaLista,
   RegistroDeAuditoria,
   UsuarioDoPainel,
-} from '../app/rotas/plataforma.contratos.ts';
+} from '@barbertime/contratos';
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'DELETE';
 type OperadorDeTeste = { email: string; segredo: string };

@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 a 7 concluídas; próxima: etapa 8)
+- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; próxima: etapa 9)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -55,7 +55,7 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 - [x] 5. **API, infraestrutura:** Kysely, `comBarbearia` e `emTransacao` com `trx`, tipos gerados do banco, plugins do Fastify tipados (sessão, contexto, `exigir`) e teste de isolamento.
 - [x] 6. **API, serviços e rotas** convertidos para TS + Kysely, módulo a módulo: cadastros e clientes; agenda e balcão; caixa, fidelidade e pacotes; estoque e financeiro; plataforma e autenticação. Os testes de integração viram TS.
 - [x] 7. **`libs/ui-vuetify` e `libs/ui-contrato`:** componentes `Ds*` com `<script setup lang="ts">` e props tipadas.
-- [ ] 8. **`apps/business-center`** (pequeno: 15 arquivos).
+- [x] 8. **`apps/business-center`** (pequeno: 15 arquivos).
 - [ ] 9. **`apps/barbertime`:** camada de dados tipada pelos contratos e telas com `lang="ts"`, por pasta.
 - [ ] 10. **Fechamento:** desligar `allowJs`, remover o `jsconfig.json`, rodar `/code-review` e `security-review` gerais e atualizar os índices.
 
@@ -184,3 +184,18 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
     - o pacote `qrcode` não traz tipos: uma declaração mínima fica em `src/qrcode.d.ts`, referenciada pelo `index.ts`, e não entra dependência nova;
     - o `DsFormulario` sem o `VForm` montado lança erro explícito (antes era um TypeError).
   - Skill `design-system` atualizada (`index.ts`).
+- 2026-11-10 — Etapa 8 concluída.
+  - **`apps/business-center`:**
+    - telas com `lang="ts"`;
+    - `http<T>` tipado;
+    - `RouteMeta` declarado (publica e menu);
+    - testes em `.ts`.
+  - **Antecipado da etapa 9:** a `libs/contratos` (`scope:shared`) nasce aqui, porque a regra de fronteiras proíbe o front de importar da API.
+    - Por ora ela tem só os contratos da plataforma, movidos da API (`rotas/plataforma.contratos.ts`), e o tipo `EmJson<T>`.
+    - O `EmJson<T>` faz o `Date` da API virar texto, como chega pelo JSON.
+    - A API e o business-center importam os contratos de `@barbertime/contratos`.
+    - Na etapa 9, os outros contratos (`servicos/*.contratos.ts` e os das rotas) entram nessa lib.
+  - **Fora do plano:**
+    - selo de módulo com estado desconhecido aparece neutro, em vez de quebrar o painel;
+    - ação de módulo incompleta dá erro, em vez de um falso sucesso.
+  - **Visto nas capturas, já era assim:** na lista do Business Center, o nome e o e-mail do Dono aparecem colados.

@@ -42,7 +42,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['src/testes/setup.js'],
+    setupFiles: ['src/testes/setup.ts'],
     server: { deps: { inline: ['vuetify'] } },
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,ts}'],
     reporters: ['default'],

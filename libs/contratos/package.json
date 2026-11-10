@@ -1,0 +1,38 @@
+{
+  "name": "@barbertime/contratos",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "nx": {
+    "name": "contratos",
+    "tags": [
+      "type:contratos",
+      "scope:shared"
+    ],
+    "targets": {
+      "typecheck": {
+        "command": "tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "libs/contratos"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "dependencies": {}
+}

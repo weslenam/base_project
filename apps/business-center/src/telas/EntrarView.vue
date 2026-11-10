@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { DsBotao, DsFormulario, DsInput } from '@barbertime/ui';
-import { useOperador } from '../sessao/operador.js';
+import { useOperador } from '../sessao/operador.ts';
 
 // Operador entra com e-mail, senha e o código do app autenticador (ADR 0018).
 const route = useRoute();
@@ -22,7 +22,7 @@ async function aoEnviar() {
     await entrar(email.value, senha.value, codigo.value);
     router.replace(String(route.query.volta || '/barbearias'));
   } catch (e) {
-    erro.value = e.message;
+    erro.value = (e as Error).message;
     codigo.value = '';
   } finally {
     entrando.value = false;

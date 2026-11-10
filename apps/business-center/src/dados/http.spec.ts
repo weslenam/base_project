@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { aoExpirarSessao, ErroDeSessao, http } from './http.js';
+import { aoExpirarSessao, ErroDeSessao, http } from './http.ts';
 
-const responder = (status, corpo) =>
+const responder = (status: number, corpo: unknown) =>
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => ({ status, ok: status < 400, json: async () => corpo })),
