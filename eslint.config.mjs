@@ -3,6 +3,8 @@ import nx from '@nx/eslint-plugin';
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/javascript'],
+  // TypeScript (planejamento 0040, ADR 0022).
+  ...nx.configs['flat/typescript'],
   {
     ignores: [
       '**/dist',
@@ -12,7 +14,7 @@ export default [
     ],
   },
   {
-    files: ['**/*.js', '**/*.mjs', '**/*.vue'],
+    files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.vue'],
     rules: {
       '@nx/enforce-module-boundaries': [
         'error',

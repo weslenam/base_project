@@ -44,7 +44,7 @@ export default defineConfig(() => ({
     environment: 'jsdom',
     setupFiles: ['src/testes/setup.js'],
     server: { deps: { inline: ['vuetify'] } },
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs}'],
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,ts}'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',

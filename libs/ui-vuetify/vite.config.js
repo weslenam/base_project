@@ -11,7 +11,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'jsdom',
-    include: ['src/**/*.{test,spec}.{js,mjs}'],
+    include: ['src/**/*.{test,spec}.{js,mjs,ts}'],
     setupFiles: ['src/testes/setup.js'],
     // A Vuetify importa CSS de dentro do pacote; precisa passar pelo Vite.
     server: { deps: { inline: ['vuetify'] } },

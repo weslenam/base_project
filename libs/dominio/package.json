@@ -14,7 +14,25 @@
     "tags": [
       "type:dominio",
       "scope:shared"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "command": "tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "libs/dominio"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
+      }
+    }
   },
   "dependencies": {}
 }

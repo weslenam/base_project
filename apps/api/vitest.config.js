@@ -8,7 +8,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs}'],
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,ts}'],
     exclude: ['src/integracao/**'],
     passWithNoTests: true,
     reporters: ['default'],

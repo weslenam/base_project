@@ -13,7 +13,25 @@
     "tags": [
       "type:ui",
       "scope:front"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "command": "tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "libs/ui-contrato"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
+      }
+    }
   },
   "dependencies": {}
 }

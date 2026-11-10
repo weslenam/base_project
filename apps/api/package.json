@@ -35,6 +35,22 @@
         "options": {
           "cwd": "apps/api"
         }
+      },
+      "typecheck": {
+        "command": "tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "apps/api"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
       }
     },
     "tags": [
@@ -51,6 +67,7 @@
     "@fastify/sensible": "~6.0.6",
     "fastify": "~5.12.5",
     "fastify-plugin": "~6.0.0",
+    "kysely": "^0.29.8",
     "node-pg-migrate": "9.0.0",
     "nodemailer": "10.2.1",
     "pg": "8.23.1"

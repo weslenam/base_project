@@ -28,6 +28,22 @@
           "{projectRoot}/src/tokens.css",
           "{projectRoot}/src/tokens.js"
         ]
+      },
+      "typecheck": {
+        "command": "tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "libs/ui-tokens"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
       }
     }
   },

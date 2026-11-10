@@ -1,6 +1,6 @@
 # Planejamento 0027: Estoque, compras e financeiro (contas a pagar e a receber)
 
-- **Status:** Parte 1 (estoque e compras) concluída; parte 2 (financeiro) fatia 2A em andamento
+- **Status:** Parte 1 concluída; parte 2: fatia 2A concluída (PR #31), fatia 2B pausada até o planejamento 0040 (TypeScript + Kysely)
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0010 (papéis e permissões), 0011 (módulos), 0014 (proteção da API); planejamentos 0008 (caixa e comanda), 0020 (balcão) e 0026

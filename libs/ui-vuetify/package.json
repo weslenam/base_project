@@ -10,7 +10,25 @@
     "tags": [
       "type:ui",
       "scope:front"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "command": "vue-tsc -p tsconfig.json --noEmit",
+        "options": {
+          "cwd": "libs/ui-vuetify"
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "typescript"
+            ]
+          }
+        ]
+      }
+    }
   },
   "private": true,
   "type": "module",
