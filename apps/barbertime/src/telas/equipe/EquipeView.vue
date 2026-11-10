@@ -1,14 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import BarbeiroDialogo from './BarbeiroDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Barbeiro } from '../../dados/modelos.ts';
 
-const barbeiros = ref([]);
+const barbeiros = ref<Barbeiro[]>([]);
 const dialogoAberto = ref(false);
-const selecionadoId = ref(null);
+const selecionadoId = ref<number | null>(null);
 
-const colunas = [
+const colunas: ColunaDaTabela<Barbeiro>[] = [
   { campo: 'nome', titulo: 'Barbeiro', ordenavel: true },
   {
     campo: 'inicio',
@@ -28,7 +30,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(id = null) {
+function abrir(id: number | null = null) {
   selecionadoId.value = id;
   dialogoAberto.value = true;
 }

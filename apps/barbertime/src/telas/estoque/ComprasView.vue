@@ -1,21 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsSelo, DsTabela } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { pode } from '../../sessao/sessao.ts';
-import { formatarDataIso } from './rotulos.js';
+import { formatarDataIso } from './rotulos.ts';
 import CompraDialogo from './CompraDialogo.vue';
 import NovaCompraDialogo from './NovaCompraDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { CompraResumida } from '../../dados/modelos.ts';
 
 // Compras (planejamento 0027, parte 1): registro da compra já recebida, com
 // entrada no estoque e parcelas a pagar. Sem edição: cancela e lança de novo.
-const compras = ref([]);
+const compras = ref<CompraResumida[]>([]);
 const novaAberta = ref(false);
-const detalheId = ref(null);
+const detalheId = ref<number | null>(null);
 const gerencia = computed(() => pode('estoque.gerenciar'));
 
-const colunas = [
+const colunas: ColunaDaTabela<CompraResumida>[] = [
   { campo: 'data', titulo: 'Data', formatar: formatarDataIso },
   { campo: 'fornecedorNome', titulo: 'Fornecedor' },
   {

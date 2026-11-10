@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -13,17 +13,25 @@ import { formatarMoeda } from '@barbertime/ui-utils';
 import { FORMAS_DE_BAIXA, hojeIso } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { PropType } from 'vue';
+import type { ContaFin } from '../../dados/modelos.ts';
 
 // Baixa de uma conta (planejamento 0027, parte 2): data, valor pago (pode
 // diferir do previsto) e forma. "Dinheiro do caixa" sai ou entra na gaveta do
 // caixa de hoje, então a data é hoje.
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ conta: { type: Object, default: null } });
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  conta: { type: Object as PropType<ContaFin | null>, default: null },
+});
 const emit = defineEmits(['baixada']);
 
 const notificar = useNotificacao();
 const executar = useAcao();
-const form = ref({});
+const form = ref<{
+  data: string | null;
+  valorPago: number | null;
+  forma: string | null;
+}>({ data: null, valorPago: null, forma: null });
 
 const receber = computed(() => props.conta?.tipo === 'receber');
 const doCaixa = computed(() => form.value.forma === 'dinheiro_caixa');
@@ -47,9 +55,9 @@ watch(doCaixa, (sim) => {
 async function confirmar() {
   // Dinheiro do caixa: a API usa o dia de hoje da barbearia.
   const dados = doCaixa.value ? { ...form.value, data: null } : form.value;
-  const conta = await executar(() =>
-    api.financeiro.contas.baixar(props.conta.id, dados),
-  );
+  const id = props.conta?.id;
+  if (id === undefined) return;
+  const conta = await executar(() => api.financeiro.contas.baixar(id, dados));
   if (!conta) return;
   notificar.sucesso(
     doCaixa.value

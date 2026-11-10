@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -10,15 +10,23 @@ import {
 } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { PropType } from 'vue';
+import type { ProdutoEstoque } from '../../dados/modelos.ts';
 
 // Consumo manual (planejamento 0027): uso registrado à mão, com motivo.
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ produtos: { type: Array, default: () => [] } });
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  produtos: { type: Array as PropType<ProdutoEstoque[]>, default: () => [] },
+});
 const emit = defineEmits(['salvo']);
 
 const notificar = useNotificacao();
 const executar = useAcao();
-const form = ref({});
+const form = ref<{
+  produtoId: number | null;
+  quantidade: string | number;
+  motivo: string;
+}>({ produtoId: null, quantidade: '', motivo: '' });
 
 const opcoes = computed(() =>
   props.produtos.map((p) => ({
@@ -26,7 +34,7 @@ const opcoes = computed(() =>
     rotulo: `${p.nome} (${p.unidade})`,
   })),
 );
-const regraQuantidade = (v) => Number(v) > 0 || 'Maior que zero';
+const regraQuantidade = (v: unknown) => Number(v) > 0 || 'Maior que zero';
 
 watch(aberto, (abriu) => {
   if (abriu) form.value = { produtoId: null, quantidade: '', motivo: '' };

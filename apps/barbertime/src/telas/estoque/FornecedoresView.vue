@@ -1,25 +1,27 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { formatarTelefone } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { pode } from '../../sessao/sessao.ts';
 import FornecedorDialogo from './FornecedorDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Fornecedor } from '../../dados/modelos.ts';
 
 // Fornecedores (planejamento 0027, parte 1). Exclusão lógica.
-const fornecedores = ref([]);
+const fornecedores = ref<Fornecedor[]>([]);
 const dialogoAberto = ref(false);
-const selecionado = ref(null);
+const selecionado = ref<Fornecedor | null>(null);
 const gerencia = computed(() => pode('estoque.gerenciar'));
 
-const formatarDocumento = (d) => {
+const formatarDocumento = (d: string | null) => {
   if (!d) return '—';
   if (d.length === 11)
     return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
-const colunas = [
+const colunas: ColunaDaTabela<Fornecedor>[] = [
   { campo: 'nome', titulo: 'Fornecedor', ordenavel: true },
   { campo: 'documento', titulo: 'CPF ou CNPJ', formatar: formatarDocumento },
   {
@@ -34,7 +36,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(f = null) {
+function abrir(f: Fornecedor | null = null) {
   if (!gerencia.value) return;
   selecionado.value = f;
   dialogoAberto.value = true;

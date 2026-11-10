@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -19,18 +19,37 @@ import {
 import { formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { Fornecedor, Produto } from '../../dados/modelos.ts';
+
+/** Formulário da compra: campos vazios até o preenchimento. */
+interface FormularioDaCompra {
+  fornecedorId: number | null;
+  data: string;
+  itens: {
+    produtoId: number | null;
+    quantidade: number | string;
+    custoUnitario: number | null;
+  }[];
+  frete: number | null;
+  desconto: number | null;
+  observacao: string;
+  forma: 'vista' | 'parcelado';
+  quantidade: number | string;
+  intervaloDias: number | string;
+  primeiroVencimento: string;
+}
 
 // Nova compra (planejamento 0027): itens, frete, desconto e parcelas. As
 // parcelas são sugeridas por dividirParcelas e podem ser editadas antes de salvar.
-const aberto = defineModel({ type: Boolean, default: false });
+const aberto = defineModel<boolean>({ default: false });
 const emit = defineEmits(['salvo']);
 
 const notificar = useNotificacao();
 const executar = useAcao();
-const fornecedores = ref([]);
-const produtos = ref([]);
-const form = ref(null);
-const parcelas = ref([]);
+const fornecedores = ref<Fornecedor[]>([]);
+const produtos = ref<Produto[]>([]);
+const form = ref<FormularioDaCompra | null>(null);
+const parcelas = ref<ReturnType<typeof dividirParcelas>>([]);
 
 const FORMAS = [
   { valor: 'vista', rotulo: 'À vista' },
@@ -116,7 +135,7 @@ watch(
 );
 
 function incluirItem() {
-  form.value.itens.push({
+  form.value?.itens.push({
     produtoId: null,
     quantidade: 1,
     custoUnitario: null,
@@ -125,6 +144,7 @@ function incluirItem() {
 
 async function salvar() {
   const f = form.value;
+  if (!f) return;
   const salva = await executar(() =>
     api.compras.registrar({
       fornecedorId: f.fornecedorId,

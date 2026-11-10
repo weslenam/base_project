@@ -1,25 +1,43 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { moduloAtivo } from '../../sessao/sessao.ts';
-import { ROTULO_DO_TIPO, formatarQuantidade } from '../estoque/rotulos.js';
+import { ROTULO_DO_TIPO, formatarQuantidade } from '../estoque/rotulos.ts';
 import ProdutoDialogo from './ProdutoDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Produto } from '../../dados/modelos.ts';
 
-const produtos = ref([]);
+const produtos = ref<Produto[]>([]);
 const dialogoAberto = ref(false);
-const selecionadoId = ref(null);
+const selecionadoId = ref<number | null>(null);
 // Planejamento 0027: saldo e último custo só com o módulo "estoque".
 const comEstoque = computed(() => moduloAtivo('estoque'));
-const revenda = (p) => p.tipo !== 'consumivel';
+const revenda = (p: Produto) => p.tipo !== 'consumivel';
 
-const colunas = computed(() => [
+// Saldo e último custo: só com o módulo de estoque.
+const colunasDeEstoque: ColunaDaTabela<Produto>[] = [
+  {
+    campo: 'saldo',
+    titulo: 'Saldo',
+    alinhamento: 'fim',
+    formatar: (v, p) => formatarQuantidade(v, p.unidade),
+  },
+  {
+    campo: 'ultimoCusto',
+    titulo: 'Último custo',
+    alinhamento: 'fim',
+    formatar: (v) => (v == null ? '—' : formatarMoeda(v)),
+  },
+];
+
+const colunas = computed<ColunaDaTabela<Produto>[]>(() => [
   { campo: 'nome', titulo: 'Produto', ordenavel: true },
   {
     campo: 'tipo',
     titulo: 'Tipo',
-    formatar: (v) => ROTULO_DO_TIPO[v ?? 'revenda'],
+    formatar: (v) => ROTULO_DO_TIPO[v ?? 'revenda'] ?? '',
   },
   {
     campo: 'preco',
@@ -33,22 +51,7 @@ const colunas = computed(() => [
     alinhamento: 'fim',
     formatar: (v, p) => (revenda(p) ? `${v}%` : '—'),
   },
-  ...(comEstoque.value
-    ? [
-        {
-          campo: 'saldo',
-          titulo: 'Saldo',
-          alinhamento: 'fim',
-          formatar: (v, p) => formatarQuantidade(v, p.unidade),
-        },
-        {
-          campo: 'ultimoCusto',
-          titulo: 'Último custo',
-          alinhamento: 'fim',
-          formatar: (v) => (v == null ? '—' : formatarMoeda(v)),
-        },
-      ]
-    : []),
+  ...(comEstoque.value ? colunasDeEstoque : []),
 ]);
 
 async function carregar() {
@@ -56,7 +59,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(id = null) {
+function abrir(id: number | null = null) {
   selecionadoId.value = id;
   dialogoAberto.value = true;
 }

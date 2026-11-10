@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsBotao,
   DsDialogo,
@@ -13,22 +14,35 @@ import {
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { moduloAtivo, pode } from '../../sessao/sessao.ts';
+import type { ItemFicha, Produto, Servico } from '../../dados/modelos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ id: { type: Number, default: null } });
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  id: { type: Number as PropType<number | null>, default: null },
+});
 const emit = defineEmits(['salvo']);
 
 const { confirmar, advertir, negar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const form = ref({});
-const original = ref(null);
+const form = ref<{
+  id?: number;
+  nome: string;
+  duracao: number;
+  preco: number | null;
+}>({ nome: '', duracao: 30, preco: null });
+const original = ref<Servico | null>(null);
 const editando = computed(() => Boolean(props.id));
 // Ficha técnica (planejamento 0027): consumíveis gastos por serviço.
 const comFicha = computed(() => moduloAtivo('estoque') && pode('estoque.ver'));
 const editaFicha = computed(() => comFicha.value && pode('estoque.gerenciar'));
-const ficha = ref([]);
+const ficha = ref<
+  (Partial<Omit<ItemFicha, 'produtoId' | 'quantidade'>> & {
+    produtoId: number | null;
+    quantidade: number | string;
+  })[]
+>([]);
 let fichaOriginal = '[]';
 const resumoDaFicha = () =>
   JSON.stringify(
@@ -37,7 +51,7 @@ const resumoDaFicha = () =>
       quantidade: Number(l.quantidade),
     })),
   );
-const consumiveis = ref([]);
+const consumiveis = ref<Produto[]>([]);
 const opcoesConsumiveis = computed(() =>
   consumiveis.value.map((p) => ({
     valor: p.id,
@@ -71,11 +85,17 @@ watch(aberto, async (abriu) => {
 const fichaMudou = () => editaFicha.value && resumoDaFicha() !== fichaOriginal;
 
 async function salvar() {
-  if (editando.value && form.value.duracao !== original.value.duracao) {
+  const atual = original.value;
+  if (
+    editando.value &&
+    props.id !== null &&
+    atual &&
+    form.value.duracao !== atual.duracao
+  ) {
     const futuros = await api.servicos.contarFuturos(props.id);
     if (futuros) {
       const seguir = await advertir(
-        `Há ${futuros} agendamento${futuros > 1 ? 's' : ''} futuro${futuros > 1 ? 's' : ''} de "${original.value.nome}". A nova duração vale só para os próximos; os já marcados continuam como estão.`,
+        `Há ${futuros} agendamento${futuros > 1 ? 's' : ''} futuro${futuros > 1 ? 's' : ''} de "${atual.nome}". A nova duração vale só para os próximos; os já marcados continuam como estão.`,
       );
       if (!seguir) return;
     }
@@ -105,6 +125,8 @@ async function salvar() {
 }
 
 async function excluir() {
+  const id = props.id;
+  if (id === null) return;
   const ok = await confirmar(`Excluir o serviço "${form.value.nome}"?`, {
     perigo: true,
     textoOk: 'Excluir',
@@ -112,7 +134,7 @@ async function excluir() {
   });
   if (!ok) return;
   const feito = await executar(
-    async () => (await api.servicos.excluir(props.id), true),
+    async () => (await api.servicos.excluir(id), true),
   );
   if (!feito) return;
   notificar.sucesso('Serviço excluído.');

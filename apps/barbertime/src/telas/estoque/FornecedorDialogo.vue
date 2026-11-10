@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -14,19 +14,29 @@ import { documentoValido } from '@barbertime/dominio';
 import { somenteDigitos } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { PropType } from 'vue';
+import type { Fornecedor } from '../../dados/modelos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ fornecedor: { type: Object, default: null } });
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  fornecedor: { type: Object as PropType<Fornecedor | null>, default: null },
+});
 const emit = defineEmits(['salvo']);
 
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
-const form = ref({});
+const form = ref<{
+  id?: number;
+  nome: string;
+  documento: string;
+  telefone: string | null;
+  observacoes: string;
+}>({ nome: '', documento: '', telefone: null, observacoes: '' });
 const editando = computed(() => Boolean(props.fornecedor?.id));
 
-const regraDocumento = (v) =>
-  documentoValido(somenteDigitos(v ?? '')) || 'CPF ou CNPJ inválido';
+const regraDocumento = (v: unknown) =>
+  documentoValido(somenteDigitos(String(v ?? ''))) || 'CPF ou CNPJ inválido';
 
 watch(aberto, (abriu) => {
   if (!abriu) return;
@@ -51,6 +61,8 @@ async function salvar() {
 }
 
 async function excluir() {
+  const id = form.value.id;
+  if (id === undefined) return;
   const ok = await confirmar(`Excluir o fornecedor "${form.value.nome}"?`, {
     perigo: true,
     textoOk: 'Excluir',
@@ -58,7 +70,7 @@ async function excluir() {
   });
   if (!ok) return;
   const feito = await executar(
-    async () => (await api.fornecedores.excluir(form.value.id), true),
+    async () => (await api.fornecedores.excluir(id), true),
   );
   if (!feito) return;
   notificar.sucesso('Fornecedor excluído.');

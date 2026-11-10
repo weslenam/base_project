@@ -1,16 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsSelo, DsTabela } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import CategoriaDialogo from './CategoriaDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Categoria } from '../../dados/modelos.ts';
 
 // Cadastros do financeiro (planejamento 0027, parte 2). Fatia 2A: categorias;
 // a 2B traz as recorrências para esta tela.
-const categorias = ref([]);
+const categorias = ref<Categoria[]>([]);
 const dialogoAberto = ref(false);
-const selecionada = ref(null);
+const selecionada = ref<Categoria | null>(null);
 
-const colunas = [
+const colunas: ColunaDaTabela<Categoria>[] = [
   { campo: 'nome', titulo: 'Categoria', ordenavel: true },
   {
     campo: 'tipo',
@@ -25,7 +27,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(categoria = null) {
+function abrir(categoria: Categoria | null = null) {
   selecionada.value = categoria;
   dialogoAberto.value = true;
 }
