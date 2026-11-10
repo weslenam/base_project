@@ -1,16 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onUnmounted } from 'vue';
 import { VApp } from 'vuetify/components/VApp';
 import { VSnackbarQueue } from 'vuetify/components/VSnackbarQueue';
 import DsBotao from './DsBotao.vue';
 import DsDialogo from './DsDialogo.vue';
 import DsIcone from './DsIcone.vue';
-import { filaNotificacoes } from '../estado/notificacoes.js';
+import { filaNotificacoes } from '../estado/notificacoes.ts';
 import {
   descartarDialogos,
   filaDialogos,
   responderDialogo,
-} from '../estado/dialogos.js';
+} from '../estado/dialogos.ts';
 
 // Raiz obrigatória dos apps: aplica o tema e hospeda notificações e diálogos.
 const dialogo = computed(() => filaDialogos.value[0] ?? null);

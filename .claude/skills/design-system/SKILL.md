@@ -51,7 +51,7 @@ O contrato é o que torna a troca possível. Se ele "vazar" o framework, a troca
 5. **Nada do framework nas telas:** sem imports de `vuetify`, sem classes utilitárias (`pa-4`, `d-flex`, `text-primary`), sem diretivas (`v-close-popup`, `v-ripple`), sem utilitários (`date.formatDate`). Nas telas, usar classes próprias baseadas em tokens (`ds-p-md`, `ds-grid`) ou CSS scoped, e `@barbertime/ui-utils` para formatação.
 6. **Plugins e composables do framework ficam atrás de composables nossos** (`useNotificacao` sobre `$q.notify`, `useConfirmacao` sobre `$q.dialog`). Ver `references/composables.md`.
 7. **Textos padrão em pt-BR dentro da lib** ("Nenhum registro encontrado", "Cancelar", "Confirmar").
-8. **Porta de entrada única.** Tudo exportado por `src/index.js`, incluindo `instalarUi(app)`, que registra o framework e seus plugins. Os apps não sabem qual framework existe.
+8. **Porta de entrada única.** Tudo exportado por `src/index.ts`, incluindo `instalarUi(app)`, que registra o framework e seus plugins. Os apps não sabem qual framework existe.
 9. **Wrapper de estilo usa só tokens.** Nenhuma cor, espaçamento ou raio fixo dentro dos componentes; sempre `var(--token)`.
 
 Para garantir as regras 1–5 também quando o código for gerado por IA, aplique o bloqueio de imports via ESLint (`no-restricted-imports` ou `@nx/enforce-module-boundaries`) — exemplo em `references/troca-de-framework.md`.
@@ -65,7 +65,7 @@ Não embrulhar tudo de uma vez. Começar pelo kit base: **DsBotao, DsInput, DsSe
 1. Definir a API (props, eventos, slots) em português, sem nomes do framework.
 2. Implementar em `libs/ui-vuetify/src/componentes/DsNome.vue`, estilizando só com tokens.
 3. Traduzir eventos e formatos de slot para o contrato.
-4. Exportar em `libs/ui-vuetify/src/index.js`.
+4. Exportar em `libs/ui-vuetify/src/index.ts` (e os tipos públicos de props em `src/tipos.ts`).
 5. Escrever o teste de contrato em `libs/ui-contrato/` e ligá-lo à implementação Vuetify.
 6. Documentar no catálogo (Histoire) com as variantes.
 

@@ -19,7 +19,7 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@barbertime/ui': fileURLToPath(new URL(`../../libs/ui-${ui}/src/index.js`, import.meta.url))
+      '@barbertime/ui': fileURLToPath(new URL(`../../libs/ui-${ui}/src/index.ts`, import.meta.url))
     }
   }
 })
@@ -97,7 +97,7 @@ Também vale uma checagem simples (CI ou revisão) procurando classes utilitári
 
 ## Passo a passo para testar Vuetify
 
-1. Criar `libs/ui-vuetify` com a mesma estrutura e o mesmo `index.js` (mesmos nomes exportados).
+1. Criar `libs/ui-vuetify` com a mesma estrutura e o mesmo `index.ts` (mesmos nomes exportados).
 2. Implementar `instalarUi` com `createVuetify`, mapeando os tokens para o tema do Vuetify.
 3. Reimplementar cada `Ds*` e composable (ex.: `useNotificacao` sobre um snackbar global; `useConfirmacao` sobre um VDialog montado por um serviço).
 4. Ligar os testes de contrato à implementação Vuetify e fazê-los passar.

@@ -1,5 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue';
+import type { PropType } from 'vue';
+import type { AbaDeNavegacao, GrupoDoMenu, ItemDoMenu } from '../tipos.ts';
+import type { NomeDoIcone } from '../icones.ts';
 import { useDisplay } from 'vuetify';
 import DsIcone from './DsIcone.vue';
 import {
@@ -22,15 +25,15 @@ const props = defineProps({
    * Itens seguidos com o mesmo grupo ficam sob um título com o nome dele,
    * com recuo; uma linha separa um grupo do outro.
    */
-  itensMenu: { type: Array, default: () => [] },
+  itensMenu: { type: Array as PropType<ItemDoMenu[]>, default: () => [] },
   /** [{ titulo, icone? }]: ícone do título de cada grupo (pelo nome). */
-  grupos: { type: Array, default: () => [] },
+  grupos: { type: Array as PropType<GrupoDoMenu[]>, default: () => [] },
   /**
    * [{ titulo, rota, icone? }]: navegação por abas no lugar do menu lateral.
    * Dentro do cabeçalho, ao lado do título, no PC e no tablet; barra fixa no
    * rodapé no celular.
    */
-  abas: { type: Array, default: () => [] },
+  abas: { type: Array as PropType<AbaDeNavegacao[]>, default: () => [] },
 });
 
 // Celular: abas no rodapé, ao alcance do polegar.
@@ -41,7 +44,11 @@ const ALTURA_DO_CABECALHO = 64;
 
 // Seções do menu: itens seguidos com o mesmo grupo (ou sem grupo) juntos.
 const secoes = computed(() => {
-  const lista = [];
+  const lista: {
+    titulo: string | null;
+    icone: NomeDoIcone | null;
+    itens: ItemDoMenu[];
+  }[] = [];
   for (const item of props.itensMenu) {
     const titulo = item.grupo ?? null;
     const ultima = lista.at(-1);
@@ -57,7 +64,7 @@ const secoes = computed(() => {
 });
 
 // null = o Vuetify decide (aberto no desktop, fechado no celular).
-const menuAberto = ref(null);
+const menuAberto = ref<boolean | null>(null);
 </script>
 
 <template>

@@ -1,20 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
 import { VIcon } from 'vuetify/components/VIcon';
-import { ICONES, NOMES_DE_ICONES } from '../icones.js';
+import { ICONES, NOMES_DE_ICONES } from '../icones.ts';
+import type { NomeDoIcone } from '../icones.ts';
 
 const props = defineProps({
   /** Nome do catálogo (ver NOMES_DE_ICONES). */
   nome: {
-    type: String,
+    type: String as PropType<NomeDoIcone>,
     required: true,
-    validator: (v) => NOMES_DE_ICONES.includes(v),
+    validator: (v: string) =>
+      (NOMES_DE_ICONES as readonly string[]).includes(v),
   },
   /** sm (16px) | md (20px, interface) | lg (24px, navegação) */
   tamanho: {
-    type: String,
+    type: String as PropType<'sm' | 'md' | 'lg'>,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg'].includes(v),
+    validator: (v: string) => ['sm', 'md', 'lg'].includes(v),
   },
   /** Texto para leitor de tela. Sem rótulo, o ícone é decorativo. */
   rotulo: { type: String, default: '' },

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { VForm } from 'vuetify/components/VForm';
 
@@ -6,18 +6,25 @@ defineProps({
   /** id do <form>: permite um DsBotao fora dele (ex.: nas ações do diálogo) com `formulario="id"`. */
   id: { type: String, default: undefined },
 });
-const emit = defineEmits(['enviar', 'invalido']);
-const formulario = ref(null);
+const emit = defineEmits<{ enviar: []; invalido: [] }>();
+const formulario = ref<InstanceType<typeof VForm> | null>(null);
+
+/** O VForm montado; fora da tela é erro de uso, não um envio silencioso. */
+function vForm() {
+  if (!formulario.value) throw new Error('DsFormulario não está montado.');
+  return formulario.value;
+}
 
 /** Valida todos os campos e só emite `enviar` quando tudo está válido. */
 async function aoEnviar() {
-  const { valid } = await formulario.value.validate();
-  emit(valid ? 'enviar' : 'invalido');
+  const { valid } = await vForm().validate();
+  if (valid) emit('enviar');
+  else emit('invalido');
 }
 
 defineExpose({
-  validar: async () => (await formulario.value.validate()).valid,
-  limpar: () => formulario.value.resetValidation(),
+  validar: async () => (await vForm().validate()).valid,
+  limpar: () => vForm().resetValidation(),
 });
 </script>
 

@@ -14,7 +14,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       '@barbertime/ui': fileURLToPath(
-        new URL(`../../libs/ui-${ui}/src/index.js`, import.meta.url),
+        new URL(`../../libs/ui-${ui}/src/index.ts`, import.meta.url),
       ),
     },
   },

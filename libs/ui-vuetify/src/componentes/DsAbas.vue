@@ -1,32 +1,38 @@
-<script setup>
+<script setup lang="ts">
 import { useId } from 'vue';
+import type { PropType } from 'vue';
+import type { Aba } from '../tipos.ts';
 
 /** Valor da aba ativa. */
-const ativa = defineModel({ type: [String, Number], required: true });
+const ativa = defineModel<Aba['valor']>({ required: true });
 
 const props = defineProps({
   /** [{ valor, rotulo }] */
-  abas: { type: Array, required: true },
+  abas: { type: Array as PropType<Aba[]>, required: true },
   /** Nome do grupo de abas para leitor de tela. */
   rotulo: { type: String, default: '' },
 });
 
 const base = useId();
-const idAba = (valor) => `${base}-aba-${valor}`;
-const idPainel = (valor) => `${base}-painel-${valor}`;
+const idAba = (valor: Aba['valor']) => `${base}-aba-${valor}`;
+const idPainel = (valor: Aba['valor']) => `${base}-painel-${valor}`;
 
 /** Setas, Home e End movem entre abas (padrão WAI-ARIA de tabs). */
-function aoTeclar(evento, indice) {
+function aoTeclar(evento: KeyboardEvent, indice: number) {
   const total = props.abas.length;
-  const destino = {
-    ArrowRight: (indice + 1) % total,
-    ArrowLeft: (indice - 1 + total) % total,
-    Home: 0,
-    End: total - 1,
-  }[evento.key];
+  const destino = (
+    {
+      ArrowRight: (indice + 1) % total,
+      ArrowLeft: (indice - 1 + total) % total,
+      Home: 0,
+      End: total - 1,
+    } as Record<string, number | undefined>
+  )[evento.key];
   if (destino === undefined) return;
   evento.preventDefault();
-  ativa.value = props.abas[destino].valor;
+  const aba = props.abas[destino];
+  if (!aba) return;
+  ativa.value = aba.valor;
   document.getElementById(idAba(ativa.value))?.focus();
 }
 </script>

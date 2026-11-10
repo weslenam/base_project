@@ -1,36 +1,55 @@
-<script setup>
+<script setup lang="ts" generic="L extends object">
 import { computed } from 'vue';
 import { VDataTable } from 'vuetify/components/VDataTable';
+import type { ColunaDaTabela } from '../tipos.ts';
 
-const props = defineProps({
-  linhas: { type: Array, default: () => [] },
-  /** [{ campo, titulo, alinhamento?: 'inicio'|'centro'|'fim', ordenavel?, formatar?: (valor, linha) => texto }] */
-  colunas: { type: Array, required: true },
-  /** Campo que identifica cada linha. */
-  chave: { type: String, default: 'id' },
-  carregando: Boolean,
-  itensPorPagina: { type: Number, default: 10 },
-  /** Mostra todas as linhas, sem rodapé de paginação (listas curtas, ex.: itens da comanda). */
-  semRodape: Boolean,
-  /** Linhas mais baixas, para listas curtas dentro de diálogos. */
-  compacta: Boolean,
-  textoVazio: { type: String, default: 'Nenhum registro encontrado' },
-});
-const emit = defineEmits(['selecionar']);
+const props = withDefaults(
+  defineProps<{
+    linhas?: L[];
+    /** [{ campo, titulo, alinhamento?: 'inicio'|'centro'|'fim', ordenavel?, formatar?: (valor, linha) => texto }] */
+    colunas: ColunaDaTabela<L>[];
+    /** Campo que identifica cada linha. */
+    chave?: string;
+    carregando?: boolean;
+    itensPorPagina?: number;
+    /** Mostra todas as linhas, sem rodapé de paginação (listas curtas, ex.: itens da comanda). */
+    semRodape?: boolean;
+    /** Linhas mais baixas, para listas curtas dentro de diálogos. */
+    compacta?: boolean;
+    textoVazio?: string;
+  }>(),
+  {
+    linhas: () => [],
+    chave: 'id',
+    itensPorPagina: 10,
+    textoVazio: 'Nenhum registro encontrado',
+  },
+);
+const emit = defineEmits<{ selecionar: [linha: L] }>();
 
-const ALINHAMENTOS = { inicio: 'start', centro: 'center', fim: 'end' };
+const ALINHAMENTOS = {
+  inicio: 'start',
+  centro: 'center',
+  fim: 'end',
+} as const;
 
 const cabecalhos = computed(() =>
-  props.colunas.map((c) => ({
-    key: c.campo,
-    title: c.titulo,
-    align: ALINHAMENTOS[c.alinhamento] ?? 'start',
-    sortable: c.ordenavel ?? false,
-    value: c.formatar ? (linha) => c.formatar(linha[c.campo], linha) : c.campo,
-  })),
+  props.colunas.map((c) => {
+    const formatar = c.formatar;
+    return {
+      key: c.campo,
+      title: c.titulo,
+      align: c.alinhamento ? ALINHAMENTOS[c.alinhamento] : 'start',
+      sortable: c.ordenavel ?? false,
+      value: formatar
+        ? (linha: L) =>
+            formatar((linha as Record<string, unknown>)[c.campo], linha)
+        : c.campo,
+    };
+  }),
 );
 
-function aoClicarLinha(_evento, { item }) {
+function aoClicarLinha(_evento: Event, { item }: { item: L }) {
   emit('selecionar', item);
 }
 </script>

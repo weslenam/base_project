@@ -86,7 +86,7 @@ export function useCarregando() {
 ## instalarUi — porta de entrada da lib
 
 ```js
-// libs/ui-quasar/src/instalarUi.js
+// libs/ui-quasar/src/instalarUi.ts
 import { Quasar, Notify, Dialog, Loading, setCssVar } from 'quasar'
 import quasarLang from 'quasar/lang/pt-BR'
 import '@quasar/extras/material-icons/material-icons.css'
@@ -114,8 +114,8 @@ export function instalarUi(app) {
 ```
 
 ```js
-// libs/ui-quasar/src/index.js
-export { instalarUi } from './instalarUi.js'
+// libs/ui-quasar/src/index.ts
+export { instalarUi } from './instalarUi.ts'
 export { default as DsBotao } from './componentes/DsBotao.vue'
 export { default as DsInput } from './componentes/DsInput.vue'
 export { default as DsInputCnpj } from './componentes/DsInputCnpj.vue'

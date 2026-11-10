@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { centavosParaReais, formatarDecimal } from '@barbertime/ui-utils';
 import CampoMascarado from '../internos/CampoMascarado.vue';
 
 /** Modelo: número em reais (45.9). Digita-se como centavos: 4 → 0,04 → 45,90. */
-const modelo = defineModel({ type: [Number, null], default: null });
+const modelo = defineModel<number | null>({ default: null });
 
 defineProps({
   rotulo: { type: String, default: 'Valor' },
