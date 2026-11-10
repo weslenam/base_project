@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -18,30 +18,35 @@ import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import ListaClientesDialogo from './ListaClientesDialogo.vue';
 import { moduloAtivo } from '../../sessao/sessao.ts';
+import type { SaldoFidelidade } from '@barbertime/dominio';
+import type { Cliente } from '../../dados/modelos.ts';
 
 /**
  * Escolha de cliente no balcão (planejamento 0012): um campo para nome OU
  * telefone, resultados em botões, cadastro rápido quando não acha e a lista
  * completa para procurar com mais detalhes.
  */
-const clienteId = defineModel({ type: [Number, null], default: null });
+const clienteId = defineModel<number | null>({ default: null });
 defineProps({
   /** Mostra que dá para seguir sem cliente (comanda avulsa). */
   permitirAvulso: Boolean,
 });
-const emit = defineEmits(['selecionado']);
+const emit = defineEmits<{ selecionado: [cliente: Cliente | null] }>();
 
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const cliente = ref(null);
+const cliente = ref<Cliente | null>(null);
 const termo = ref('');
-const resultados = ref([]);
+const resultados = ref<Cliente[]>([]);
 const buscou = ref(false);
-const novo = ref({ nome: '', telefone: null });
+const novo = ref<{ nome: string; telefone: string | null }>({
+  nome: '',
+  telefone: null,
+});
 const cadastrando = ref(false);
 const listaAberta = ref(false);
-const fidelidade = ref(null);
+const fidelidade = ref<SaldoFidelidade | null>(null);
 
 // Saldo de fidelidade do cliente escolhido (planejamento 0015).
 watch(cliente, async (c) => {
@@ -85,9 +90,9 @@ watch(termo, async () => {
   const achados = await api.clientes.listar({ busca: termo.value });
   const texto = termo.value.trim().toLowerCase();
   // Quem termina com os dígitos (telefone) ou começa com o texto (nome) vem primeiro.
-  const prioridade = (c) =>
+  const prioridade = (c: Cliente) =>
     porTelefone.value
-      ? Number(c.telefone.endsWith(digitos.value))
+      ? Number((c.telefone ?? '').endsWith(digitos.value))
       : Number(c.nome.toLowerCase().startsWith(texto));
   if (esta !== ultimaBusca) return;
   resultados.value = [...achados]
@@ -110,7 +115,7 @@ watch(podeCadastrar, (pode) => {
     : { nome: termo.value.trim(), telefone: null };
 });
 
-function escolher(c) {
+function escolher(c: Cliente) {
   cliente.value = c;
   clienteId.value = c.id;
   termo.value = '';

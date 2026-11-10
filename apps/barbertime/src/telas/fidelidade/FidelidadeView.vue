@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import {
   DsBotao,
@@ -11,13 +11,15 @@ import {
 } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { ConfigFidelidade } from '@barbertime/dominio';
+import type { Servico } from '../../dados/modelos.ts';
 
 // Configuração do módulo Fidelidade (planejamento 0015): selos e/ou cashback.
 const executar = useAcao();
 const notificar = useNotificacao();
 
-const config = ref(null);
-const servicos = ref([]);
+const config = ref<ConfigFidelidade | null>(null);
+const servicos = ref<Servico[]>([]);
 const salvando = ref(false);
 const selosComValidade = ref(false);
 
@@ -26,7 +28,7 @@ onMounted(async () => {
     api.fidelidade.obterConfig(),
     api.servicos.listar(),
   ]);
-  selosComValidade.value = Boolean(config.value.selos.validadeMeses);
+  selosComValidade.value = Boolean(config.value?.selos.validadeMeses);
 });
 
 const opcoesServicos = computed(() =>
@@ -40,7 +42,8 @@ const premioNome = computed(
 
 async function salvar() {
   const c = config.value;
-  const dados = {
+  if (!c) return;
+  const dados: ConfigFidelidade = {
     selos: {
       ...c.selos,
       necessarios: Number(c.selos.necessarios),

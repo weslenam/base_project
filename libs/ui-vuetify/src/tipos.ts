@@ -2,14 +2,24 @@
 // colunas, opções e passos com eles, sem nada do framework de UI.
 import type { NomeDoIcone } from './icones.ts';
 
-/** Coluna do DsTabela. */
-export interface ColunaDaTabela<L extends object = Record<string, unknown>> {
-  campo: string;
+interface BaseDaColuna {
   titulo: string;
   alinhamento?: 'inicio' | 'centro' | 'fim';
   ordenavel?: boolean;
-  formatar?: (valor: unknown, linha: L) => string;
 }
+
+/**
+ * Coluna do DsTabela. Com um campo da linha, `formatar` recebe o valor no tipo
+ * desse campo; colunas só de slot (ex.: 'acoes') não têm `formatar`.
+ */
+export type ColunaDaTabela<L extends object = Record<string, unknown>> =
+  | {
+      [K in keyof L & string]: BaseDaColuna & {
+        campo: K;
+        formatar?: (valor: L[K], linha: L) => string;
+      };
+    }[keyof L & string]
+  | (BaseDaColuna & { campo: string; formatar?: undefined });
 
 /** Opção do DsSelect. */
 export interface OpcaoDeSelect {

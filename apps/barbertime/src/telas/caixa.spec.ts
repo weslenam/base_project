@@ -6,6 +6,7 @@ import {
   elemento,
   esperar,
   montarApp,
+  normalizar,
   preencher,
   sessaoCom,
   texto,
@@ -20,8 +21,6 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-const normalizar = (t: string | null | undefined) =>
-  String(t).replace(/\s/g, ' ');
 const abrirLinha = (trecho: string) => {
   const celula = [...document.querySelectorAll('td')].find((td) =>
     (td.textContent ?? '').includes(trecho),

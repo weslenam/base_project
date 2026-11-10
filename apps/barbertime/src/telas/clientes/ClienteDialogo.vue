@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsAbas,
   DsBotao,
@@ -19,26 +20,47 @@ import { useAcao } from '../../dados/useAcao.ts';
 import { seloDoEstado } from '../estados.ts';
 import { rotuloDaForma, seloDaComanda } from '../caixa/rotulos.ts';
 import FidelidadeEPacotesCliente from './FidelidadeEPacotesCliente.vue';
+import type { ComandasDoCliente, EmJson } from '@barbertime/contratos';
+import type {
+  Atendimento,
+  Cliente,
+  Comanda,
+  ResumoCliente,
+} from '../../dados/modelos.ts';
+
+/** Cadastro no formulário (o cliente novo ainda não tem id nem resumo). */
+type FormularioDoCliente = Pick<
+  Cliente,
+  'nome' | 'telefone' | 'cpf' | 'observacoes'
+> &
+  Partial<Cliente>;
 
 // Cadastro do cliente (planejamentos 0006 e 0016): ao editar, cadastro à esquerda e,
 // à direita, abas Resumo · Comandas ("Ver mais") · Agendamentos, sem rolar o diálogo.
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ id: { type: Number, default: null } });
-const emit = defineEmits(['salvo']);
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  id: { type: Number as PropType<number | null>, default: null },
+});
+const emit = defineEmits<{ salvo: [cliente?: Cliente] }>();
 
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
 const POR_PAGINA = 5;
-const form = ref({});
+const form = ref<FormularioDoCliente>({
+  nome: '',
+  telefone: null,
+  cpf: null,
+  observacoes: '',
+});
 const salvando = ref(false);
 const editando = computed(() => Boolean(props.id));
 
 const aba = ref('resumo');
-const resumo = ref(null);
-const comandas = ref({ itens: [], total: 0 });
-const agendamentos = ref([]);
+const resumo = ref<ResumoCliente | null>(null);
+const comandas = ref<EmJson<ComandasDoCliente>>({ itens: [], total: 0 });
+const agendamentos = ref<Atendimento[]>([]);
 const carregandoMais = ref(false);
 
 watch(aberto, async (abriu) => {
@@ -76,6 +98,7 @@ const temMais = computed(
 );
 
 async function verMais() {
+  if (props.id === null) return;
   carregandoMais.value = true;
   const pagina = await api.clientes.comandas(props.id, {
     limite: POR_PAGINA,
@@ -88,9 +111,11 @@ async function verMais() {
   carregandoMais.value = false;
 }
 
-const descreverItens = (c) =>
+const descreverItens = (c: Comanda) =>
   c.itens
-    .map((i) => (i.quantidade > 1 ? `${i.quantidade}× ${i.nome}` : i.nome))
+    .map((i) =>
+      Number(i.quantidade) > 1 ? `${i.quantidade}× ${i.nome}` : i.nome,
+    )
     .join(', ');
 
 async function salvar() {
@@ -106,6 +131,8 @@ async function salvar() {
 }
 
 async function excluir() {
+  const id = props.id;
+  if (id === null) return;
   const ok = await confirmar(
     `Excluir ${form.value.nome}? O histórico de atendimentos também sai do cadastro.`,
     {
@@ -117,7 +144,7 @@ async function excluir() {
   );
   if (!ok) return;
   const feito = await executar(
-    async () => (await api.clientes.excluir(props.id), true),
+    async () => (await api.clientes.excluir(id), true),
   );
   if (!feito) return;
   notificar.sucesso('Cliente excluído.');

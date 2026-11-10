@@ -41,9 +41,14 @@ const cabecalhos = computed(() =>
       title: c.titulo,
       align: c.alinhamento ? ALINHAMENTOS[c.alinhamento] : 'start',
       sortable: c.ordenavel ?? false,
+      // Cada coluna tipa o seu `formatar` pelo campo; aqui ele é chamado com
+      // o valor desse mesmo campo.
       value: formatar
         ? (linha: L) =>
-            formatar((linha as Record<string, unknown>)[c.campo], linha)
+            (formatar as (valor: unknown, linha: L) => string)(
+              (linha as Record<string, unknown>)[c.campo],
+              linha,
+            )
         : c.campo,
     };
   }),

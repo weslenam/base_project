@@ -43,3 +43,10 @@ export type BarbeiroBalcao = EmJson<BarbeiroNoBalcao>;
 export type NaFila = EmJson<ItemDaFila>;
 export type Encaixe = EmJson<EncaixeDoBalcao>;
 export type ServicoBalcao = EmJson<ServicoDoBalcao>;
+
+/** Renovação em andamento: o pacote fixo e quando o novo ciclo começa. */
+export interface Renovacao {
+  assinaturaId: number;
+  pacoteId: number;
+  inicio: string;
+}

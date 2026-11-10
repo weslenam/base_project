@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
@@ -8,13 +8,15 @@ import {
   descreverLimites,
   descreverPreco,
   descreverVigencia,
-} from './descricao.js';
+} from './descricao.ts';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Pacote } from '../../dados/modelos.ts';
 
-const pacotes = ref([]);
+const pacotes = ref<Pacote[]>([]);
 const dialogoAberto = ref(false);
-const selecionado = ref(null);
+const selecionado = ref<Pacote | null>(null);
 
-const colunas = [
+const colunas: ColunaDaTabela<Pacote>[] = [
   { campo: 'nome', titulo: 'Pacote', ordenavel: true },
   { campo: 'itens', titulo: 'Serviços', formatar: (v, p) => descreverItens(p) },
   {
@@ -36,7 +38,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(pacote = null) {
+function abrir(pacote: Pacote | null = null) {
   selecionado.value = pacote;
   dialogoAberto.value = true;
 }

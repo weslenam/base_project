@@ -165,7 +165,7 @@ watch(
       <BuscaCliente
         v-model="form.clienteId"
         @selecionado="
-          (c: Cliente) => ((clienteEscolhido = c), (erroCliente = ''))
+          (c: Cliente | null) => ((clienteEscolhido = c), (erroCliente = ''))
         "
       />
       <p v-if="erroCliente" class="erro" role="alert">{{ erroCliente }}</p>
