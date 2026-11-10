@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 concluídas; próxima: etapa 6, com dois agentes)
+- **Status:** Em andamento (etapas 1 a 3, 5 e 6 concluídas; próxima: etapa 7)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -53,7 +53,7 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 - [x] 3. **`libs/ui-utils` e `libs/ui-tokens`** em TS.
 - [ ] 4. **`libs/contratos`:** tipos das respostas e dos corpos da API.
 - [x] 5. **API, infraestrutura:** Kysely, `comBarbearia` e `emTransacao` com `trx`, tipos gerados do banco, plugins do Fastify tipados (sessão, contexto, `exigir`) e teste de isolamento.
-- [ ] 6. **API, serviços e rotas** convertidos para TS + Kysely, módulo a módulo: cadastros e clientes; agenda e balcão; caixa, fidelidade e pacotes; estoque e financeiro; plataforma e autenticação. Os testes de integração viram TS.
+- [x] 6. **API, serviços e rotas** convertidos para TS + Kysely, módulo a módulo: cadastros e clientes; agenda e balcão; caixa, fidelidade e pacotes; estoque e financeiro; plataforma e autenticação. Os testes de integração viram TS.
 - [ ] 7. **`libs/ui-vuetify` e `libs/ui-contrato`:** componentes `Ds*` com `<script setup lang="ts">` e props tipadas.
 - [ ] 8. **`apps/business-center`** (pequeno: 15 arquivos).
 - [ ] 9. **`apps/barbertime`:** camada de dados tipada pelos contratos e telas com `lang="ts"`, por pasta.
@@ -149,3 +149,22 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
       - `ocupadosDoDia` mantém o mesmo filtro de antes (só `inicio` não nulo);
       - o parâmetro `ignorarId` não tem quem o use (já era assim).
   - **Lição:** um `?? ''` posto só para calar o tipo pode mudar o comportamento. Em código de segurança, trate o caso vazio explicitamente. Isso entra no guia da etapa 6.
+- 2026-11-10 — Etapa 6 concluída por dois agentes em paralelo, cada um na sua worktree e no seu banco de testes (`barbertime_teste_a` e `barbertime_teste_b`). O limite de uso interrompeu os dois no meio, e eles retomaram de onde pararam.
+  - **6B (PR #38): cadastros, acesso e plataforma.**
+    - Kysely na transação da barbearia; as tabelas globais seguem no pool, com o driver pg tipado.
+    - Da revisão: `sameSite` literal no cookie do operador, `Object.hasOwn` na escolha da identidade, `typeof` em `validarNovoUsuario` e uma leitura a menos em `salvarProduto`.
+  - **6A: operação** (agenda, balcão, caixa, estoque, fidelidade, pacotes e financeiro).
+    - Contratos em `servicos/*.contratos.ts`.
+    - `servicos/atendimentos.ts` com o SELECT da agenda e um filtro parametrizado.
+    - O `transitar` do balcão deixou de concatenar texto no SET.
+    - O `semear.ts` passou a importar o `estoque.ts`.
+  - **Verificação dos dois:** typecheck e lint sem erros, 25 testes unitários e 150 de integração. Revisões de segurança sem achados.
+  - **Bugs antigos achados na conversão,** todos mantidos e virados issue: #39 (horários sem data), #40 (`canal` vindo do corpo), #41 (`itens: null` dá 500), #42 (PUT com id 0 cria registro), #43 (id ausente vira NaN e dá 500) e #44 (login sem senha confere "undefined").
+  - **Pendências de qualidade (da revisão, para a etapa 10):**
+    - consultas em tabelas globais ainda sem os tipos gerados (um Kysely no pool resolveria);
+    - contratos de módulos pequenos dentro do próprio arquivo de rota;
+    - `obterAtendimento` duplica o `buscarAtendimento` (tipar `LinhaDeAtendimento`);
+    - helpers repetidos: `codigoDoErro`, `inteiroOuNulo`, comparação sem caixa e `ComId`/`na` nas rotas;
+    - contagem de futuros repetida em clientes e cadastros;
+    - `fecharCaixa` recalcula o resumo;
+    - cast em `doDia` do balcão (tornar `situacaoDosBarbeiros` genérico).

@@ -13,13 +13,13 @@ import { criarCorreioSmtp } from '../infra/correio.ts';
 import type { Correio } from '../infra/correio.ts';
 
 // ---- Rotas da operação (planejamento 0040, etapa 6, agente A) ----
-import rotasAgenda from './rotas/agenda.js';
-import rotasCaixa from './rotas/caixa.js';
-import rotasBalcao from './rotas/balcao.js';
-import rotasEstoque from './rotas/estoque.js';
-import rotasFidelidade from './rotas/fidelidade.js';
-import rotasPacotes from './rotas/pacotes.js';
-import rotasFinanceiro from './rotas/financeiro.js';
+import rotasAgenda from './rotas/agenda.ts';
+import rotasCaixa from './rotas/caixa.ts';
+import rotasBalcao from './rotas/balcao.ts';
+import rotasEstoque from './rotas/estoque.ts';
+import rotasFidelidade from './rotas/fidelidade.ts';
+import rotasPacotes from './rotas/pacotes.ts';
+import rotasFinanceiro from './rotas/financeiro.ts';
 
 // Separador: os dois blocos ficam longe um do outro para os PRs da etapa 6
 // não mexerem em linhas vizinhas.

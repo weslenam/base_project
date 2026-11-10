@@ -7,11 +7,14 @@ import {
   novaBarbearia,
   unico,
 } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type Navegador = Awaited<ReturnType<typeof novaBarbearia>>['dono'];
 
 // Planejamento 0027, parte 2, fatia 2A: contas a pagar e a receber,
 // categorias e a baixa com dinheiro do caixa.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
@@ -19,7 +22,7 @@ afterAll(() => servidor?.close());
 
 const hoje = () => momentoNoFuso().data;
 
-const ligarModulo = (barbeariaId, estado = 'ativo') =>
+const ligarModulo = (barbeariaId: number, estado = 'ativo') =>
   comoSuperusuario((c) =>
     c.query(
       `insert into barbearia_modulos (barbearia_id, modulo, estado) values ($1, 'financeiro', $2)
@@ -28,9 +31,9 @@ const ligarModulo = (barbeariaId, estado = 'ativo') =>
     ),
   );
 
-async function entrarComo(dono, chave) {
+async function entrarComo(dono: Navegador, chave: string) {
   const papel = (await dono.get('/api/papeis')).corpo.find(
-    (p) => p.chave === chave,
+    (p: { chave: string }) => p.chave === chave,
   );
   const email = `${unico(chave)}@teste.dev`;
   await dono.post('/api/usuarios', {
@@ -53,7 +56,8 @@ async function comFinanceiro({ modulo = true, caixa = true } = {}) {
   const categorias = modulo
     ? (await dono.get('/api/financeiro/categorias')).corpo
     : [];
-  const categoria = (nome) => categorias.find((x) => x.nome === nome);
+  const categoria = (nome: string) =>
+    categorias.find((x: { nome: string }) => x.nome === nome);
   const novaConta = (dados = {}) =>
     dono.post('/api/financeiro/contas', {
       tipo: 'pagar',
@@ -63,7 +67,7 @@ async function comFinanceiro({ modulo = true, caixa = true } = {}) {
       vencimento: somarDias(hoje(), 5),
       ...dados,
     });
-  const baixar = (conta, dados = {}) =>
+  const baixar = (conta: { id: number; valor: number }, dados = {}) =>
     dono.post(`/api/financeiro/contas/${conta.id}/baixar`, {
       data: hoje(),
       valorPago: conta.valor,
@@ -155,7 +159,9 @@ describe('contas', () => {
     const lista = (
       await b.dono.get('/api/financeiro/contas?tipo=pagar&situacao=vencida')
     ).corpo;
-    expect(lista.map((c) => c.descricao)).toEqual(['Luz']);
+    expect(lista.map((c: { descricao: string }) => c.descricao)).toEqual([
+      'Luz',
+    ]);
 
     const cancelada = await b.dono.post(
       `/api/financeiro/contas/${vencida.id}/cancelar`,
@@ -163,7 +169,9 @@ describe('contas', () => {
     expect(cancelada.corpo.situacao).toBe('cancelada');
     // Cancelada sai da lista padrão.
     expect(
-      (await b.dono.get('/api/financeiro/contas')).corpo.map((c) => c.id),
+      (await b.dono.get('/api/financeiro/contas')).corpo.map(
+        (c: { id: number }) => c.id,
+      ),
     ).toEqual([r.corpo.id]);
     // "Todas" inclui as canceladas.
     expect(
@@ -283,7 +291,7 @@ describe('regressões da revisão', () => {
       nome: 'Água e esgoto',
     });
     const nomes = (await b.dono.get('/api/financeiro/categorias')).corpo.map(
-      (x) => x.nome,
+      (x: { nome: string }) => x.nome,
     );
     expect(nomes).not.toContain('Internet');
     expect(nomes).not.toContain('Água');

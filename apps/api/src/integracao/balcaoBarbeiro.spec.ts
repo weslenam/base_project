@@ -1,19 +1,23 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
+import type { ServidorDeTeste } from './apoio.ts';
+
+type Navegador = ReturnType<typeof navegador>;
+type Quem = { n: Navegador; id: number };
 
 // Planejamento 0036: o Barbeiro no Balcão. Vê, faz check-in, lança avulso e
 // recebe; inicia só consigo, finaliza e pausa só os próprios; desistência e
 // falta na própria coluna ou no que lançou.
 
-let servidor;
+let servidor: ServidorDeTeste;
 beforeAll(async () => {
   servidor = await criarServidor();
 });
 afterAll(() => servidor?.close());
 
-async function entrarComo(dono, chave) {
+async function entrarComo(dono: Navegador, chave: string): Promise<Quem> {
   const papel = (await dono.get('/api/papeis')).corpo.find(
-    (p) => p.chave === chave,
+    (p: { chave: string }) => p.chave === chave,
   );
   const email = `${unico(chave)}@teste.dev`;
   const r = await dono.post('/api/usuarios', {
@@ -35,7 +39,7 @@ async function montada() {
   ).corpo;
   const barbeiro = await entrarComo(dono, 'barbeiro');
   const recepcao = await entrarComo(dono, 'recepcao');
-  const novo = async (nome, usuarioId) =>
+  const novo = async (nome: string, usuarioId?: number) =>
     (
       await dono.post('/api/barbeiros', {
         nome,
@@ -50,7 +54,7 @@ async function montada() {
   expect(
     (await dono.post('/api/caixa/abrir', { valorInicial: 50 })).status,
   ).toBe(200);
-  const avulso = async (quem, coluna) =>
+  const avulso = async (quem: Quem, coluna?: { id: number } | null) =>
     (
       await quem.n.post('/api/balcao/avulsos', {
         servicoId: corte.id,
@@ -58,7 +62,7 @@ async function montada() {
         nome: 'Cliente',
       })
     ).corpo;
-  const acao = (quem, id, nome, corpo) =>
+  const acao = (quem: Quem, id: number, nome: string, corpo?: unknown) =>
     quem.n.post(`/api/atendimentos/${id}/${nome}`, corpo);
   return { barbeiro, recepcao, marcos, leo, avulso, acao };
 }
@@ -123,7 +127,7 @@ describe('Barbeiro no Balcão', () => {
   // Planejamento 0039: abrir o caixa tem permissão própria.
   it('o Barbeiro não abre o caixa; a Recepção abre', async () => {
     const { barbeiro, recepcao } = await montada();
-    const abrir = (quem) =>
+    const abrir = (quem: Quem) =>
       quem.n.post('/api/caixa/abrir', { valorInicial: 10 });
     expect((await abrir(barbeiro)).status).toBe(403);
     // O caixa já foi aberto na montagem: a Recepção passa da permissão e
@@ -133,7 +137,7 @@ describe('Barbeiro no Balcão', () => {
 
   it('pausa só a própria agenda', async () => {
     const { barbeiro, marcos, leo } = await montada();
-    const pausar = (b) =>
+    const pausar = (b: { id: number }) =>
       barbeiro.n.post(`/api/barbeiros/${b.id}/pausa`, { emPausa: true });
     expect((await pausar(leo)).status).toBe(403);
     expect((await pausar(marcos)).status).toBe(200);

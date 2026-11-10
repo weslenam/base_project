@@ -1,8 +1,10 @@
 import { resumoDeComandas } from '@barbertime/dominio';
+import type { Valor } from '@barbertime/dominio';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { invalido, naoEncontrado } from '../../infra/erros.ts';
-import { buscarAtendimento } from '../../servicos/agenda.ts';
+import type { Conexao } from '../../infra/banco.ts';
+import { obterAtendimento } from '../../servicos/atendimentos.ts';
 import {
-  SELECT_COMANDA,
   abrirCaixa,
   caixaComResumo,
   caixaDoDia,
@@ -14,7 +16,14 @@ import {
   obterComanda,
   receberComanda,
   salvarComanda,
-} from '../../servicos/caixa.js';
+  selecionarComandas,
+} from '../../servicos/caixa.ts';
+import type { DadosDaComanda } from '../../servicos/caixa.ts';
+import type {
+  ComandaDoCaixa,
+  ComandasDoCliente,
+  ResumoDoCliente,
+} from '../../servicos/caixa.contratos.ts';
 import {
   corpo,
   escalar,
@@ -28,7 +37,9 @@ import {
 // Caixa do dia e comandas (planejamento 0020, fase 1) + resumo e comandas do
 // cliente (planejamento 0016), agora pelo banco.
 
-export default async function (fastify) {
+type ComId = { Params: { id: string } };
+
+export default async function (fastify: FastifyInstance) {
   const operar = { preHandler: fastify.exigir('caixa.operar') };
   const fechar = { preHandler: fastify.exigir('caixa.fechar') };
   const comanda = {
@@ -46,23 +57,24 @@ export default async function (fastify) {
     }),
   };
   // Resgate e crédito da fidelidade só com o módulo ativo (ADR 0011).
-  const fidelidade = (req) => ({
+  const fidelidade = (req: FastifyRequest) => ({
     ativo: req.contexto.modulosAtivos.includes('fidelidade'),
   });
   // Usar pacote na comanda (e vender) só com o módulo ativo (planejamento 0034).
-  const pacotes = (req) => ({
+  const pacotes = (req: FastifyRequest) => ({
     ativo: req.contexto.modulosAtivos.includes('pacotes'),
   });
   const verCliente = {
     preHandler: fastify.exigirAlguma('clientes.ver', 'caixa.operar'),
   };
-  const na = (req, fn) => fastify.naBarbearia(req, fn);
-  const barbearia = (req) => req.contexto.barbeariaId;
+  const na = <T>(req: FastifyRequest, fn: (c: Conexao) => Promise<T>) =>
+    fastify.naBarbearia(req, fn);
+  const barbearia = (req: FastifyRequest) => req.contexto.barbeariaId;
 
   fastify.get('/caixa', operar, (req) =>
     na(req, async (c) => caixaComResumo(c, await caixaDoDia(c))),
   );
-  fastify.post(
+  fastify.post<{ Body: { valorInicial?: Valor } | null }>(
     '/caixa/abrir',
     // Abrir o caixa tem permissão própria: o Barbeiro opera, mas não abre
     // (planejamento 0039).
@@ -72,7 +84,7 @@ export default async function (fastify) {
     },
     (req) => na(req, (c) => abrirCaixa(c, barbearia(req), req.body ?? {})),
   );
-  fastify.post(
+  fastify.post<{ Body: { dinheiroContado?: Valor } | null }>(
     '/caixa/fechar',
     { ...fechar, schema: corpo({ dinheiroContado: escalar() }) },
     (req) => na(req, (c) => fecharCaixa(c, req.body ?? {})),
@@ -84,29 +96,36 @@ export default async function (fastify) {
       return caixa ? comandasDoCaixa(c, caixa.id) : [];
     }),
   );
-  fastify.get('/comandas/:id', operar, (req) =>
+  fastify.get<ComId>('/comandas/:id', operar, (req) =>
     na(req, (c) => obterComanda(c, req.params.id)),
   );
-  fastify.post('/comandas', comanda, async (req, reply) => {
-    reply.code(201);
-    return na(req, (c) =>
-      salvarComanda(c, barbearia(req), req.body ?? {}, {
-        fidelidade: fidelidade(req),
-        pacotes: pacotes(req),
-      }),
-    );
-  });
-  fastify.put('/comandas/:id', comanda, (req) =>
-    na(req, (c) =>
-      salvarComanda(
-        c,
-        barbearia(req),
-        { ...req.body, id: Number(req.params.id) },
-        { fidelidade: fidelidade(req), pacotes: pacotes(req) },
-      ),
-    ),
+  fastify.post<{ Body: DadosDaComanda | null }>(
+    '/comandas',
+    comanda,
+    async (req, reply) => {
+      reply.code(201);
+      return na(req, (c) =>
+        salvarComanda(c, barbearia(req), req.body ?? {}, {
+          fidelidade: fidelidade(req),
+          pacotes: pacotes(req),
+        }),
+      );
+    },
   );
-  fastify.post(
+  fastify.put<ComId & { Body: DadosDaComanda | null }>(
+    '/comandas/:id',
+    comanda,
+    (req) =>
+      na(req, (c) =>
+        salvarComanda(
+          c,
+          barbearia(req),
+          { ...req.body, id: Number(req.params.id) },
+          { fidelidade: fidelidade(req), pacotes: pacotes(req) },
+        ),
+      ),
+  );
+  fastify.post<ComId & { Body: { forma?: string | null } | null }>(
     '/comandas/:id/receber',
     { ...operar, schema: corpo({ forma: texto(30) }) },
     (req) =>
@@ -118,13 +137,13 @@ export default async function (fastify) {
         }),
       ),
   );
-  fastify.post('/comandas/:id/cancelar', operar, (req) =>
+  fastify.post<ComId>('/comandas/:id/cancelar', operar, (req) =>
     na(req, (c) => cancelarComanda(c, req.params.id)),
   );
   /** "Abrir comanda" no detalhe do agendamento. */
-  fastify.post('/comandas/do-atendimento/:id', operar, (req) =>
+  fastify.post<ComId>('/comandas/do-atendimento/:id', operar, (req) =>
     na(req, async (c) => {
-      const a = await buscarAtendimento(c, req.params.id);
+      const a = await obterAtendimento(c, req.params.id);
       if (
         ![
           'agendado',
@@ -144,34 +163,43 @@ export default async function (fastify) {
   );
 
   // ---- cliente (planejamento 0016) ----
-  async function comandasDoCliente(c, id) {
-    const existe = await c.query('select 1 from clientes where id = $1', [
-      Number(id),
-    ]);
-    if (!existe.rowCount) throw naoEncontrado('Cliente não encontrado.');
-    const { rows } = await c.query(
-      `${SELECT_COMANDA} where cm.cliente_id = $1 order by cx.data desc, cm.hora desc, cm.id desc`,
-      [Number(id)],
-    );
-    return rows.map(completarComanda);
+  async function comandasDoCliente(
+    c: Conexao,
+    id: number | string,
+  ): Promise<ComandaDoCaixa[]> {
+    const existe = await c.db
+      .selectFrom('clientes')
+      .select('id')
+      .where('id', '=', Number(id))
+      .executeTakeFirst();
+    if (!existe) throw naoEncontrado('Cliente não encontrado.');
+    const linhas = await selecionarComandas(c)
+      .where('cm.clienteId', '=', Number(id))
+      .orderBy('cx.data', 'desc')
+      .orderBy('cm.hora', 'desc')
+      .orderBy('cm.id', 'desc')
+      .execute();
+    return linhas.map(completarComanda);
   }
 
-  fastify.get('/clientes/:id/resumo', verCliente, (req) =>
-    na(req, async (c) => {
+  fastify.get<ComId>('/clientes/:id/resumo', verCliente, (req) =>
+    na(req, async (c): Promise<ResumoDoCliente> => {
       const comandas = await comandasDoCliente(c, req.params.id);
       const r = resumoDeComandas(comandas);
-      const {
-        rows: [{ faltas }],
-      } = await c.query(
-        "select count(*)::int as faltas from atendimentos where cliente_id = $1 and estado = 'no_show'",
-        [Number(req.params.id)],
-      );
+      const { faltas } = await c.db
+        .selectFrom('atendimentos')
+        .select((eb) => eb.fn.countAll<number>().as('faltas'))
+        .where('clienteId', '=', Number(req.params.id))
+        .where('estado', '=', 'no_show')
+        .executeTakeFirstOrThrow();
       let barbeiroNome = '';
       if (r.ultimoServico?.barbeiroId) {
-        const b = await c.query('select nome from barbeiros where id = $1', [
-          r.ultimoServico.barbeiroId,
-        ]);
-        barbeiroNome = b.rows[0]?.nome ?? '';
+        const b = await c.db
+          .selectFrom('barbeiros')
+          .select('nome')
+          .where('id', '=', r.ultimoServico.barbeiroId)
+          .executeTakeFirst();
+        barbeiroNome = b?.nome ?? '';
       }
       return {
         ...r,
@@ -181,14 +209,18 @@ export default async function (fastify) {
     }),
   );
 
-  fastify.get(
+  fastify.get<
+    ComId & {
+      Querystring: { limite?: string | null; deslocamento?: string | null };
+    }
+  >(
     '/clientes/:id/comandas',
     {
       ...verCliente,
       schema: query({ limite: escalar(), deslocamento: escalar() }),
     },
     (req) =>
-      na(req, async (c) => {
+      na(req, async (c): Promise<ComandasDoCliente> => {
         const limite = Math.min(50, Number(req.query.limite) || 5);
         const deslocamento = Math.max(0, Number(req.query.deslocamento) || 0);
         const todas = (await comandasDoCliente(c, req.params.id)).filter(

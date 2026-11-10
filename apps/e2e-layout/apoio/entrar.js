@@ -5,7 +5,7 @@ import { codigoDoPasso, passoAtual } from './totp.js';
 import { APP, BC, ESTADO_APP, ESTADO_BARBEIRO, ESTADO_BC } from './urls.js';
 
 // Login uma vez por execução, com as contas da semente de desenvolvimento
-// (apps/api/scripts/semear.js). SÓ DESENVOLVIMENTO.
+// (apps/api/scripts/semear.ts). SÓ DESENVOLVIMENTO.
 const DONO = { email: 'dono@barbertime.dev', senha: 'barbertime123' };
 const BARBEIRO = { email: 'barbeiro@barbertime.dev', senha: 'barbertime123' };
 const OPERADOR = {

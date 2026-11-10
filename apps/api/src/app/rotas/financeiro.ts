@@ -1,3 +1,5 @@
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { Conexao } from '../../infra/banco.ts';
 import { agora } from '../../servicos/agenda.ts';
 import {
   baixarConta,
@@ -10,7 +12,13 @@ import {
   listarContas,
   obterConta,
   salvarCategoria,
-} from '../../servicos/financeiro.js';
+} from '../../servicos/financeiro.ts';
+import type {
+  DadosDaBaixa,
+  DadosDaCategoria,
+  DadosDaConta,
+  FiltrosDeContas,
+} from '../../servicos/financeiro.ts';
 import {
   campoData,
   corpo,
@@ -21,14 +29,17 @@ import {
   texto,
 } from '../esquemas.ts';
 
+type ComId = { Params: { id: string } };
+
 // Financeiro (planejamento 0027, parte 2, fatia 2A): contas a pagar e a
 // receber e categorias. financeiro.gerenciar só vale com o módulo "financeiro"
 // ativo (permissoesEfetivas): sem ele, todas estas rotas dão 403. Só Gerente
 // e Dono (decisão 2).
-export default async function (fastify) {
+export default async function (fastify: FastifyInstance) {
   const gerenciar = { preHandler: fastify.exigir('financeiro.gerenciar') };
-  const na = (req, fn) => fastify.naBarbearia(req, fn);
-  const barbearia = (req) => req.contexto.barbeariaId;
+  const na = <T>(req: FastifyRequest, fn: (c: Conexao) => Promise<T>) =>
+    fastify.naBarbearia(req, fn);
+  const barbearia = (req: FastifyRequest) => req.contexto.barbeariaId;
   const hoje = () => agora().data;
 
   // ---- categorias ----
@@ -39,19 +50,26 @@ export default async function (fastify) {
   fastify.get('/financeiro/categorias', gerenciar, (req) =>
     na(req, (c) => listarCategorias(c, barbearia(req))),
   );
-  fastify.post('/financeiro/categorias', categoria, async (req, reply) => {
-    reply.code(201);
-    return na(req, (c) => salvarCategoria(c, barbearia(req), req.body ?? {}));
-  });
-  fastify.put('/financeiro/categorias/:id', categoria, (req) =>
-    na(req, (c) =>
-      salvarCategoria(c, barbearia(req), {
-        ...req.body,
-        id: Number(req.params.id),
-      }),
-    ),
+  fastify.post<{ Body: DadosDaCategoria | null }>(
+    '/financeiro/categorias',
+    categoria,
+    async (req, reply) => {
+      reply.code(201);
+      return na(req, (c) => salvarCategoria(c, barbearia(req), req.body ?? {}));
+    },
   );
-  fastify.delete(
+  fastify.put<ComId & { Body: DadosDaCategoria | null }>(
+    '/financeiro/categorias/:id',
+    categoria,
+    (req) =>
+      na(req, (c) =>
+        salvarCategoria(c, barbearia(req), {
+          ...req.body,
+          id: Number(req.params.id),
+        }),
+      ),
+  );
+  fastify.delete<ComId>(
     '/financeiro/categorias/:id',
     gerenciar,
     async (req, reply) => {
@@ -73,7 +91,7 @@ export default async function (fastify) {
       clienteId: inteiro,
     }),
   };
-  fastify.get(
+  fastify.get<{ Querystring: FiltrosDeContas }>(
     '/financeiro/contas',
     {
       ...gerenciar,
@@ -86,22 +104,29 @@ export default async function (fastify) {
     },
     (req) => na(req, (c) => listarContas(c, req.query ?? {}, hoje())),
   );
-  fastify.get('/financeiro/contas/:id', gerenciar, (req) =>
+  fastify.get<ComId>('/financeiro/contas/:id', gerenciar, (req) =>
     na(req, (c) => obterConta(c, req.params.id, hoje())),
   );
-  fastify.post('/financeiro/contas', conta, async (req, reply) => {
-    reply.code(201);
-    return na(req, (c) =>
-      criarConta(c, barbearia(req), req.body ?? {}, hoje()),
-    );
-  });
-  fastify.put('/financeiro/contas/:id', conta, (req) =>
-    na(req, (c) => editarConta(c, req.params.id, req.body ?? {}, hoje())),
+  fastify.post<{ Body: DadosDaConta | null }>(
+    '/financeiro/contas',
+    conta,
+    async (req, reply) => {
+      reply.code(201);
+      return na(req, (c) =>
+        criarConta(c, barbearia(req), req.body ?? {}, hoje()),
+      );
+    },
   );
-  fastify.post('/financeiro/contas/:id/cancelar', gerenciar, (req) =>
+  fastify.put<ComId & { Body: DadosDaConta | null }>(
+    '/financeiro/contas/:id',
+    conta,
+    (req) =>
+      na(req, (c) => editarConta(c, req.params.id, req.body ?? {}, hoje())),
+  );
+  fastify.post<ComId>('/financeiro/contas/:id/cancelar', gerenciar, (req) =>
     na(req, (c) => cancelarConta(c, req.params.id, hoje())),
   );
-  fastify.post(
+  fastify.post<ComId & { Body: DadosDaBaixa | null }>(
     '/financeiro/contas/:id/baixar',
     {
       ...gerenciar,
@@ -119,7 +144,7 @@ export default async function (fastify) {
         }),
       ),
   );
-  fastify.post('/financeiro/contas/:id/estornar', gerenciar, (req) =>
+  fastify.post<ComId>('/financeiro/contas/:id/estornar', gerenciar, (req) =>
     na(req, (c) => estornarBaixa(c, req.params.id, hoje())),
   );
 }
