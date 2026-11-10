@@ -33,6 +33,10 @@ import {
   totalDaCompra,
   motivoParcelasInvalidas,
   documentoValido,
+  movimentoDaBaixa,
+  situacaoDaConta,
+  validarBaixa,
+  validarConta,
 } from '@barbertime/dominio';
 import { formatarTelefone, somenteDigitos } from '@barbertime/ui-utils';
 import { ErroDeNegocio } from './erros.js';
@@ -308,6 +312,32 @@ export function criarApi({ agora = () => new Date() } = {}) {
       }),
       parcelas: cp.parcelas,
     };
+  }
+
+  // Financeiro (planejamento 0027, parte 2): saídas e entradas válidas da gaveta.
+  const movimentosDoCaixa = (caixaId) =>
+    banco.movimentosCaixa.filter((m) => m.caixaId === caixaId && !m.estornado);
+  function completarConta(ct) {
+    return {
+      ...ct,
+      categoriaNome:
+        banco.categoriasFinanceiras.find((x) => x.id === ct.categoriaId)
+          ?.nome ?? '',
+      fornecedorNome:
+        banco.fornecedores.find((x) => x.id === ct.fornecedorId)?.nome ?? null,
+      clienteNome:
+        banco.clientes.find((x) => x.id === ct.clienteId)?.nome ?? null,
+      situacaoAtual: situacaoDaConta(ct, hoje()),
+    };
+  }
+  function exigirCategoriaDaConta(id, tipo) {
+    const cat = banco.categoriasFinanceiras.find((x) => x.id === Number(id));
+    if (!cat) throw new ErroDeNegocio('Categoria não encontrada.');
+    if (cat.tipo !== tipo)
+      throw new ErroDeNegocio(
+        `Essa categoria é de contas a ${cat.tipo === 'pagar' ? 'pagar' : 'receber'}.`,
+      );
+    if (!cat.ativa) throw new ErroDeNegocio('Essa categoria está desativada.');
   }
 
   const api = {
@@ -666,6 +696,7 @@ export function criarApi({ agora = () => new Date() } = {}) {
         const resumo = resumoDoCaixa({
           valorInicial: caixa.valorInicial,
           comandas: comandasDoCaixa(caixa.id),
+          movimentos: movimentosDoCaixa(caixa.id),
         });
         return copia({ ...caixa, resumo });
       },
@@ -694,6 +725,7 @@ export function criarApi({ agora = () => new Date() } = {}) {
         const resumo = resumoDoCaixa({
           valorInicial: caixa.valorInicial,
           comandas: comandasDoCaixa(caixa.id),
+          movimentos: movimentosDoCaixa(caixa.id),
         });
         if (resumo.abertas) {
           throw new ErroDeNegocio(
@@ -1219,6 +1251,220 @@ export function criarApi({ agora = () => new Date() } = {}) {
         });
         compra.cancelada = true;
         return copia(completarCompra(compra));
+      },
+    },
+
+    // Financeiro (planejamento 0027, parte 2, fatia 2A): espelha as rotas
+    // /api/financeiro. As parcelas de compra da memória não entram aqui.
+    financeiro: {
+      categorias: {
+        async listar() {
+          return copia(
+            banco.categoriasFinanceiras.map((cat) => ({
+              ...cat,
+              emUso: banco.contas.some((ct) => ct.categoriaId === cat.id),
+            })),
+          );
+        },
+        async salvar(dados) {
+          const nome = String(dados.nome ?? '').trim();
+          if (!nome) throw new ErroDeNegocio('Informe o nome da categoria.');
+          const atual = dados.id
+            ? buscar('categoriasFinanceiras', dados.id, 'Categoria')
+            : null;
+          const tipo = atual?.tipo ?? dados.tipo;
+          if (!['pagar', 'receber'].includes(tipo))
+            throw new ErroDeNegocio(
+              'Escolha se a categoria é de contas a pagar ou a receber.',
+            );
+          const repetida = banco.categoriasFinanceiras.find(
+            (x) =>
+              x.tipo === tipo &&
+              x.nome.toLowerCase() === nome.toLowerCase() &&
+              x.id !== atual?.id,
+          );
+          if (repetida)
+            throw new ErroDeNegocio(
+              `Já existe uma categoria chamada "${nome}".`,
+            );
+          if (atual) {
+            Object.assign(atual, { nome, ativa: dados.ativa ?? atual.ativa });
+            return copia(atual);
+          }
+          const nova = {
+            id: proximoId(banco.categoriasFinanceiras),
+            tipo,
+            nome,
+            ativa: true,
+          };
+          banco.categoriasFinanceiras.push(nova);
+          return copia(nova);
+        },
+        async excluir(id) {
+          const cat = buscar('categoriasFinanceiras', id, 'Categoria');
+          if (banco.contas.some((ct) => ct.categoriaId === cat.id))
+            throw new ErroDeNegocio(
+              `A categoria "${cat.nome}" tem contas: desative em vez de excluir.`,
+            );
+          banco.categoriasFinanceiras = banco.categoriasFinanceiras.filter(
+            (x) => x.id !== cat.id,
+          );
+        },
+      },
+      contas: {
+        async listar({ tipo, situacao, de, ate } = {}) {
+          return copia(
+            banco.contas
+              .filter((ct) => !tipo || ct.tipo === tipo)
+              .filter((ct) => !de || ct.vencimento >= de)
+              .filter((ct) => !ate || ct.vencimento <= ate)
+              .map(completarConta)
+              .filter((ct) =>
+                situacao === 'todas'
+                  ? true
+                  : situacao === 'aberta'
+                    ? ct.situacao === 'aberta'
+                    : situacao
+                      ? ct.situacaoAtual === situacao
+                      : ct.situacao !== 'cancelada',
+              )
+              .sort((a, b) =>
+                a.vencimento === b.vencimento
+                  ? a.id - b.id
+                  : a.vencimento < b.vencimento
+                    ? -1
+                    : 1,
+              ),
+          );
+        },
+        async salvar(dados) {
+          const atual = dados.id ? buscar('contas', dados.id, 'Conta') : null;
+          if (atual && atual.situacao !== 'aberta')
+            throw new ErroDeNegocio('Só dá para alterar uma conta em aberto.');
+          if (atual?.origem === 'compra') {
+            atual.vencimento = dados.vencimento;
+            return copia(completarConta(atual));
+          }
+          const tipo = atual?.tipo ?? dados.tipo;
+          const conta = {
+            tipo,
+            descricao: String(dados.descricao ?? '').trim(),
+            categoriaId: dados.categoriaId ? Number(dados.categoriaId) : null,
+            valor: Number(dados.valor),
+            vencimento: dados.vencimento ?? '',
+          };
+          const motivo = validarConta(conta);
+          if (motivo) throw new ErroDeNegocio(motivo);
+          if (conta.categoriaId !== atual?.categoriaId)
+            exigirCategoriaDaConta(conta.categoriaId, tipo);
+          const extra = {
+            fornecedorId:
+              tipo === 'pagar' && dados.fornecedorId
+                ? Number(dados.fornecedorId)
+                : null,
+            clienteId:
+              tipo === 'receber' && dados.clienteId
+                ? Number(dados.clienteId)
+                : null,
+          };
+          if (atual) {
+            Object.assign(atual, conta, extra);
+            return copia(completarConta(atual));
+          }
+          const nova = {
+            id: proximoId(banco.contas),
+            ...conta,
+            ...extra,
+            compraId: null,
+            origem: 'manual',
+            situacao: 'aberta',
+            pagoEm: null,
+            valorPago: null,
+            forma: null,
+          };
+          banco.contas.push(nova);
+          return copia(completarConta(nova));
+        },
+        async cancelar(id) {
+          const ct = buscar('contas', id, 'Conta');
+          if (ct.situacao !== 'aberta')
+            throw new ErroDeNegocio('Só dá para cancelar uma conta em aberto.');
+          if (ct.origem === 'compra')
+            throw new ErroDeNegocio(
+              'Esta é uma parcela de compra: para desistir, cancele a compra.',
+            );
+          ct.situacao = 'cancelada';
+          return copia(completarConta(ct));
+        },
+        async baixar(id, dados = {}) {
+          const ct = buscar('contas', id, 'Conta');
+          if (ct.situacao !== 'aberta')
+            throw new ErroDeNegocio(
+              ct.situacao === 'quitada'
+                ? 'Esta conta já foi paga.'
+                : 'Esta conta foi cancelada.',
+            );
+          const baixa = {
+            // Dinheiro do caixa sem data: é hoje (data da barbearia, não do aparelho).
+            data:
+              dados.data || (dados.forma === 'dinheiro_caixa' ? hoje() : ''),
+            valorPago: Number(dados.valorPago ?? ct.valor),
+            forma: dados.forma,
+          };
+          const motivo = validarBaixa(baixa);
+          if (motivo) throw new ErroDeNegocio(motivo);
+          if (baixa.data > hoje())
+            throw new ErroDeNegocio(
+              'A data do pagamento não pode ser depois de hoje.',
+            );
+          const mov = movimentoDaBaixa(ct, baixa);
+          if (mov) {
+            if (baixa.data !== hoje())
+              throw new ErroDeNegocio(
+                'Com dinheiro do caixa, a data é hoje: o valor sai da gaveta de hoje.',
+              );
+            const caixa = caixaDoDia();
+            if (!caixa?.aberto)
+              throw new ErroDeNegocio(
+                'Abra o caixa de hoje ou escolha outra forma de pagamento.',
+              );
+            banco.movimentosCaixa.push({
+              id: proximoId(banco.movimentosCaixa),
+              caixaId: caixa.id,
+              contaId: ct.id,
+              ...mov,
+            });
+          }
+          Object.assign(ct, {
+            situacao: 'quitada',
+            pagoEm: baixa.data,
+            valorPago: baixa.valorPago,
+            forma: baixa.forma,
+          });
+          return copia(completarConta(ct));
+        },
+        async estornar(id) {
+          const ct = buscar('contas', id, 'Conta');
+          if (ct.situacao !== 'quitada')
+            throw new ErroDeNegocio('Só dá para estornar uma conta paga.');
+          const mov = banco.movimentosCaixa.find(
+            (m) => m.contaId === ct.id && !m.estornado,
+          );
+          if (mov) {
+            if (!banco.caixas.find((x) => x.id === mov.caixaId)?.aberto)
+              throw new ErroDeNegocio(
+                'O caixa em que esse dinheiro saiu já foi fechado: não dá para estornar.',
+              );
+            mov.estornado = true;
+          }
+          Object.assign(ct, {
+            situacao: 'aberta',
+            pagoEm: null,
+            valorPago: null,
+            forma: null,
+          });
+          return copia(completarConta(ct));
+        },
       },
     },
 

@@ -169,13 +169,27 @@ const formas = FORMAS_DE_PAGAMENTO;
             {{ formatarMoeda(caixa.resumo.cashback) }}
           </p>
         </div>
+        <!-- Saídas e entradas da gaveta pelo financeiro (planejamento 0027,
+             parte 2): contas pagas ou recebidas com dinheiro do caixa. -->
+        <div v-if="caixa.resumo.saidas" class="resumo__forma">
+          <p class="ds-rotulo">Saídas</p>
+          <p class="ds-valor">− {{ formatarMoeda(caixa.resumo.saidas) }}</p>
+        </div>
+        <div v-if="caixa.resumo.entradas" class="resumo__forma">
+          <p class="ds-rotulo">Entradas</p>
+          <p class="ds-valor">+ {{ formatarMoeda(caixa.resumo.entradas) }}</p>
+        </div>
         <div class="resumo__forma">
           <p class="ds-rotulo">Na gaveta</p>
           <p class="ds-valor">
             {{ formatarMoeda(caixa.resumo.dinheiroEsperado) }}
           </p>
           <p class="ds-corpo-sm ds-suave">
-            troco {{ formatarMoeda(caixa.valorInicial) }} + dinheiro
+            troco {{ formatarMoeda(caixa.valorInicial) }} + dinheiro{{
+              caixa.resumo.saidas || caixa.resumo.entradas
+                ? ' ± saídas e entradas'
+                : ''
+            }}
           </p>
         </div>
       </section>

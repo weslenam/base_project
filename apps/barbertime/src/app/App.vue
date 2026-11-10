@@ -23,6 +23,7 @@ const gruposMenu = [
   { titulo: 'Operação', icone: 'fila' },
   { titulo: 'Cadastros', icone: 'componentes' },
   { titulo: 'Estoque', icone: 'estoque' },
+  { titulo: 'Financeiro', icone: 'financeiro' },
   { titulo: 'Administração', icone: 'configuracoes' },
 ];
 

@@ -1,6 +1,6 @@
 # Planejamento 0027: Estoque, compras e financeiro (contas a pagar e a receber)
 
-- **Status:** Parte 1 (estoque e compras) concluída; parte 2 (financeiro) pendente
+- **Status:** Parte 1 (estoque e compras) concluída; parte 2 (financeiro) fatia 2A em andamento
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0010 (papéis e permissões), 0011 (módulos), 0014 (proteção da API); planejamentos 0008 (caixa e comanda), 0020 (balcão) e 0026
@@ -180,6 +180,39 @@ As telas usam só os componentes `Ds*` (skill `design-system`). Um componente no
   - Numeração ajustada em 2026-11-08: 0015 a 0017 ficaram para o Supabase (planejamento 0025).
 - **Rotas novas seguem o ADR 0014:** parâmetros tipados, schema em todo corpo e mensagens em pt-BR.
 
+## Detalhe da parte 2: financeiro (2026-11-09)
+
+> entao vamos para a 0027 (2026-11-09, início da parte 2)
+
+**O que já existe:** as tabelas `contas` (situação `aberta | quitada | cancelada`) e `categorias_financeiras`, e as parcelas que a compra gera. Ainda não há API, telas nem regras de recorrência, previsão e movimentos de caixa.
+
+**Entrega em duas fatias (dois PRs):**
+
+- **2A. Contas e caixa:**
+  - **Domínio:** efeito dos movimentos de caixa no resumo (`resumoDoCaixa` ganha saídas e entradas, e o dinheiro esperado as considera) e situação "vencida" calculada.
+  - **Migração:** `movimentos_caixa` (caixa, tipo `saida | entrada`, valor, descrição, conta de origem), mais `recorrencia_id` em `contas`, já pensando na 2B. Tudo com RLS.
+  - **API (`financeiro.gerenciar` + módulo):**
+    - listar contas com filtros (tipo, situação, vencidas, período);
+    - criar conta manual, editar e cancelar a aberta;
+    - baixa (data, valor pago, forma) e estorno;
+    - CRUD de categorias, com desativação quando a categoria tem conta.
+  - **Caixa:** a baixa com `dinheiro_caixa` vira saída (pagar) ou entrada (receber) no caixa de hoje. O estorno desfaz, mas só com aquele caixa ainda aberto. A tela do caixa e o fechamento mostram as linhas "Saídas" e "Entradas".
+  - **Telas:** `/financeiro/contas` (abas Pagar e Receber, filtros, nova conta, baixa e estorno), categorias, menu "Financeiro" e a versão em memória.
+- **2B. Recorrências e previsão:**
+  - **Domínio:** datas da recorrência (dia de 1 a 28, próximos 3 meses) e agrupamento da previsão por semana.
+  - **Migração:** `recorrencias`.
+  - **API:** CRUD de recorrências, com geração das contas ao salvar e ao listar; encerrar cancela as futuras em aberto; previsão de 30, 60 ou 90 dias.
+  - **Telas:** `/financeiro/cadastros` (recorrências e categorias) e `/financeiro/previsao`.
+  - **Fechamento:** ADRs 0019 e 0021 e os índices.
+
+**Decisões propostas (para aprovar):**
+
+1. **Duas fatias (2A e 2B), um PR cada.** A 2A já entrega valor sozinha: pagar e receber contas e ver isso no caixa.
+2. **Quem mexe:** só quem tem `financeiro.gerenciar` (Gerente e Dono), como no mini-spec. A Recepção não paga conta, nem com o dinheiro da gaveta.
+3. **Estorno de baixa feita sem `dinheiro_caixa`** (Pix, banco, cartão, outro): pode ser feito a qualquer momento, porque não mexe no caixa.
+4. **O Business Center não conta o financeiro:** a receita da plataforma continua sendo só a das comandas. Contas a receber manuais não entram.
+5. **Editar uma conta aberta:** descrição, categoria, valor e vencimento. A parcela de compra só muda o vencimento; o valor dela vem da compra.
+
 ## Etapas
 
 - [x] 1. Aprovação do mini-spec pelo Weslen.
@@ -203,6 +236,16 @@ As telas usam só os componentes `Ds*` (skill `design-system`). Um componente no
 ## Registro de mudanças
 
 - 2026-11-08: documento criado a partir da entrevista (duas rodadas).
+- 2026-11-09: detalhe da parte 2 aprovado ("esta aprovado pode começar pela 2A"): decisões 1 a 5 como propostas; começa pela fatia 2A.
+- 2026-11-09: **fatia 2A implementada** (branch `feat/0027-financeiro`):
+  - **Migração `20261109160000_movimentos_caixa.sql`:** `movimentos_caixa` (estorno marca `estornado_em`; uma baixa válida por conta), com RLS e chaves compostas por barbearia. `recorrencia_id` em `contas` ficou para a 2B, junto com a tabela `recorrencias`.
+  - **Domínio:** `resumoDoCaixa` com saídas e entradas; `situacaoDaConta`, `validarConta`, `validarBaixa`, `movimentoDaBaixa` e `totaisDasContas`.
+  - **API:** `/api/financeiro/categorias` (CRUD; com conta, só desativa) e `/api/financeiro/contas` (filtros, lançar, editar, cancelar, baixar, estornar). Dinheiro do caixa sem data usa o dia da barbearia.
+  - **Telas:** `/financeiro/contas` (filtros Tipo e Situação, totais, conta, baixa e estorno) e `/financeiro/cadastros` (categorias); menu "Financeiro"; linhas "Saídas" e "Entradas" no caixa e no fechamento. Ícones novos `financeiro` e `categoria`.
+  - **Fora da 2A:** escolher cliente na conta a receber (a API aceita; a tela fica para depois); as parcelas de compra não aparecem na versão em memória.
+  - **Semente:** módulo Financeiro ativo na barbearia modelo, com três contas de exemplo.
+  - **Revisão (`/code-review`):** corrigidos #25 (categoria padrão voltava), #26 (Business Center sem as saídas na gaveta), #27 (conta de fornecedor excluído não editava), #28 (baixa e fechamento ao mesmo tempo: caixa travado; o teste é de guarda, a corrida não se reproduz de forma confiável), #29 (valor enorme dava 500) e #30 (texto do estorno e resposta fora de ordem). Mantidos: data padrão da baixa vem do aparelho (o campo é editável; dinheiro do caixa usa a data da barbearia); a lista corta em 500 contas (pendência); `:id` já é tipado pela guarda global.
+  - **Testes:** domínio 124; integração 146; tela 8 do financeiro; layout 89.
 - 2026-11-08: parte 1 (estoque e compras) implementada, ainda sem commit. `pnpm verificar:tudo` passou (476 testes: 398 de unidade e de tela, 78 de integração). Desvios do mini-spec:
   - **Validação de CPF/CNPJ do fornecedor:** nova regra pura `documentoValido` no `@barbertime/dominio`, usada pela API, pelo fake e pela tela.
   - **Categorias iniciais:** criadas sob demanda (`garantirCategoriasPadrao`) na primeira compra com valor, não na migração. As tabelas `recorrencias` e `movimentos_caixa` ficam para a migração da parte 2.

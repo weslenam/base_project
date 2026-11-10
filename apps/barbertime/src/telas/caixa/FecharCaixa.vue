@@ -68,6 +68,15 @@ async function fechar() {
         <dt>Total recebido</dt>
         <dd class="ds-valor">{{ formatarMoeda(resumo.totalRecebido) }}</dd>
       </div>
+      <!-- Saídas e entradas da gaveta pelo financeiro (planejamento 0027). -->
+      <div v-if="resumo.saidas">
+        <dt>Saídas da gaveta (contas pagas)</dt>
+        <dd class="ds-valor">− {{ formatarMoeda(resumo.saidas) }}</dd>
+      </div>
+      <div v-if="resumo.entradas">
+        <dt>Entradas na gaveta (contas recebidas)</dt>
+        <dd class="ds-valor">+ {{ formatarMoeda(resumo.entradas) }}</dd>
+      </div>
       <div>
         <dt>Dinheiro esperado na gaveta</dt>
         <dd class="ds-valor">{{ formatarMoeda(resumo.dinheiroEsperado) }}</dd>

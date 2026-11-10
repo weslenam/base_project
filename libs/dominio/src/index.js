@@ -110,3 +110,12 @@ export {
   ACOES_DE_MODULO_DA_PLATAFORMA,
   transicaoPelaPlataforma,
 } from './plataforma.js';
+export {
+  TIPOS_DE_CONTA,
+  FORMAS_DE_BAIXA,
+  situacaoDaConta,
+  validarConta,
+  validarBaixa,
+  movimentoDaBaixa,
+  totaisDasContas,
+} from './financeiro.js';

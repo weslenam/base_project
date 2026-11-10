@@ -266,9 +266,9 @@ describe('correções da revisão (planejamento 0037)', () => {
     const salvar = (selos, cashback) =>
       b.dono.put('/api/fidelidade/config', { selos, cashback });
     const selos = { ativo: true, necessarios: 10, premioServicoId: b.corte.id };
-    expect(
-      (await salvar({ ...selos, validadeMeses: 1.5 }, null)).status,
-    ).toBe(400);
+    expect((await salvar({ ...selos, validadeMeses: 1.5 }, null)).status).toBe(
+      400,
+    );
     expect(
       (
         await salvar(selos, {

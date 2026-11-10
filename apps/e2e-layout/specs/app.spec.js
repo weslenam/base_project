@@ -16,6 +16,8 @@ const TELAS = [
   ['estoque', '/estoque'],
   ['compras', '/compras'],
   ['fornecedores', '/fornecedores'],
+  ['financeiro-contas', '/financeiro/contas'],
+  ['financeiro-cadastros', '/financeiro/cadastros'],
   ['configuracoes', '/configuracoes'],
   ['usuarios', '/usuarios'],
   ['papeis', '/papeis'],
