@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -11,14 +11,16 @@ import {
 import { formatarData, formatarTelefone } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
 import ClienteDialogo from './ClienteDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Cliente } from '../../dados/modelos.ts';
 
 const busca = ref('');
-const clientes = ref([]);
+const clientes = ref<Cliente[]>([]);
 const carregando = ref(false);
 const dialogoAberto = ref(false);
-const selecionadoId = ref(null);
+const selecionadoId = ref<number | null>(null);
 
-const colunas = [
+const colunas: ColunaDaTabela<Cliente>[] = [
   { campo: 'nome', titulo: 'Cliente', ordenavel: true },
   { campo: 'telefone', titulo: 'Telefone', formatar: formatarTelefone },
   {
@@ -42,13 +44,13 @@ async function carregar() {
 }
 onMounted(carregar);
 
-let espera;
+let espera: ReturnType<typeof setTimeout> | undefined;
 watch(busca, () => {
   clearTimeout(espera);
   espera = setTimeout(carregar, 200);
 });
 
-function abrir(id = null) {
+function abrir(id: number | null = null) {
   selecionadoId.value = id;
   dialogoAberto.value = true;
 }

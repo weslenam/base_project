@@ -2,25 +2,27 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { api } from '../dados/api.ts';
 import {
   clicar,
+  clicarCelula,
   clicarContendo,
   escolherNoSelect,
   esperar,
   montarApp,
+  normalizar,
   preencher,
   sessaoCom,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 import { CHAVES_DE_PERMISSAO, permissoesDoPapel } from '@barbertime/dominio';
 import router from '../router';
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   app?.unmount();
   document.body.innerHTML = '';
 });
 
-const normalizar = (t) => t.replace(/\s/g, ' ');
 const menu = () =>
   [...document.querySelectorAll('[aria-label="Menu principal"] a')].map((a) =>
     a.textContent.trim(),
@@ -72,9 +74,7 @@ describe('no cliente', () => {
   it('mostra selos, cashback e pacotes em vigor', async () => {
     app = await montarApp('/clientes');
     await esperar(() => expect(texto()).toContain('Diego Alves'));
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.trim() === 'Diego Alves')
-      .click();
+    clicarCelula('Diego Alves');
     await esperar(() => expect(texto()).toContain('Clube do corte'));
     expect(texto()).toContain('Em vigor até');
     expect(texto()).toContain('Barba: livre (1 uso)');
@@ -85,9 +85,7 @@ describe('renovar o pacote mensal (planejamento 0034, etapa B)', () => {
   it('"Renovar" abre a comanda no caixa e o pacote mostra a renovação pendente', async () => {
     app = await montarApp('/clientes');
     await esperar(() => expect(texto()).toContain('Diego Alves'));
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.trim() === 'Diego Alves')
-      .click();
+    clicarCelula('Diego Alves');
     await esperar(() => expect(texto()).toContain('Clube do corte'));
     await clicar('Renovar');
     await esperar(() => expect(texto()).toContain('Renovar pacote'));
@@ -107,9 +105,7 @@ describe('renovar o pacote mensal (planejamento 0034, etapa B)', () => {
     );
     app = await montarApp('/clientes', { sessao: semVender });
     await esperar(() => expect(texto()).toContain('Diego Alves'));
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.trim() === 'Diego Alves')
-      .click();
+    clicarCelula('Diego Alves');
     await esperar(() => expect(texto()).toContain('Clube do corte'));
     expect(
       [...document.querySelectorAll('button')].some(
@@ -130,9 +126,11 @@ describe('na comanda', () => {
       expect(texto()).toContain('Usar o pacote Clube do corte'),
     );
     const caixa = [
-      ...document.querySelectorAll('.v-dialog input[type="checkbox"]'),
+      ...document.querySelectorAll<HTMLInputElement>(
+        '.v-dialog input[type="checkbox"]',
+      ),
     ][0];
-    expect(caixa.checked).toBe(true);
+    expect(caixa?.checked).toBe(true);
     await clicar('Incluir');
     await esperar(() => expect(texto()).toContain('Corte (pacote)'));
 

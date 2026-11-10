@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { DsBotao, DsSelo, useNotificacao } from '@barbertime/ui';
@@ -7,21 +7,24 @@ import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { useSessao } from '../../sessao/sessao.ts';
 import VenderPacoteDialogo from './VenderPacoteDialogo.vue';
+import type { SaldoFidelidade } from '@barbertime/dominio';
+import type { Assinatura, Renovacao } from '../../dados/modelos.ts';
+import type { Selo } from '../estados.ts';
 
 /** Saldo de fidelidade e pacotes do cliente (planejamento 0015). */
 const props = defineProps({ clienteId: { type: Number, required: true } });
-const emit = defineEmits(['vendido']);
+const emit = defineEmits<{ vendido: [] }>();
 
 const { moduloAtivo, pode } = useSessao();
 const router = useRouter();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const saldo = ref(null);
-const assinaturas = ref([]);
+const saldo = ref<SaldoFidelidade | null>(null);
+const assinaturas = ref<Assinatura[]>([]);
 const venderAberto = ref(false);
 // Pacote mensal sendo renovado (planejamento 0034, etapa B).
-const renovando = ref(null);
+const renovando = ref<Renovacao | null>(null);
 
 const comFidelidade = computed(() => moduloAtivo('fidelidade'));
 const comPacotes = computed(() => moduloAtivo('pacotes'));
@@ -34,21 +37,22 @@ async function carregar() {
 }
 watch(() => props.clienteId, carregar, { immediate: true });
 
-const SITUACAO = {
+const aguardando = (): Selo => ({
+  estado: 'pendente',
+  texto: 'Aguardando pagamento',
+});
+const SITUACAO: Record<string, (a: Assinatura) => Selo> = {
   ativa: (a) =>
     a.vigente
       ? { estado: 'confirmado', texto: `Em vigor até ${formatarData(a.fim)}` }
       : a.aComecar
         ? { estado: 'pendente', texto: `Começa em ${formatarData(a.inicio)}` }
         : { estado: 'faltou', texto: `Venceu em ${formatarData(a.fim)}` },
-  aguardando_pagamento: () => ({
-    estado: 'pendente',
-    texto: 'Aguardando pagamento',
-  }),
+  aguardando_pagamento: aguardando,
 };
-const situacao = (a) =>
-  (SITUACAO[a.estado] ?? SITUACAO.aguardando_pagamento)(a);
-const textoDoSaldo = (s) =>
+const situacao = (a: Assinatura): Selo =>
+  ((Object.hasOwn(SITUACAO, a.estado) && SITUACAO[a.estado]) || aguardando)(a);
+const textoDoSaldo = (s: Assinatura['saldo'][number]) =>
   s.quantidade == null
     ? `${s.servicoNome}: livre (${s.usados} ${s.usados === 1 ? 'uso' : 'usos'})`
     : `${s.servicoNome}: ${s.restantes} de ${s.quantidade}`;
@@ -58,13 +62,13 @@ const textoDoSaldo = (s) =>
  * planejamento 0034). O ciclo renovado começa depois do fim ou, vencido, no
  * pagamento.
  */
-const podeRenovar = (a) =>
+const podeRenovar = (a: Assinatura) =>
   pode('pacotes.vender') &&
   a.estado === 'ativa' &&
   a.pacote.tipo === 'recorrente' &&
   !a.pacote.excluido &&
   !a.renovacao;
-function renovar(a) {
+function renovar(a: Assinatura) {
   // renovaEm vem da API, na data da barbearia (não na do aparelho).
   renovando.value = {
     assinaturaId: a.id,
@@ -80,15 +84,28 @@ function abrirVenda() {
   venderAberto.value = true;
 }
 
-async function vender(dados) {
+async function vender({
+  pacoteId,
+  barbeiroId,
+}: {
+  pacoteId: number | null;
+  barbeiroId: number | null;
+}) {
   const renovacao = renovando.value;
-  const r = await executar(() =>
-    renovacao
-      ? api.assinaturas.renovar(renovacao.assinaturaId, {
-          barbeiroId: dados.barbeiroId,
-        })
-      : api.assinaturas.vender({ clienteId: props.clienteId, ...dados }),
-  );
+  let chamada;
+  if (renovacao)
+    chamada = () =>
+      api.assinaturas.renovar(renovacao.assinaturaId, { barbeiroId });
+  else if (pacoteId !== null)
+    chamada = () =>
+      api.assinaturas.vender({
+        clienteId: props.clienteId,
+        pacoteId,
+        barbeiroId,
+      });
+  // O botão de vender só habilita com o pacote escolhido.
+  else return;
+  const r = await executar(chamada);
   if (!r) return;
   notificar.sucesso(
     renovacao
@@ -140,7 +157,7 @@ async function vender(dados) {
           <DsSelo :estado="situacao(a).estado">{{ situacao(a).texto }}</DsSelo>
           <span
             v-for="s in a.saldo"
-            :key="s.servicoId"
+            :key="s.servicoId ?? undefined"
             class="ds-corpo-sm ds-suave"
           >
             {{ textoDoSaldo(s) }}

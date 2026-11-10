@@ -8,6 +8,8 @@ import { api } from '../dados/api.ts';
 import { definirSessao } from '../sessao/sessao.ts';
 import { SESSAO_DONO } from '../testes/apoio.ts';
 import ComandaDialogo from './caixa/ComandaDialogo.vue';
+import type { SaldoFidelidade } from '@barbertime/dominio';
+import type { Cliente, Comanda } from '../dados/modelos.ts';
 
 // Planejamento 0037 (revisão): reabrir outra comanda não pode apagar o
 // resgate (prêmio e cashback) que ela já tinha.
@@ -17,21 +19,23 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-const comanda = (id, clienteId, extra = {}) => ({
-  id,
-  clienteId,
-  clienteNome: `Cliente ${clienteId}`,
-  barbeiroId: null,
-  itens: [
-    { tipo: 'servico', refId: 1, nome: 'Corte', preco: 50, quantidade: 1 },
-  ],
-  desconto: 0,
-  premioFidelidade: false,
-  cashbackUsado: 0,
-  forma: null,
-  estado: 'aberta',
-  ...extra,
-});
+// Só os campos que a comanda usa nesta tela.
+const comanda = (id: number, clienteId: number, extra = {}) =>
+  ({
+    id,
+    clienteId,
+    clienteNome: `Cliente ${clienteId}`,
+    barbeiroId: null,
+    itens: [
+      { tipo: 'servico', refId: 1, nome: 'Corte', preco: 50, quantidade: 1 },
+    ],
+    desconto: 0,
+    premioFidelidade: false,
+    cashbackUsado: 0,
+    forma: null,
+    estado: 'aberta',
+    ...extra,
+  }) as Comanda;
 
 describe('comanda com resgate da fidelidade', () => {
   it('abrir A e depois B mantém o cashback e o prêmio de B', async () => {
@@ -40,18 +44,21 @@ describe('comanda com resgate da fidelidade', () => {
     vi.spyOn(api.comandas, 'obter').mockImplementation(async (id) =>
       id === 1 ? a : b,
     );
-    vi.spyOn(api.clientes, 'obter').mockImplementation(async (clienteId) => ({
-      id: clienteId,
-      nome: `Cliente ${clienteId}`,
-      telefone: '11900000000',
-    }));
+    vi.spyOn(api.clientes, 'obter').mockImplementation(
+      async (clienteId) =>
+        ({
+          id: clienteId,
+          nome: `Cliente ${clienteId}`,
+          telefone: '11900000000',
+        }) as Cliente,
+    );
     vi.spyOn(api.fidelidade, 'obterConfig').mockResolvedValue(
       structuredClone(FIDELIDADE_PADRAO),
     );
     vi.spyOn(api.fidelidade, 'saldo').mockResolvedValue({
       selos: 0,
       cashback: 20,
-    });
+    } as SaldoFidelidade);
 
     definirSessao(SESSAO_DONO);
     const id = ref(1);

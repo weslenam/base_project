@@ -1,5 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
+import type { Barbeiro, Pacote, Renovacao } from '../../dados/modelos.ts';
 import { DsBotao, DsDialogo, DsEscolha, DsSelect } from '@barbertime/ui';
 import { api } from '../../dados/api.ts';
 import {
@@ -7,17 +9,21 @@ import {
   descreverLimites,
   descreverPreco,
   descreverVigencia,
-} from '../pacotes/descricao.js';
+} from '../pacotes/descricao.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
+const aberto = defineModel<boolean>({ default: false });
 /** Renovação (planejamento 0034): o pacote vem fixo; só se escolhe quem vendeu. */
-const props = defineProps({ renovacao: { type: Object, default: null } });
-const emit = defineEmits(['vender']);
+const props = defineProps({
+  renovacao: { type: Object as PropType<Renovacao | null>, default: null },
+});
+const emit = defineEmits<{
+  vender: [escolha: { pacoteId: number | null; barbeiroId: number | null }];
+}>();
 
-const pacotes = ref([]);
-const barbeiros = ref([]);
-const pacoteId = ref(null);
-const barbeiroId = ref(null);
+const pacotes = ref<Pacote[]>([]);
+const barbeiros = ref<Barbeiro[]>([]);
+const pacoteId = ref<number | null>(null);
+const barbeiroId = ref<number | null>(null);
 
 watch(aberto, async (abriu) => {
   if (!abriu) return;

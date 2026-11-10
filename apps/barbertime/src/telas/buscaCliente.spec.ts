@@ -2,14 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { api } from '../dados/api.ts';
 import {
   clicar,
+  clicarCelula,
   clicarContendo,
   esperar,
   montarApp,
   preencher,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   app?.unmount();
@@ -18,15 +20,20 @@ afterEach(() => {
 
 const CAMPO = 'Nome ou telefone do cliente';
 const botoesResultado = () => [
-  ...document.querySelectorAll('ul[aria-label="Clientes encontrados"] button'),
+  ...document.querySelectorAll<HTMLButtonElement>(
+    'ul[aria-label="Clientes encontrados"] button',
+  ),
 ];
 const resultados = () =>
   botoesResultado().map((b) => b.textContent.replace(/\s/g, ' ').trim());
 /** Clica no resultado da busca (não em outro botão com o mesmo nome atrás do diálogo). */
-const escolherResultado = (nome) =>
-  botoesResultado()
-    .find((b) => b.textContent.includes(nome))
-    .click();
+const escolherResultado = (nome: string) => {
+  const botao = botoesResultado().find((b) =>
+    (b.textContent ?? '').includes(nome),
+  );
+  if (!botao) throw new Error(`Resultado "${nome}" não apareceu`);
+  botao.click();
+};
 const escolhido = () => document.querySelector('.escolhido')?.textContent ?? '';
 
 describe('busca de cliente por nome ou telefone', () => {
@@ -81,13 +88,11 @@ describe('busca de cliente por nome ou telefone', () => {
     await esperar(() =>
       expect(
         [...document.querySelectorAll('td')].some(
-          (td) => td.textContent.trim() === 'Thiago Costa',
+          (td) => (td.textContent ?? '').trim() === 'Thiago Costa',
         ),
       ).toBe(true),
     );
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.trim() === 'Thiago Costa')
-      .click();
+    clicarCelula('Thiago Costa');
     await esperar(() => expect(escolhido()).toContain('Thiago Costa'));
   });
 

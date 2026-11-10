@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A e 9B feitas)
+- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A a 9C feitas)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -227,3 +227,12 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
     - `ComandaEmEdicao` vem do modelo `Comanda`;
     - os selos só aceitam estados conhecidos (`Object.hasOwn`).
   - **Pendência para a etapa 10:** tipar o `formatar` do `ColunaDaTabela` pelo campo da coluna, para tirar os casts `(v) => formatarMoeda(v as number)`.
+- 2026-11-10 — Etapa 9C (clientes, fidelidade e pacotes): telas com `lang="ts"`, `pacotes/descricao.ts` e os testes `buscaCliente`, `clienteHistorico`, `comandaResgate` e `fidelidadePacotes` em TS.
+  - **Lib de UI:** o `ColunaDaTabela` tipa o `formatar` pelo campo da coluna, e as telas passam `formatarTelefone` e outros direto, sem cast.
+  - **Apoio dos testes:** `clicarCelula()` e `normalizar()`. `Renovacao` foi para `dados/modelos.ts`.
+  - **Testes do app:** limite de tempo de 15 s. No `pnpm verificar`, o typecheck do Vue roda em paralelo e os testes que montam o app inteiro passavam dos 5 s.
+  - **Da revisão:** excluir cliente confere o id antes da confirmação, e a venda e a renovação de pacote ficaram sem cast.
+  - **Pendências para a etapa 10:**
+    - tirar os casts de `formatar` da 9B;
+    - a coluna só de slot do `ColunaDaTabela` aceita qualquer `campo` (um nome errado numa coluna sem `formatar` não é pego);
+    - o limite de tempo dos testes é global (o melhor seria rodar typecheck e testes em sequência no `verificar`).

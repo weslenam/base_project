@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { PropType } from 'vue';
 import {
   DsBotao,
   DsCaixaDeSelecao,
@@ -14,17 +15,37 @@ import {
 import { TIPOS_DE_PACOTE } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
 import { useAcao } from '../../dados/useAcao.ts';
+import type { Pacote, Servico } from '../../dados/modelos.ts';
 
-const aberto = defineModel({ type: Boolean, default: false });
-const props = defineProps({ pacote: { type: Object, default: null } });
-const emit = defineEmits(['salvo']);
+/** Formulário do pacote: itens com o modo (quantidade ou livre) e os limites ligáveis. */
+interface FormularioDoPacote {
+  nome: string;
+  preco: number | null;
+  tipo: string;
+  validadeDias: number | null;
+  itens: {
+    servicoId: number | null;
+    modo: 'quantidade' | 'livre';
+    quantidade: number;
+  }[];
+  comIntervalo: boolean;
+  intervaloMinimoDias: number;
+  comSemanal: boolean;
+  maximoPorSemana: number;
+}
+
+const aberto = defineModel<boolean>({ default: false });
+const props = defineProps({
+  pacote: { type: Object as PropType<Pacote | null>, default: null },
+});
+const emit = defineEmits<{ salvo: [] }>();
 
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const servicos = ref([]);
-const form = ref(null);
+const servicos = ref<Servico[]>([]);
+const form = ref<FormularioDoPacote | null>(null);
 const novo = computed(() => !props.pacote);
 const MODOS = [
   { valor: 'quantidade', rotulo: 'Quantidade' },
@@ -40,9 +61,11 @@ watch(aberto, async (abriu) => {
     preco: p?.preco ?? null,
     tipo: p?.tipo ?? 'recorrente',
     validadeDias: p?.validadeDias ?? 60,
-    itens: (p?.itens ?? [{ servicoId: null, quantidade: 4 }]).map((i) => ({
+    itens: (
+      p?.itens ?? [{ servicoId: null as number | null, quantidade: 4 }]
+    ).map((i) => ({
       servicoId: i.servicoId,
-      modo: i.quantidade == null ? 'livre' : 'quantidade',
+      modo: i.quantidade == null ? ('livre' as const) : ('quantidade' as const),
       quantidade: i.quantidade ?? 1,
     })),
     comIntervalo: Boolean(p?.limites?.intervaloMinimoDias),
@@ -57,11 +80,16 @@ const opcoesServicos = computed(() =>
 );
 
 function adicionarItem() {
-  form.value.itens.push({ servicoId: null, modo: 'quantidade', quantidade: 1 });
+  form.value?.itens.push({
+    servicoId: null,
+    modo: 'quantidade',
+    quantidade: 1,
+  });
 }
 
 async function salvar() {
   const f = form.value;
+  if (!f) return;
   const dados = {
     id: props.pacote?.id,
     nome: f.nome,
@@ -89,14 +117,16 @@ async function salvar() {
 }
 
 async function excluir() {
-  const ok = await confirmar(`Excluir o pacote ${props.pacote.nome}?`, {
+  const pacote = props.pacote;
+  if (!pacote) return;
+  const ok = await confirmar(`Excluir o pacote ${pacote.nome}?`, {
     perigo: true,
     textoOk: 'Excluir',
     textoCancelar: 'Manter',
   });
   if (!ok) return;
   const feito = await executar(
-    async () => (await api.pacotes.excluir(props.pacote.id), true),
+    async () => (await api.pacotes.excluir(pacote.id), true),
   );
   if (!feito) return;
   notificar.sucesso('Pacote excluído.');
@@ -108,7 +138,7 @@ async function excluir() {
 <template>
   <DsDialogo
     v-model="aberto"
-    :titulo="novo ? 'Novo pacote' : `Pacote ${pacote.nome}`"
+    :titulo="novo ? 'Novo pacote' : `Pacote ${pacote?.nome}`"
     largura="lg"
     fechavel
   >

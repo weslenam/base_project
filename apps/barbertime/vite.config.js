@@ -42,6 +42,9 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['src/testes/setup.ts'],
+    // Os testes montam o app inteiro; com o typecheck do Vue rodando em
+    // paralelo no `pnpm verificar`, 5 s não bastam (planejamento 0040).
+    testTimeout: 15_000,
     server: { deps: { inline: ['vuetify'] } },
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,ts}'],
     reporters: ['default'],

@@ -1,15 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { api } from '../dados/api.ts';
-import { clicarContendo, esperar, montarApp, texto } from '../testes/apoio.ts';
+import {
+  clicarCelula,
+  clicarContendo,
+  esperar,
+  montarApp,
+  normalizar,
+  texto,
+} from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   app?.unmount();
   document.body.innerHTML = '';
 });
 
-const normalizar = (t) => t.replace(/\s/g, ' ');
 const painel = () =>
   normalizar(
     document.querySelector('section[aria-label="Histórico do cliente"]')
@@ -21,9 +28,7 @@ const comandasListadas = () =>
 async function abrirRafael() {
   app = await montarApp('/clientes');
   await esperar(() => expect(texto()).toContain('Rafael Souza'));
-  [...document.querySelectorAll('td')]
-    .find((td) => td.textContent.trim() === 'Rafael Souza')
-    .click();
+  clicarCelula('Rafael Souza');
   await esperar(() => expect(painel()).toContain('Em serviços'));
 }
 
@@ -39,7 +44,7 @@ describe('cadastro do cliente com histórico (planejamento 0016)', () => {
 
   it('Comandas: 5 primeiro, "Ver mais" traz o resto e some no fim', async () => {
     await abrirRafael();
-    document.querySelectorAll('[role="tab"]')[1].click();
+    document.querySelectorAll<HTMLElement>('[role="tab"]')[1]?.click();
     await esperar(() => expect(comandasListadas()).toBe(5));
     expect(painel()).toContain('Comandas (7)');
     expect(painel()).toContain('Corte, Pomada modeladora');
@@ -50,7 +55,7 @@ describe('cadastro do cliente com histórico (planejamento 0016)', () => {
 
   it('Agendamentos continua disponível na terceira aba', async () => {
     await abrirRafael();
-    document.querySelectorAll('[role="tab"]')[2].click();
+    document.querySelectorAll<HTMLElement>('[role="tab"]')[2]?.click();
     await esperar(() =>
       expect(
         document.querySelectorAll('ul[aria-label="Agendamentos do cliente"] li')

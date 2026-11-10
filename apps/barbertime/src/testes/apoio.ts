@@ -194,3 +194,16 @@ export function elemento<T extends Element = HTMLElement>(seletor: string): T {
   if (!el) throw new Error(`Elemento não encontrado: ${seletor}`);
   return el;
 }
+
+/** Clica na célula da tabela com exatamente esse texto. */
+export function clicarCelula(texto: string): void {
+  const celula = [...document.querySelectorAll('td')].find(
+    (td) => (td.textContent ?? '').trim() === texto,
+  );
+  if (!celula) throw new Error(`Célula "${texto}" não apareceu`);
+  celula.click();
+}
+
+/** Texto com os espaços especiais (ex.: o do R$) trocados por espaço comum. */
+export const normalizar = (t: string | null | undefined): string =>
+  String(t ?? '').replace(/\s/g, ' ');

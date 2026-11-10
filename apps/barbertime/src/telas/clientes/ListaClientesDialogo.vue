@@ -1,18 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { DsDialogo, DsInput, DsSelo, DsTabela } from '@barbertime/ui';
 import { formatarData, formatarTelefone } from '@barbertime/ui-utils';
 import { api } from '../../dados/api.ts';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Cliente } from '../../dados/modelos.ts';
 
 /** Lista completa de clientes para escolher um (planejamento 0012). */
-const aberto = defineModel({ type: Boolean, default: false });
-const emit = defineEmits(['escolher']);
+const aberto = defineModel<boolean>({ default: false });
+const emit = defineEmits<{ escolher: [cliente: Cliente] }>();
 
 const busca = ref('');
-const clientes = ref([]);
+const clientes = ref<Cliente[]>([]);
 const carregando = ref(false);
 
-const colunas = [
+const colunas: ColunaDaTabela<Cliente>[] = [
   { campo: 'nome', titulo: 'Cliente', ordenavel: true },
   { campo: 'telefone', titulo: 'Telefone', formatar: formatarTelefone },
   {
@@ -41,13 +43,13 @@ watch(aberto, (abriu) => {
   carregar();
 });
 
-let espera;
+let espera: ReturnType<typeof setTimeout> | undefined;
 watch(busca, () => {
   clearTimeout(espera);
   espera = setTimeout(carregar, 200);
 });
 
-function escolher(cliente) {
+function escolher(cliente: Cliente) {
   emit('escolher', cliente);
   aberto.value = false;
 }
