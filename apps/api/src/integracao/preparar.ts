@@ -6,7 +6,11 @@ import type { TestProject } from 'vitest/node';
 import { config } from '../infra/config.ts';
 import { migrar, prepararPapelDaAplicacao } from '../infra/migrar.ts';
 
-const BANCO = 'barbertime_teste';
+// BANCO_DE_TESTE permite rodar a integração em paralelo (um banco por
+// agente, planejamento 0040): cada execução recria só o seu banco.
+const BANCO = process.env.BANCO_DE_TESTE ?? 'barbertime_teste';
+if (!/^[a-z_][a-z0-9_]{0,62}$/.test(BANCO))
+  throw new Error('BANCO_DE_TESTE: use só letras minúsculas, números e _.');
 const trocarBanco = (url: string, banco: string): string => {
   const u = new URL(url);
   u.pathname = `/${banco}`;
