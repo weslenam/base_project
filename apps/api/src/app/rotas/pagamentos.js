@@ -1,6 +1,6 @@
-import { invalido } from '../../infra/erros.js';
+import { invalido } from '../../infra/erros.ts';
 import { provedorSimulado } from '../../pagamentos/provedores.js';
-import { corpo, escalar, texto } from '../esquemas.js';
+import { corpo, escalar, texto } from '../esquemas.ts';
 
 /** Módulo adicional "Pagamento online" (ADR 0011). Provedor real: a definir. */
 export default async function (

@@ -6,7 +6,7 @@ import {
   navegador,
   novaBarbearia,
   unico,
-} from './apoio.js';
+} from './apoio.ts';
 
 let servidor;
 beforeAll(async () => {

@@ -4,7 +4,7 @@ import {
   validarBaixa,
   validarConta,
 } from '@barbertime/dominio';
-import { conflito, invalido, naoEncontrado } from '../infra/erros.js';
+import { conflito, invalido, naoEncontrado } from '../infra/erros.ts';
 import { garantirCategoriasPadrao } from './estoque.js';
 
 // Contas a pagar e a receber e categorias (planejamento 0027, parte 2, fatia

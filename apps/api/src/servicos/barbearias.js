@@ -1,6 +1,6 @@
 import { PAPEIS_PADRAO } from '@barbertime/dominio';
-import { conflito, invalido } from '../infra/erros.js';
-import { SENHA_MINIMA } from '../seguranca/senha.js';
+import { conflito, invalido } from '../infra/erros.ts';
+import { SENHA_MINIMA } from '../seguranca/senha.ts';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

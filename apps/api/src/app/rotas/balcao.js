@@ -9,7 +9,7 @@ import {
   situacaoDosBarbeiros,
   sugerirEncaixe,
 } from '@barbertime/dominio';
-import { conflito, invalido, proibido } from '../../infra/erros.js';
+import { conflito, invalido, proibido } from '../../infra/erros.ts';
 import {
   SELECT_ATENDIMENTO,
   agora,
@@ -18,14 +18,14 @@ import {
   buscarServico,
   clientePorTelefone,
   comEstado,
-} from '../../servicos/agenda.js';
+} from '../../servicos/agenda.ts';
 import {
   cancelarComanda,
   comandaDoAtendimento,
   exigirCaixaAberto,
   caixaDoDia,
 } from '../../servicos/caixa.js';
-import { TAM, corpo, inteiro, logico, query, texto } from '../esquemas.js';
+import { TAM, corpo, inteiro, logico, query, texto } from '../esquemas.ts';
 
 // Balcão (planejamento 0020, fase 1; especificação docs/atendimento/balcao.md).
 // Agenda e fila são visões da mesma tabela `atendimentos`.

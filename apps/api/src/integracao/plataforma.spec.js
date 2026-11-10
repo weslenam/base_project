@@ -1,5 +1,5 @@
 import { momentoNoFuso, somarMeses } from '@barbertime/dominio';
-import { codigoDoPasso, passoAtual } from '../seguranca/totp.js';
+import { codigoDoPasso, passoAtual } from '../seguranca/totp.ts';
 import { criarOperador } from '../servicos/operadores.js';
 import {
   comoAplicacao,
@@ -8,7 +8,7 @@ import {
   navegador,
   novaBarbearia,
   unico,
-} from './apoio.js';
+} from './apoio.ts';
 
 // Business Center (planejamento 0028, ADR 0018): operadores com TOTP, painel por
 // barbearia sem dado pessoal de cliente, ações auditadas e barbearia suspensa.

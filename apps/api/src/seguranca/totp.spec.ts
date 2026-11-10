@@ -6,7 +6,7 @@ import {
   passoAtual,
   uriOtpauth,
   verificarTotp,
-} from './totp.js';
+} from './totp.ts';
 
 // Vetores da RFC 6238 (apêndice B), SHA-1, truncados para 6 dígitos.
 const SEGREDO_RFC = base32(Buffer.from('12345678901234567890'));

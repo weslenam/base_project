@@ -1,12 +1,34 @@
 import helmet from '@fastify/helmet';
+import type {
+  FastifyError,
+  FastifyInstance,
+  FastifyPluginAsync,
+} from 'fastify';
 import sensible from './plugins/sensible.js';
-import banco from '../infra/banco.js';
-import { config } from '../infra/config.js';
-import autenticacao from '../seguranca/autenticacao.js';
-import identidade from '../identidade/index.js';
-import entrada, { mensagemDeErro } from '../seguranca/entrada.js';
-import limites from '../seguranca/limites.js';
+import banco from '../infra/banco.ts';
+import { config } from '../infra/config.ts';
+import autenticacao from '../seguranca/autenticacao.ts';
+import identidadeJs from '../identidade/index.js';
+import entrada, { mensagemDeErro } from '../seguranca/entrada.ts';
+import limites from '../seguranca/limites.ts';
+import type { Limite } from '../seguranca/limites.ts';
 import rotasSaude from './rotas/saude.js';
+import { criarCorreioSmtp } from '../infra/correio.ts';
+import type { Correio } from '../infra/correio.ts';
+
+// ---- Rotas da operação (planejamento 0040, etapa 6, agente A) ----
+import rotasAgenda from './rotas/agenda.js';
+import rotasCaixa from './rotas/caixa.js';
+import rotasBalcao from './rotas/balcao.js';
+import rotasEstoque from './rotas/estoque.js';
+import rotasFidelidade from './rotas/fidelidade.js';
+import rotasPacotes from './rotas/pacotes.js';
+import rotasFinanceiro from './rotas/financeiro.js';
+
+// Separador: os dois blocos ficam longe um do outro para os PRs da etapa 6
+// não mexerem em linhas vizinhas.
+
+// ---- Rotas de cadastro, acesso e plataforma (etapa 6, agente B) ----
 import rotasAutenticacao from './rotas/autenticacao.js';
 import rotasUsuarios from './rotas/usuarios.js';
 import rotasPapeis from './rotas/papeis.js';
@@ -15,17 +37,9 @@ import rotasPagamentos from './rotas/pagamentos.js';
 import rotasBarbearia from './rotas/barbearia.js';
 import rotasCadastros from './rotas/cadastros.js';
 import rotasClientes from './rotas/clientes.js';
-import rotasAgenda from './rotas/agenda.js';
 import rotasPublico from './rotas/publico.js';
-import rotasCaixa from './rotas/caixa.js';
-import rotasBalcao from './rotas/balcao.js';
-import rotasEstoque from './rotas/estoque.js';
-import rotasFidelidade from './rotas/fidelidade.js';
-import rotasPacotes from './rotas/pacotes.js';
-import rotasFinanceiro from './rotas/financeiro.js';
 import rotasSenha from './rotas/senha.js';
 import rotasPlataforma from './rotas/plataforma.js';
-import { criarCorreioSmtp } from '../infra/correio.js';
 
 /**
  * Aplicação Fastify. Toda rota fica sob /api. Erros esperados saem como
@@ -34,7 +48,26 @@ import { criarCorreioSmtp } from '../infra/correio.js';
  * segurança, guarda de entrada e limites de requisição. Sem CORS: o front usa a
  * mesma origem.
  */
-export async function app(fastify, opts = {}) {
+/** Opções do app (os testes trocam banco, correio e limites). */
+export interface OpcoesDoApp {
+  databaseUrl?: string;
+  auth?: string;
+  correio?: Correio;
+  appUrl?: string;
+  limites?: Record<string, Limite>;
+  paginaPublicaLiberada?: boolean;
+  pagamentos?: Record<string, unknown>;
+}
+
+// A identidade ainda é JS (etapa 6, agente B): até converter, o tipo das
+// opções vem daqui.
+const identidade = identidadeJs as unknown as FastifyPluginAsync<{
+  auth?: string;
+  correio: Correio;
+  appUrl: string;
+}>;
+
+export async function app(fastify: FastifyInstance, opts: OpcoesDoApp = {}) {
   fastify.register(helmet);
   fastify.register(entrada);
   fastify.register(limites, { limites: opts.limites });
@@ -49,7 +82,7 @@ export async function app(fastify, opts = {}) {
   });
   fastify.register(autenticacao);
 
-  fastify.setErrorHandler((erro, req, reply) => {
+  fastify.setErrorHandler((erro: FastifyError, req, reply) => {
     const status = erro.statusCode ?? 500;
     if (status >= 500) {
       req.log.error(erro);

@@ -8,7 +8,7 @@ export const PASSO_S = 30;
 const DIGITOS = 6;
 const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-export function base32(buffer) {
+export function base32(buffer: Uint8Array): string {
   let bits = '';
   for (const byte of buffer) bits += byte.toString(2).padStart(8, '0');
   let saida = '';
@@ -17,7 +17,7 @@ export function base32(buffer) {
   return saida;
 }
 
-export function deBase32(texto) {
+export function deBase32(texto: string): Buffer {
   const limpo = String(texto).replace(/[\s=]/g, '').toUpperCase();
   let bits = '';
   for (const ch of limpo) {
@@ -25,7 +25,7 @@ export function deBase32(texto) {
     if (v < 0) throw new Error('Segredo TOTP inválido.');
     bits += v.toString(2).padStart(5, '0');
   }
-  const bytes = [];
+  const bytes: number[] = [];
   for (let i = 0; i + 8 <= bits.length; i += 8)
     bytes.push(parseInt(bits.slice(i, i + 8), 2));
   return Buffer.from(bytes);
@@ -38,16 +38,16 @@ export const passoAtual = (agoraMs = Date.now()) =>
   Math.floor(agoraMs / 1000 / PASSO_S);
 
 /** Código de 6 dígitos de um passo. */
-export function codigoDoPasso(segredo, passo) {
+export function codigoDoPasso(segredo: string, passo: number): string {
   const contador = Buffer.alloc(8);
   contador.writeBigUInt64BE(BigInt(passo));
   const hmac = createHmac('sha1', deBase32(segredo)).update(contador).digest();
-  const deslocamento = hmac[hmac.length - 1] & 0x0f;
+  const deslocamento = (hmac[hmac.length - 1] ?? 0) & 0x0f;
   const numero = hmac.readUInt32BE(deslocamento) & 0x7fffffff;
   return String(numero % 10 ** DIGITOS).padStart(DIGITOS, '0');
 }
 
-const iguais = (a, b) =>
+const iguais = (a: string, b: string): boolean =>
   a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 /**
@@ -56,10 +56,13 @@ const iguais = (a, b) =>
  * recusados: o mesmo código não vale duas vezes.
  */
 export function verificarTotp(
-  segredo,
-  codigo,
-  { ultimoPasso = 0, agoraMs = Date.now() } = {},
-) {
+  segredo: string,
+  codigo: string | null | undefined,
+  {
+    ultimoPasso = 0,
+    agoraMs = Date.now(),
+  }: { ultimoPasso?: number; agoraMs?: number } = {},
+): number | null {
   const informado = String(codigo ?? '').replace(/\s/g, '');
   if (!/^\d{6}$/.test(informado)) return null;
   const atual = passoAtual(agoraMs);
@@ -72,8 +75,8 @@ export function verificarTotp(
 
 /** URI que o app autenticador lê (via QR code). */
 export const uriOtpauth = (
-  segredo,
-  email,
+  segredo: string,
+  email: string,
   emissor = 'BarberTime Business Center',
-) =>
+): string =>
   `otpauth://totp/${encodeURIComponent(`${emissor}:${email}`)}?secret=${segredo}&issuer=${encodeURIComponent(emissor)}&algorithm=SHA1&digits=${DIGITOS}&period=${PASSO_S}`;

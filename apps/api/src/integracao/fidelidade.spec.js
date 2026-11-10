@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso, somarMeses } from '@barbertime/dominio';
-import { comoSuperusuario, criarServidor, novaBarbearia } from './apoio.js';
+import { comoSuperusuario, criarServidor, novaBarbearia } from './apoio.ts';
 
 // Planejamento 0034, etapa A: fidelidade no banco, com crédito ao receber a
 // comanda e resgate (prêmio e cashback) na comanda.

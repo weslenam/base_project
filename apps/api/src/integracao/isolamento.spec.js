@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { comoSuperusuario } from './apoio.js';
+import { comoSuperusuario } from './apoio.ts';
 
 // Planejamento 0025, sprint S2 (ADR 0017): o schema `app` é fechado por padrão.
 // Estes testes travam regressão quando uma migração nova esquecer RLS ou privilégio.

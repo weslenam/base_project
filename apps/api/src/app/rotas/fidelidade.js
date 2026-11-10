@@ -1,11 +1,11 @@
 import { saldoDeFidelidade } from '@barbertime/dominio';
-import { agora } from '../../servicos/agenda.js';
+import { agora } from '../../servicos/agenda.ts';
 import {
   extratoDoCliente,
   obterConfig,
   salvarConfig,
 } from '../../servicos/fidelidade.js';
-import { corpo, escalar, inteiro, logico } from '../esquemas.js';
+import { corpo, escalar, inteiro, logico } from '../esquemas.ts';
 
 // Fidelidade no banco (planejamento 0034, etapa A). Tudo exige o módulo
 // "fidelidade" ativo (ADR 0011); configurar exige fidelidade.gerenciar.

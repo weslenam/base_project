@@ -1,6 +1,6 @@
-import { conflito, invalido, naoEncontrado } from '../../infra/erros.js';
-import { SELECT_ATENDIMENTO, agora, comEstado } from '../../servicos/agenda.js';
-import { TAM, corpo, query, texto } from '../esquemas.js';
+import { conflito, invalido, naoEncontrado } from '../../infra/erros.ts';
+import { SELECT_ATENDIMENTO, agora, comEstado } from '../../servicos/agenda.ts';
+import { TAM, corpo, query, texto } from '../esquemas.ts';
 
 // Clientes da barbearia (planejamento 0019).
 

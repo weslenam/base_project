@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { config } from '../infra/config.js';
+import { config } from '../infra/config.ts';
 import { criarIdentidadePropria } from './propria.js';
 
 /**

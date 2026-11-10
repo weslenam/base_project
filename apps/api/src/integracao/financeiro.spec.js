@@ -6,7 +6,7 @@ import {
   navegador,
   novaBarbearia,
   unico,
-} from './apoio.js';
+} from './apoio.ts';
 
 // Planejamento 0027, parte 2, fatia 2A: contas a pagar e a receber,
 // categorias e a baixa com dinheiro do caixa.

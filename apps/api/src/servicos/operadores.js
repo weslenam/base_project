@@ -1,5 +1,5 @@
-import { gerarHashDeSenha, SENHA_MINIMA } from '../seguranca/senha.js';
-import { gerarSegredo, uriOtpauth } from '../seguranca/totp.js';
+import { gerarHashDeSenha, SENHA_MINIMA } from '../seguranca/senha.ts';
+import { gerarSegredo, uriOtpauth } from '../seguranca/totp.ts';
 
 /**
  * Cria um operador do Business Center (planejamento 0028, ADR 0018). Só por

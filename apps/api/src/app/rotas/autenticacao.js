@@ -1,8 +1,8 @@
-import { chaves } from '../../seguranca/limites.js';
-import { corpo, inteiro, TAM, texto } from '../esquemas.js';
-import { invalido, naoAutenticado, proibido } from '../../infra/erros.js';
+import { chaves } from '../../seguranca/limites.ts';
+import { corpo, inteiro, TAM, texto } from '../esquemas.ts';
+import { invalido, naoAutenticado, proibido } from '../../infra/erros.ts';
 import { criarBarbearia } from '../../servicos/barbearias.js';
-import { BARBEARIA_SUSPENSA } from '../../seguranca/autenticacao.js';
+import { BARBEARIA_SUSPENSA } from '../../seguranca/autenticacao.ts';
 
 async function dadosDaSessao(fastify, req) {
   await fastify.autenticado(req);

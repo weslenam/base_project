@@ -4,7 +4,7 @@ import {
   documentoValido,
   sugestaoDeCompra,
 } from '@barbertime/dominio';
-import { invalido, naoEncontrado } from '../../infra/erros.js';
+import { invalido, naoEncontrado } from '../../infra/erros.ts';
 import {
   SELECT_PRODUTO_ESTOQUE,
   cancelarCompra,
@@ -20,7 +20,7 @@ import {
   inteiro,
   query,
   texto,
-} from '../esquemas.js';
+} from '../esquemas.ts';
 
 // Estoque, ficha técnica, fornecedores e compras (planejamento 0027, parte 1).
 // As permissões estoque.* só valem com o módulo "estoque" ativo

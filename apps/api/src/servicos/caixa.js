@@ -4,8 +4,8 @@ import {
   resumoDoCaixa,
   totalDaComanda,
 } from '@barbertime/dominio';
-import { conflito, invalido, naoEncontrado } from '../infra/erros.js';
-import { agora } from './agenda.js';
+import { conflito, invalido, naoEncontrado } from '../infra/erros.ts';
+import { agora } from './agenda.ts';
 import { baixarComanda } from './estoque.js';
 import { conferirResgate, fidelidadeAoReceber } from './fidelidade.js';
 import {

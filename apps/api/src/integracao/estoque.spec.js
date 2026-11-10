@@ -6,7 +6,7 @@ import {
   navegador,
   novaBarbearia,
   unico,
-} from './apoio.js';
+} from './apoio.ts';
 
 // Planejamento 0027 (parte 1): estoque e compras. Critérios de aceite 1, 2, 3, 7 e 8.
 

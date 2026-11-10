@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso } from '@barbertime/dominio';
-import { criarServidor, navegador, novaBarbearia, unico } from './apoio.js';
+import { criarServidor, navegador, novaBarbearia, unico } from './apoio.ts';
 
 // Planejamento 0035: o Barbeiro ajuda na agenda (agenda.ajudar). Marca e
 // bloqueia em qualquer coluna; confirma e cancela só o que marcou; atendido e

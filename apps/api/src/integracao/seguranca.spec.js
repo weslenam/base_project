@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso } from '@barbertime/dominio';
-import { LIMITES_PADRAO } from '../seguranca/limites.js';
+import { LIMITES_PADRAO } from '../seguranca/limites.ts';
 import {
   comoSuperusuario,
   criarServidor,
   navegador,
   novaBarbearia,
   unico,
-} from './apoio.js';
+} from './apoio.ts';
 
 // Planejamento 0022 / ADR 0014: ataques contra a API real, com o banco.
 // `preparo` (limites folgados) monta os dados; `alvo` usa os limites REAIS.

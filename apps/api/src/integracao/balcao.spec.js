@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { momentoNoFuso, paraHora, paraMinutos } from '@barbertime/dominio';
-import { criarServidor, novaBarbearia } from './apoio.js';
+import { criarServidor, novaBarbearia } from './apoio.ts';
 
 // Planejamento 0020 (fase 1): Balcão, caixa e comandas ligadas ao atendimento.
 

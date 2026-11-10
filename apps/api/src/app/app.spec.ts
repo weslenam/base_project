@@ -1,8 +1,24 @@
 import Fastify from 'fastify';
-import { app } from './app.js';
+import type { FastifyInstance } from 'fastify';
+import { app } from './app.ts';
+
+import { readFileSync } from 'node:fs';
+
+describe('#34: versão do Node', () => {
+  it('#34: engines exige o Node que roda .ts direto (22.18 ou mais novo)', () => {
+    const raiz = JSON.parse(
+      readFileSync(
+        new URL('../../../../package.json', import.meta.url),
+        'utf8',
+      ),
+    );
+    expect(raiz.engines.node).toBe('>=22.18');
+    expect(process.features.typescript).toBeTruthy();
+  });
+});
 
 describe('api', () => {
-  let server;
+  let server: FastifyInstance;
 
   beforeEach(() => {
     server = Fastify();

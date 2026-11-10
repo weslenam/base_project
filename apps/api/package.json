@@ -7,7 +7,7 @@
     "targets": {
       "serve": {
         "continuous": true,
-        "command": "node --watch src/main.js",
+        "command": "node --watch src/main.ts",
         "options": {
           "cwd": "apps/api"
         }
@@ -51,6 +51,18 @@
             ]
           }
         ]
+      },
+      "banco-tipos": {
+        "command": "kysely-codegen --config-file kysely-codegen.json",
+        "options": {
+          "cwd": "apps/api"
+        }
+      },
+      "banco-tipos-conferir": {
+        "command": "kysely-codegen --config-file kysely-codegen.json --verify",
+        "options": {
+          "cwd": "apps/api"
+        }
       }
     },
     "tags": [
@@ -74,6 +86,10 @@
   },
   "type": "module",
   "scripts": {
-    "start": "node src/main.js"
+    "start": "node src/main.ts"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1"
   }
 }

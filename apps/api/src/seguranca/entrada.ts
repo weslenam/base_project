@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin';
-import { ErroHttp, invalido } from '../infra/erros.js';
+import type { FastifyError } from 'fastify';
+import { ErroHttp, invalido } from '../infra/erros.ts';
 
 /**
  * Guarda de entrada (ADR 0014, planejamento 0022), em toda rota:
@@ -18,7 +19,7 @@ export const LIMITES_DE_ENTRADA = Object.freeze({
   chaves: 200,
 });
 
-const PARAMETROS = {
+const PARAMETROS: Record<string, Record<string, unknown>> = {
   id: {
     type: 'integer',
     minimum: -9007199254740991,
@@ -35,7 +36,11 @@ const PARAMETROS = {
 };
 
 /** Primeiro problema de forma encontrado, ou null. */
-export function problemaDeForma(valor, l = LIMITES_DE_ENTRADA, nivel = 0) {
+export function problemaDeForma(
+  valor: unknown,
+  l: typeof LIMITES_DE_ENTRADA = LIMITES_DE_ENTRADA,
+  nivel = 0,
+): string | null {
   if (typeof valor === 'string')
     return valor.length > l.texto ? 'texto longo demais' : null;
   if (valor === null || typeof valor !== 'object') return null;
@@ -43,7 +48,7 @@ export function problemaDeForma(valor, l = LIMITES_DE_ENTRADA, nivel = 0) {
   if (Array.isArray(valor)) {
     if (valor.length > l.lista) return 'lista grande demais';
     for (const v of valor) {
-      const p = problemaDeForma(v, l, nivel + 1);
+      const p: string | null = problemaDeForma(v, l, nivel + 1);
       if (p) return p;
     }
     return null;
@@ -52,27 +57,33 @@ export function problemaDeForma(valor, l = LIMITES_DE_ENTRADA, nivel = 0) {
   if (chaves.length > l.chaves) return 'campos demais';
   for (const k of chaves) {
     if (k.length > 100) return 'nome de campo longo demais';
-    const p = problemaDeForma(valor[k], l, nivel + 1);
+    const p: string | null = problemaDeForma(
+      (valor as Record<string, unknown>)[k],
+      l,
+      nivel + 1,
+    );
     if (p) return p;
   }
   return null;
 }
 
 /** Erro de schema do Fastify → mensagem em pt-BR, sem ecoar a entrada. */
-export function mensagemDeValidacao(erro) {
+export function mensagemDeValidacao(erro: FastifyError): string {
   const [v] = erro.validation ?? [];
-  const parte =
-    { body: '', querystring: '', params: 'endereço: ' }[
-      erro.validationContext
-    ] ?? '';
+  const partes: Record<string, string> = {
+    body: '',
+    querystring: '',
+    params: 'endereço: ',
+  };
+  const parte = partes[erro.validationContext ?? ''] ?? '';
   const campo =
-    v?.params?.missingProperty ??
+    (v?.params as { missingProperty?: string } | undefined)?.missingProperty ??
     (v?.instancePath ?? '').replace(/^\//, '').replace(/\//g, '.');
   return campo ? `Dados inválidos (${parte}${campo}).` : 'Dados inválidos.';
 }
 
 /** Mensagens em pt-BR para os erros do próprio Fastify (4xx). */
-export function mensagemDeErro(erro, status) {
+export function mensagemDeErro(erro: FastifyError, status: number): string {
   if (erro instanceof ErroHttp) return erro.message;
   if (erro.validation) return mensagemDeValidacao(erro);
   if (status === 413) return 'Os dados enviados são grandes demais.';

@@ -6,7 +6,7 @@ import {
   navegador,
   novaBarbearia,
   unico,
-} from './apoio.js';
+} from './apoio.ts';
 
 // Planejamento 0034, etapa B: pacotes e assinaturas no banco. Venda e
 // renovação pelo caixa; uso na comanda conferido ao salvar e ao receber.

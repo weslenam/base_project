@@ -1,5 +1,5 @@
 import { MODULOS, transicaoDeModulo } from '@barbertime/dominio';
-import { invalido, naoEncontrado, proibido } from '../../infra/erros.js';
+import { invalido, naoEncontrado, proibido } from '../../infra/erros.ts';
 
 const ACOES_DA_BARBEARIA = [
   'ativar',

@@ -1,0 +1,12 @@
+{
+  "dialect": "postgres",
+  "url": "env(DATABASE_URL_MIGRACAO)",
+  "envFile": "../../.env",
+  "defaultSchemas": ["app"],
+  "includePattern": "app.*",
+  "camelCase": true,
+  "numericParser": "number",
+  "dateParser": "string",
+  "typeMapping": { "int8": "number" },
+  "outFile": "./src/infra/banco-tipos.ts"
+}

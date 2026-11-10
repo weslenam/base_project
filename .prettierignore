@@ -9,3 +9,6 @@ libs/ui-tokens/src/tokens.css
 libs/ui-tokens/src/tokens.ts
 # Identidade visual: mantida como veio
 docs/identidade-visual/
+
+# Gerado do banco por kysely-codegen (pnpm banco:tipos, planejamento 0040)
+apps/api/src/infra/banco-tipos.ts

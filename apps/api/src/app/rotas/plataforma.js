@@ -16,12 +16,12 @@ import operador, {
   criarSessaoDeOperador,
   encerrarSessaoDeOperador,
   opcoesDoCookieDeOperador,
-} from '../../seguranca/operador.js';
-import { conferirSenha, hashFalso } from '../../seguranca/senha.js';
-import { verificarTotp } from '../../seguranca/totp.js';
-import { chaves } from '../../seguranca/limites.js';
-import { corpo, inteiro, TAM, texto } from '../esquemas.js';
-import { invalido, naoAutenticado, naoEncontrado } from '../../infra/erros.js';
+} from '../../seguranca/operador.ts';
+import { conferirSenha, hashFalso } from '../../seguranca/senha.ts';
+import { verificarTotp } from '../../seguranca/totp.ts';
+import { chaves } from '../../seguranca/limites.ts';
+import { corpo, inteiro, TAM, texto } from '../esquemas.ts';
+import { invalido, naoAutenticado, naoEncontrado } from '../../infra/erros.ts';
 
 /**
  * BarberTime Business Center (planejamento 0028, ADR 0018), sob /api/plataforma.

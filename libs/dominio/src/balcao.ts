@@ -14,7 +14,8 @@ export interface AtendimentoBalcao {
   chegouAs?: string | null;
   iniciadoAs?: string | null;
   duracao?: number | null;
-  confirmadoEm?: string | null;
+  /** Data da confirmação (a API manda Date; o front, texto). */
+  confirmadoEm?: string | Date | null;
 }
 
 /** Barbeiro com expediente e pausa. */
