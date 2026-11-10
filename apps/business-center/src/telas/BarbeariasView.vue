@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
@@ -8,13 +8,16 @@ import {
   DsSelo,
   DsTabela,
 } from '@barbertime/ui';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { SeloDeAtividade } from '@barbertime/contratos';
 import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
-import { plataforma } from '../dados/plataforma.js';
-import { SELOS } from './rotulos.js';
+import { plataforma } from '../dados/plataforma.ts';
+import type { BarbeariaDaLista } from '../dados/plataforma.ts';
+import { SELOS } from './rotulos.ts';
 
 // Lista do Business Center: só agregados por barbearia (planejamento 0028).
 const router = useRouter();
-const barbearias = ref([]);
+const barbearias = ref<BarbeariaDaLista[]>([]);
 const carregando = ref(true);
 const erro = ref('');
 const selo = ref('todas');
@@ -33,11 +36,11 @@ const visiveis = computed(() =>
   barbearias.value.filter(
     (b) =>
       (selo.value === 'todas' || b.selo === selo.value) &&
-      (!comPedido.value || b.modulosPendentes > 0),
+      (!comPedido.value || (b.modulosPendentes ?? 0) > 0),
   ),
 );
 
-const colunas = [
+const colunas: ColunaDaTabela<BarbeariaDaLista>[] = [
   { campo: 'nome', titulo: 'Barbearia', ordenavel: true },
   { campo: 'selo', titulo: 'Situação' },
   { campo: 'donoNome', titulo: 'Dono' },
@@ -46,18 +49,18 @@ const colunas = [
     titulo: 'Faturamento do mês',
     alinhamento: 'fim',
     ordenavel: true,
-    formatar: (v) => formatarMoeda(v),
+    formatar: (v) => formatarMoeda(v as number | null),
   },
   {
     campo: 'ultimaComandaPaga',
     titulo: 'Última venda',
-    formatar: (v) => (v ? formatarData(`${v}T12:00:00`) : '—'),
+    formatar: (v) => (v ? formatarData(`${String(v)}T12:00:00`) : '—'),
   },
   { campo: 'modulosPendentes', titulo: 'Pedidos', alinhamento: 'centro' },
   {
     campo: 'criadaEm',
     titulo: 'Desde',
-    formatar: (v) => formatarData(v),
+    formatar: (v) => formatarData(v as string),
   },
 ];
 
@@ -65,7 +68,7 @@ onMounted(async () => {
   try {
     barbearias.value = await plataforma.barbearias();
   } catch (e) {
-    erro.value = e.message;
+    erro.value = (e as Error).message;
   } finally {
     carregando.value = false;
   }
@@ -97,7 +100,9 @@ onMounted(async () => {
         <span class="ds-corpo-sm ds-suave">/{{ linha.slug }}</span>
       </template>
       <template #celula-selo="{ valor }">
-        <DsSelo :estado="SELOS[valor].estado">{{ SELOS[valor].rotulo }}</DsSelo>
+        <DsSelo :estado="SELOS[valor as SeloDeAtividade].estado">{{
+          SELOS[valor as SeloDeAtividade].rotulo
+        }}</DsSelo>
       </template>
       <template #celula-donoNome="{ linha }">
         <span>{{ linha.donoNome ?? '—' }}</span>

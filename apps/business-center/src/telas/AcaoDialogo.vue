@@ -1,5 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
+import type { PropType } from 'vue';
+import type { OpcaoDeSelect } from '@barbertime/ui';
 import {
   DsBotao,
   DsDialogo,
@@ -9,20 +11,22 @@ import {
 } from '@barbertime/ui';
 
 // Toda ação de operador pede motivo, que vai para a auditoria (ADR 0018).
-const aberto = defineModel({ type: Boolean, default: false });
+const aberto = defineModel<boolean>({ default: false });
 const props = defineProps({
   titulo: { type: String, required: true },
   descricao: { type: String, default: '' },
   textoOk: { type: String, default: 'Confirmar' },
   perigo: Boolean,
   /** [{ valor, rotulo }]: quando informado, pede também a pessoa (ex.: novo Dono). */
-  pessoas: { type: Array, default: null },
+  pessoas: { type: Array as PropType<OpcaoDeSelect[] | null>, default: null },
   salvando: Boolean,
 });
-const emit = defineEmits(['confirmar']);
+const emit = defineEmits<{
+  confirmar: [dados: { motivo: string; usuarioId: number | null }];
+}>();
 
 const motivo = ref('');
-const pessoa = ref(null);
+const pessoa = ref<number | null>(null);
 watch(aberto, (abriu) => {
   if (abriu) {
     motivo.value = '';

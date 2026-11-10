@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import {
   DsBotao,
@@ -9,20 +9,40 @@ import {
   DsTabela,
   useNotificacao,
 } from '@barbertime/ui';
+import type { ColunaDaTabela, OpcaoDeSelect } from '@barbertime/ui';
 import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
-import { plataforma } from '../dados/plataforma.js';
+import { plataforma } from '../dados/plataforma.ts';
+import type { AcaoDeModulo, Painel } from '../dados/plataforma.ts';
 import AcaoDialogo from './AcaoDialogo.vue';
-import { ACOES_DE_AUDITORIA, ESTADOS_DE_MODULO, SELOS } from './rotulos.js';
+import { ACOES_DE_AUDITORIA, ESTADOS_DE_MODULO, SELOS } from './rotulos.ts';
+
+type Modulo = Painel['modulos'][number];
+type ItemDoRanking = Painel['topServicos'][number];
+type Registro = Painel['auditoria'][number];
+type EstadoDeModulo = keyof typeof ESTADOS_DE_MODULO;
+type TipoDeAcao = 'suspender' | 'reativar' | 'dono' | 'modulo';
+
+/** Ação aberta no diálogo, com os textos dele. */
+interface AcaoAberta {
+  tipo: TipoDeAcao;
+  acao?: AcaoDeModulo;
+  modulo?: Modulo;
+  titulo: string;
+  descricao?: string;
+  textoOk: string;
+  perigo?: boolean;
+  pessoas?: OpcaoDeSelect[];
+}
 
 // Painel da barbearia no Business Center (planejamento 0028): números do mês
 // contra o anterior, sem dado pessoal de cliente, e as ações do operador.
 const props = defineProps({ id: { type: Number, required: true } });
 const notificar = useNotificacao();
 
-const p = ref(null);
+const p = ref<Painel | null>(null);
 const erro = ref('');
 const salvando = ref(false);
-const acao = ref(null);
+const acao = ref<AcaoAberta | null>(null);
 const dialogo = ref(false);
 
 async function carregar() {
@@ -30,7 +50,7 @@ async function carregar() {
     p.value = await plataforma.barbearia(props.id);
     erro.value = '';
   } catch (e) {
-    erro.value = e.message;
+    erro.value = (e as Error).message;
   }
 }
 onMounted(carregar);
@@ -64,24 +84,24 @@ const maiorDia = computed(() =>
 );
 
 const porPapel = computed(() => {
-  const contagem = new Map();
+  const contagem = new Map<string, number>();
   for (const u of p.value?.usuarios ?? [])
     if (u.ativo)
       contagem.set(u.papelNome, (contagem.get(u.papelNome) ?? 0) + 1);
   return [...contagem.entries()];
 });
 
-const colunasRanking = [
+const colunasRanking: ColunaDaTabela<ItemDoRanking>[] = [
   { campo: 'nome', titulo: 'Item' },
   { campo: 'quantidade', titulo: 'Qtd.', alinhamento: 'fim' },
   {
     campo: 'valor',
     titulo: 'Valor',
     alinhamento: 'fim',
-    formatar: (v) => formatarMoeda(v),
+    formatar: (v) => formatarMoeda(v as number),
   },
 ];
-const colunasModulos = [
+const colunasModulos: ColunaDaTabela<Modulo>[] = [
   { campo: 'nome', titulo: 'Módulo' },
   {
     campo: 'tipo',
@@ -91,26 +111,39 @@ const colunasModulos = [
   { campo: 'estado', titulo: 'Estado' },
   { campo: 'acoes', titulo: '', alinhamento: 'fim' },
 ];
-const colunasAuditoria = [
+const colunasAuditoria: ColunaDaTabela<Registro>[] = [
   {
     campo: 'criadaEm',
     titulo: 'Quando',
-    formatar: (v) => new Date(v).toLocaleString('pt-BR'),
+    formatar: (v) => new Date(v as string).toLocaleString('pt-BR'),
   },
   { campo: 'operadorNome', titulo: 'Operador' },
   {
     campo: 'acao',
     titulo: 'Ação',
-    formatar: (v, l) =>
-      `${ACOES_DE_AUDITORIA[v] ?? v}${l.dados?.chave ? ` (${l.dados.chave})` : ''}`,
+    formatar: (v, l) => {
+      const chave = (l.dados as { chave?: string } | null)?.chave;
+      return `${ACOES_DE_AUDITORIA[v as string] ?? v}${chave ? ` (${chave})` : ''}`;
+    },
   },
-  { campo: 'motivo', titulo: 'Motivo', formatar: (v) => v ?? '—' },
+  {
+    campo: 'motivo',
+    titulo: 'Motivo',
+    formatar: (v) => (v as string | null) ?? '—',
+  },
 ];
+
+/** Selo do estado de um módulo; estado desconhecido aparece neutro, sem quebrar o painel. */
+const seloDoModulo = (estado: unknown) =>
+  ESTADOS_DE_MODULO[estado as EstadoDeModulo] ?? {
+    rotulo: String(estado),
+    estado: 'neutro' as const,
+  };
 
 const donoAtual = computed(() =>
   p.value?.usuarios.find((u) => u.papelChave === 'dono'),
 );
-const candidatos = computed(() =>
+const candidatos = computed<OpcaoDeSelect[]>(() =>
   (p.value?.usuarios ?? [])
     .filter((u) => u.ativo && u.papelChave !== 'dono')
     .map((u) => ({
@@ -119,9 +152,19 @@ const candidatos = computed(() =>
     })),
 );
 
-function abrir(tipo, extra = {}) {
+const NOMES_DAS_ACOES: Record<AcaoDeModulo, string> = {
+  confirmar_contratacao: 'Confirmar contratação',
+  ativar: 'Ativar',
+  desativar: 'Desativar',
+};
+
+function abrir(
+  tipo: TipoDeAcao,
+  extra: { acao?: AcaoDeModulo; modulo?: Modulo } = {},
+) {
+  if (!p.value) return;
   const b = p.value.barbearia;
-  const nomes = {
+  const nomes: Record<TipoDeAcao, Omit<AcaoAberta, 'tipo'>> = {
     suspender: {
       titulo: `Suspender ${b.nome}`,
       descricao:
@@ -138,7 +181,7 @@ function abrir(tipo, extra = {}) {
       pessoas: candidatos.value,
     },
     modulo: {
-      titulo: `${{ confirmar_contratacao: 'Confirmar contratação', ativar: 'Ativar', desativar: 'Desativar' }[extra.acao]}: ${extra.modulo?.nome}`,
+      titulo: `${extra.acao ? NOMES_DAS_ACOES[extra.acao] : undefined}: ${extra.modulo?.nome}`,
       textoOk: 'Confirmar',
       perigo: extra.acao === 'desativar',
     },
@@ -147,26 +190,37 @@ function abrir(tipo, extra = {}) {
   dialogo.value = true;
 }
 
-async function executar({ motivo, usuarioId }) {
+async function executar({
+  motivo,
+  usuarioId,
+}: {
+  motivo: string;
+  usuarioId: number | null;
+}) {
   const a = acao.value;
+  if (!a) return;
   salvando.value = true;
   try {
     if (a.tipo === 'suspender') await plataforma.suspender(props.id, motivo);
     else if (a.tipo === 'reativar') await plataforma.reativar(props.id, motivo);
-    else if (a.tipo === 'dono')
+    else if (a.tipo === 'dono') {
+      if (usuarioId === null) throw new Error('Escolha o novo Dono.');
       await plataforma.transferirDono(props.id, usuarioId, motivo);
-    else await plataforma.modulo(props.id, a.modulo.chave, a.acao, motivo);
+    } else {
+      if (!a.modulo || !a.acao) throw new Error('Ação de módulo incompleta.');
+      await plataforma.modulo(props.id, a.modulo.chave, a.acao, motivo);
+    }
     notificar.sucesso('Feito. A ação foi registrada no histórico.');
     dialogo.value = false;
     await carregar();
   } catch (e) {
-    notificar.erro(e.message);
+    notificar.erro((e as Error).message);
   } finally {
     salvando.value = false;
   }
 }
 
-const acoesDoModulo = (m) =>
+const acoesDoModulo = (m: Modulo): [AcaoDeModulo, string][] =>
   m.estado === 'solicitado'
     ? [
         ['confirmar_contratacao', 'Confirmar'],
@@ -201,7 +255,7 @@ const acoesDoModulo = (m) =>
     <p v-if="erro" class="erro" role="alert">{{ erro }}</p>
     <template v-if="p">
       <div class="situacao">
-        <DsSelo :estado="selo.estado">{{ selo.rotulo }}</DsSelo>
+        <DsSelo v-if="selo" :estado="selo.estado">{{ selo.rotulo }}</DsSelo>
         <span v-if="p.barbearia.suspensaEm" class="ds-corpo-sm">
           Suspensa em {{ formatarData(p.barbearia.suspensaEm) }}:
           {{ p.barbearia.motivoSuspensao }}
@@ -295,8 +349,8 @@ const acoesDoModulo = (m) =>
             compacta
           >
             <template #celula-estado="{ valor }">
-              <DsSelo :estado="ESTADOS_DE_MODULO[valor].estado">{{
-                ESTADOS_DE_MODULO[valor].rotulo
+              <DsSelo :estado="seloDoModulo(valor).estado">{{
+                seloDoModulo(valor).rotulo
               }}</DsSelo>
             </template>
             <template #celula-acoes="{ linha }">

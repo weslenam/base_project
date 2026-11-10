@@ -1,7 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { carregarOperador } from '../sessao/operador.js';
+import type { RouteRecordRaw } from 'vue-router';
+import type { NomeDoIcone } from '@barbertime/ui';
 
-export const rotas = [
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Rota sem login. */
+    publica?: boolean;
+    /** Item do menu lateral. */
+    menu?: { titulo: string; icone: NomeDoIcone };
+  }
+}
+import { carregarOperador } from '../sessao/operador.ts';
+
+export const rotas: RouteRecordRaw[] = [
   {
     path: '/entrar',
     name: 'entrar',

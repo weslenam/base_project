@@ -71,6 +71,7 @@
     ]
   },
   "dependencies": {
+    "@barbertime/contratos": "workspace:*",
     "@barbertime/dominio": "workspace:*",
     "@fastify/autoload": "~6.5.0",
     "@fastify/cookie": "11.1.3",

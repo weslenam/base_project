@@ -1,23 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import { DsApp, DsBotao, DsLayout } from '@barbertime/ui';
 import Marca from './Marca.vue';
 import { rotas } from '../router';
-import { useOperador } from '../sessao/operador.js';
+import { useOperador } from '../sessao/operador.ts';
 
 // BarberTime Business Center (planejamento 0028, ADR 0018): equipe da plataforma.
 const route = useRoute();
 const router = useRouter();
 const { operador, sair } = useOperador();
 
-const itensMenu = rotas
-  .filter((r) => r.meta?.menu)
-  .map((r) => ({
-    titulo: r.meta.menu.titulo,
-    rota: r.path,
-    icone: r.meta.menu.icone,
-  }));
+const itensMenu = rotas.flatMap((r) =>
+  r.meta?.menu
+    ? [{ titulo: r.meta.menu.titulo, rota: r.path, icone: r.meta.menu.icone }]
+    : [],
+);
 const publica = computed(() => Boolean(route.meta.publica));
 
 async function aoSair() {

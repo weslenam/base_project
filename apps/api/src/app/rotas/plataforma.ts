@@ -38,7 +38,7 @@ import type {
   RegistroDeAuditoria,
   SeloDeAtividade,
   TransferenciaDeDono,
-} from './plataforma.contratos.ts';
+} from '@barbertime/contratos';
 
 /**
  * BarberTime Business Center (planejamento 0028, ADR 0018), sob /api/plataforma.

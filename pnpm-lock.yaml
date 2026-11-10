@@ -290,6 +290,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@barbertime/contratos':
+        specifier: workspace:*
+        version: link:../../libs/contratos
       '@barbertime/dominio':
         specifier: workspace:*
         version: link:../../libs/dominio
@@ -351,6 +354,9 @@ importers:
 
   apps/business-center:
     dependencies:
+      '@barbertime/contratos':
+        specifier: workspace:*
+        version: link:../../libs/contratos
       '@barbertime/dominio':
         specifier: workspace:*
         version: link:../../libs/dominio
@@ -365,6 +371,8 @@ importers:
         version: link:../../libs/ui-vuetify
 
   apps/e2e-layout: {}
+
+  libs/contratos: {}
 
   libs/dominio: {}
 

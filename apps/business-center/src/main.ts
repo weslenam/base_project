@@ -3,8 +3,8 @@ import { createApp } from 'vue';
 import { instalarUi } from '@barbertime/ui';
 import App from './app/App.vue';
 import router from './router';
-import { aoExpirarSessao } from './dados/http.js';
-import { definirOperador } from './sessao/operador.js';
+import { aoExpirarSessao } from './dados/http.ts';
+import { definirOperador } from './sessao/operador.ts';
 
 const app = createApp(App);
 instalarUi(app);
