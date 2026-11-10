@@ -115,15 +115,15 @@ export default async function (fastify: FastifyInstance) {
     },
     (req) =>
       na(req, async (c) => {
-        const { data, barbeiroId, servicoId } = req.query;
+        const { data: dia, barbeiroId, servicoId } = req.query;
+        // Sem data, a consulta não achava ocupados e a grade toda voltava
+        // livre (issue #39): mesma regra da página pública.
+        if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia))
+          throw invalido('Escolha o dia.');
         // Os buscar* fazem Number(id): o mesmo valor de antes da conversão.
         const barbeiro = await buscarBarbeiro(c, Number(barbeiroId));
         const servico = await buscarServico(c, Number(servicoId));
         const hoje = agora();
-        // Sem data, a comparação dava falso em JS e a consulta seguia com a
-        // data vazia (grade toda livre). Mantido na conversão: issue #39; o
-        // `as` só repete o que o JS já fazia.
-        const dia = data as string;
         if (dia < hoje.data) return [];
         return horariosLivres({
           expediente: barbeiro,
