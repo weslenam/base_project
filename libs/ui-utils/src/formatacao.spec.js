@@ -5,6 +5,15 @@ describe('formatarData', () => {
     expect(formatarData('2026-11-07T12:00:00-03:00')).toBe('07/11/2026');
   });
 
+  it('#21: data pura (AAAA-MM-DD) é o próprio dia, sem voltar um dia pelo fuso', () => {
+    expect(formatarData('2026-11-29')).toBe('29/11/2026');
+    expect(formatarData('2026-01-01')).toBe('01/01/2026');
+  });
+
+  it('#21: data pura inválida retorna vazio', () => {
+    expect(formatarData('2026-02-31')).toBe('');
+  });
+
   it.each([null, undefined, '', 'não é data'])('retorna vazio para %s', (v) => {
     expect(formatarData(v)).toBe('');
   });
