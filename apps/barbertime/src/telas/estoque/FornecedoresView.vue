@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { formatarTelefone } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { pode } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { pode } from '../../sessao/sessao.ts';
 import FornecedorDialogo from './FornecedorDialogo.vue';
 
 // Fornecedores (planejamento 0027, parte 1). Exclusão lógica.

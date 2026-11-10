@@ -14,10 +14,10 @@ import {
   somenteDigitos,
   validarTelefone,
 } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 import ListaClientesDialogo from './ListaClientesDialogo.vue';
-import { moduloAtivo } from '../../sessao/sessao.js';
+import { moduloAtivo } from '../../sessao/sessao.ts';
 
 /**
  * Escolha de cliente no balcão (planejamento 0012): um campo para nome OU

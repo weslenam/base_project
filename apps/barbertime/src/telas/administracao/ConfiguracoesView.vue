@@ -19,10 +19,10 @@ import {
   MODOS_DA_PAGINA_PUBLICA,
   validarConfigBarbearia,
 } from '@barbertime/dominio';
-import { administracao } from '../../dados/administracao.js';
-import { ErroDeNegocio } from '../../dados/erros.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { carregarSessao, useSessao } from '../../sessao/sessao.js';
+import { administracao } from '../../dados/administracao.ts';
+import { ErroDeNegocio } from '../../dados/erros.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { carregarSessao, useSessao } from '../../sessao/sessao.ts';
 
 // Configurações da barbearia (planejamento 0017, ADR 0012): dados do negócio,
 // editados pelo Dono. Uma aba por assunto, para a página não rolar.

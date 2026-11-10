@@ -5,28 +5,11 @@ import { invalido, naoAutenticado, proibido } from '../../infra/erros.ts';
 import { criarBarbearia } from '../../servicos/barbearias.ts';
 import type { DadosDaBarbeariaNova } from '../../servicos/barbearias.ts';
 import { BARBEARIA_SUSPENSA } from '../../seguranca/autenticacao.ts';
-import type { ContextoDaBarbearia } from '../tipos-fastify.ts';
+import type { BarbeariaDoUsuario, DadosDaSessao } from '@barbertime/contratos';
 
 // `usuarios`, `sessoes` e as funções `barbearias_do_usuario` e
 // `usuario_em_barbearia_suspensa` são globais (sem barbearia na transação):
 // as consultas daqui usam o pool com o driver pg (planejamento 0040).
-
-/** Barbearia que o usuário pode abrir. */
-export interface BarbeariaDoUsuario {
-  id: number;
-  nome: string;
-  slug: string;
-}
-
-/** Resposta de entrar, `GET /auth/eu` e das trocas de barbearia e perfil. */
-export interface DadosDaSessao {
-  usuario: { id: number; nome: string; email: string } | undefined;
-  barbearia: BarbeariaDoUsuario | undefined;
-  barbearias: BarbeariaDoUsuario[];
-  papel: ContextoDaBarbearia['papel'];
-  permissoes: string[];
-  modulosAtivos: string[];
-}
 
 async function dadosDaSessao(
   fastify: FastifyInstance,

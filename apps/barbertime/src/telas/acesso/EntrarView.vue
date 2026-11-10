@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { DsBotao, DsFormulario, DsInput } from '@barbertime/ui';
-import { useSessao } from '../../sessao/sessao.js';
+import { useSessao } from '../../sessao/sessao.ts';
 import './estilos.css';
 
 const route = useRoute();

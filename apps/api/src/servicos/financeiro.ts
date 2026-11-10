@@ -12,7 +12,7 @@ import { garantirCategoriasPadrao } from './estoque.ts';
 import type {
   CategoriaFinanceira,
   ContaFinanceira,
-} from './financeiro.contratos.ts';
+} from '@barbertime/contratos';
 
 // Contas a pagar e a receber e categorias (planejamento 0027, parte 2, fatia
 // 2A). Tudo roda no contexto da barbearia (RLS). A baixa com "dinheiro do

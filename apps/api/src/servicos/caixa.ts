@@ -24,7 +24,7 @@ import type {
   CaixaComResumo,
   ComandaDoCaixa,
   ComandaRecebida,
-} from './caixa.contratos.ts';
+} from '@barbertime/contratos';
 
 // Caixa do dia e comandas (planejamento 0020, fase 1). A comanda nasce no
 // check-in ou na entrada na fila e acompanha o atendimento até o pagamento.

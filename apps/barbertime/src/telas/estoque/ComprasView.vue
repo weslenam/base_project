@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsSelo, DsTabela } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { pode } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { pode } from '../../sessao/sessao.ts';
 import { formatarDataIso } from './rotulos.js';
 import CompraDialogo from './CompraDialogo.vue';
 import NovaCompraDialogo from './NovaCompraDialogo.vue';

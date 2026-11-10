@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { DsDialogo, DsTabela } from '@barbertime/ui';
 import { formatarData } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 import { ROTULO_DO_MOVIMENTO, formatarQuantidade } from './rotulos.js';
 
 // Últimos movimentos de um produto (planejamento 0027).

@@ -11,9 +11,9 @@ import {
 } from '@barbertime/ui';
 import { formatarDiaCurto, formatarTelefone } from '@barbertime/ui-utils';
 import { podeAgirNaAgenda } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { semMenu, useSessao } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { semMenu, useSessao } from '../../sessao/sessao.ts';
 import { seloDoEstado } from '../estados.js';
 
 const aberto = defineModel({ type: Boolean, default: false });

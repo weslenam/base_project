@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { CHAVES_DE_MODULO, CHAVES_DE_PERMISSAO } from '@barbertime/dominio';
-import { api } from '../dados/api.js';
+import { api } from '../dados/api.ts';
 import {
   botoes,
   campo,
@@ -13,7 +13,7 @@ import {
   preencher,
   sessaoCom,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 
 // Planejamento 0027 (parte 1): estoque, fornecedores, compras e ficha técnica.
 

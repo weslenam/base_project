@@ -26,7 +26,7 @@ import type {
   BloqueioNaAgenda,
   DetalheDoAgendamento,
   ItemDaAgenda,
-} from '../../servicos/agenda.contratos.ts';
+} from '@barbertime/contratos';
 import {
   campoData,
   campoHora,

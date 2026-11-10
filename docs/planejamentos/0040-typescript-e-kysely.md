@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; próxima: etapa 9)
+- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A feita, faltam as telas)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -199,3 +199,20 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
     - selo de módulo com estado desconhecido aparece neutro, em vez de quebrar o painel;
     - ação de módulo incompleta dá erro, em vez de um falso sucesso.
   - **Visto nas capturas, já era assim:** na lista do Business Center, o nome e o e-mail do Dono aparecem colados.
+- 2026-11-10 — Etapa 9A (base do app `barbertime`): "pode executar a etapa 9".
+  - **Contratos:** todos na `libs/contratos`, com um arquivo por módulo.
+    - Os `*.contratos.ts` da API e os tipos exportados das rotas foram movidos para lá.
+    - A API importa de `@barbertime/contratos`.
+    - Nova regra de fronteira: `scope:shared` só depende de `scope:shared`.
+  - **Camada de dados:**
+    - interface `Api` em `src/dados/tipos.ts`, com as respostas tipadas pelos contratos (`EmJson`);
+    - a `apiHttp` e a `api.ts` em memória a cumprem;
+    - entradas de formulário ficam com o tipo `Corpo` aberto até a tela de cada uma virar TS; já têm tipo próprio `NovoAgendamento`, `NovoBloqueio`, a configuração da fidelidade e a venda e renovação de pacote.
+  - **Versão em memória** (Weslen: "Tipar como está"):
+    - as tabelas estão tipadas em `src/dados/banco.ts`;
+    - as respostas passaram a ter o formato do contrato (status, origem e canal do atendimento; `emPausa` do barbeiro; `pagaAs` e `atendimentoId` da comanda; `emUso` da categoria);
+    - `barbearia.obterPorSlug` (sem uso) saiu, e `clientes.reconhecer` virou função interna, usada pela página pública;
+    - o agendamento confirmado conta como "chegou", porque a memória não tem balcão e o "Marcar atendido" continua como antes.
+  - **Sessão, rotas e testes:** `RouteMeta` declarado, `useAcao` genérico e apoio dos testes tipado.
+  - **Telas:** continuam em JS, convertidas por pasta nas próximas partes (9B em diante).
+  - **Balcão:** as respostas ficam `unknown` até a tela do balcão ganhar o contrato dela.

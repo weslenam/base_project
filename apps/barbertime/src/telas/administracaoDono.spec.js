@@ -10,7 +10,7 @@ import {
   sessaoCom,
   simularApi,
   texto,
-} from '../testes/apoio.js';
+} from '../testes/apoio.ts';
 
 // Planejamento 0017: área de administração, configurações, perfil e senha provisória.
 

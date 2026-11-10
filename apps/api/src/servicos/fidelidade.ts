@@ -19,7 +19,7 @@ import type { Conexao } from '../infra/banco.ts';
 import type {
   CreditoDaComanda,
   MovimentoDoExtrato,
-} from './fidelidade.contratos.ts';
+} from '@barbertime/contratos';
 
 // Fidelidade no banco (planejamento 0034, etapa A; regras do 0015). Tudo roda
 // no contexto da barbearia (RLS). O extrato só recebe inserções: o saldo é a

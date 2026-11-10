@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsSelo, DsTabela } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 import CategoriaDialogo from './CategoriaDialogo.vue';
 
 // Cadastros do financeiro (planejamento 0027, parte 2). Fatia 2A: categorias;

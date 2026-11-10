@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { DsDialogo, DsInput, DsSelo, DsTabela } from '@barbertime/ui';
 import { formatarData, formatarTelefone } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 
 /** Lista completa de clientes para escolher um (planejamento 0012). */
 const aberto = defineModel({ type: Boolean, default: false });

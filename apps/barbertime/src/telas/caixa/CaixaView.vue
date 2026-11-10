@@ -14,9 +14,9 @@ import {
 } from '@barbertime/ui';
 import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
 import { FORMAS_DE_PAGAMENTO, hojeIso } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import ComandaDialogo from './ComandaDialogo.vue';
 import FecharCaixa from './FecharCaixa.vue';
 import { rotuloDaForma, seloDaComanda } from './rotulos.js';

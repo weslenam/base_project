@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 import PacoteDialogo from './PacoteDialogo.vue';
 import {
   descreverItens,

@@ -32,6 +32,7 @@
     "@barbertime/ui-tokens": "workspace:*",
     "@barbertime/ui-utils": "workspace:*",
     "@barbertime/ui-vuetify": "workspace:*",
-    "@barbertime/dominio": "workspace:*"
+    "@barbertime/dominio": "workspace:*",
+    "@barbertime/contratos": "workspace:*"
   }
 }

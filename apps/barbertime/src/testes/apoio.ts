@@ -2,12 +2,13 @@ import { vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { instalarUi } from '@barbertime/ui';
 import router from '../router';
-import { definirSessao } from '../sessao/sessao.js';
+import { definirSessao } from '../sessao/sessao.ts';
 import { CHAVES_DE_MODULO, CHAVES_DE_PERMISSAO } from '@barbertime/dominio';
 import App from '../app/App.vue';
+import type { Sessao } from '../sessao/sessao.ts';
 
 /** Sessão de teste: Dono com todas as permissões e todos os módulos ativos. */
-export const SESSAO_DONO = Object.freeze({
+export const SESSAO_DONO: Readonly<Sessao> = Object.freeze({
   usuario: { id: 1, nome: 'Zé Carlos', email: 'dono@barbertime.dev' },
   barbearia: { id: 1, nome: 'Barbearia do Zé', slug: 'barbearia-modelo' },
   barbearias: [{ id: 1, nome: 'Barbearia do Zé', slug: 'barbearia-modelo' }],
@@ -24,13 +25,17 @@ const CHAVE_DO_PAPEL = {
 };
 
 export const sessaoCom = (
-  papel,
-  permissoes,
-  modulosAtivos = ['agendamento_online'],
-) => ({
+  papel: keyof typeof CHAVE_DO_PAPEL,
+  permissoes: string[],
+  modulosAtivos: string[] = ['agendamento_online'],
+): Sessao => ({
   ...SESSAO_DONO,
   usuario: { id: 9, nome: `Usuário ${papel}`, email: 'x@barbertime.dev' },
-  papel: { id: 9, nome: papel, chave: CHAVE_DO_PAPEL[papel] ?? null },
+  papel: {
+    id: 9,
+    nome: papel,
+    chave: CHAVE_DO_PAPEL[papel],
+  },
   permissoes,
   modulosAtivos,
 });
@@ -39,7 +44,10 @@ export const sessaoCom = (
  * Monta o app inteiro na rota pedida (telas, layout e diálogos de verdade).
  * Por padrão já entra como Dono; passe { sessao: null } para testar sem login.
  */
-export async function montarApp(rota, { sessao = SESSAO_DONO } = {}) {
+export async function montarApp(
+  rota: string,
+  { sessao = SESSAO_DONO }: { sessao?: Sessao | null } = {},
+) {
   definirSessao(sessao);
   router.push(rota);
   await router.isReady();
@@ -55,74 +63,96 @@ export async function montarApp(rota, { sessao = SESSAO_DONO } = {}) {
 
 export const texto = () => document.body.textContent ?? '';
 
-export async function esperar(asercao) {
+export async function esperar(asercao: () => unknown): Promise<void> {
   await flushPromises();
   await vi.waitFor(asercao, { timeout: 3000, interval: 20 });
 }
 
 /** Todos os botões visíveis com esse texto (o último costuma ser o do diálogo mais recente). */
-export const botoes = (rotulo) =>
+export const botoes = (rotulo: string): HTMLButtonElement[] =>
   [...document.querySelectorAll('button')].filter(
-    (b) => b.textContent.trim() === rotulo,
+    (b) => (b.textContent ?? '').trim() === rotulo,
   );
 
-export async function clicar(rotulo, { ultimo = false } = {}) {
+export async function clicar(
+  rotulo: string,
+  { ultimo = false }: { ultimo?: boolean } = {},
+) {
   await esperar(() => {
     if (!botoes(rotulo).length)
       throw new Error(`Botão "${rotulo}" não apareceu`);
   });
   const lista = botoes(rotulo);
-  (ultimo ? lista.at(-1) : lista[0]).click();
+  const botao = ultimo ? lista.at(-1) : lista[0];
+  if (!botao) throw new Error(`Botão "${rotulo}" não apareceu`);
+  botao.click();
   await flushPromises();
 }
 
 /** Campo pelo rótulo visível (label[for]). */
-export function campo(rotulo) {
+export function campo(rotulo: string): HTMLInputElement | null {
   const label = [...document.querySelectorAll('label')].find(
-    (l) => l.textContent.trim() === rotulo && l.htmlFor,
+    (l) => (l.textContent ?? '').trim() === rotulo && l.htmlFor,
   );
-  return label && document.getElementById(label.htmlFor);
+  return label
+    ? (document.getElementById(label.htmlFor) as HTMLInputElement | null)
+    : null;
 }
 
-export async function preencher(rotulo, valor) {
+export async function preencher(rotulo: string, valor: string) {
   await esperar(() => {
     if (!campo(rotulo)) throw new Error(`Campo "${rotulo}" não apareceu`);
   });
   const el = campo(rotulo);
+  if (!el) throw new Error(`Campo "${rotulo}" não apareceu`);
   el.value = valor;
   el.dispatchEvent(new Event('input', { bubbles: true }));
   await flushPromises();
 }
 
 /** Clica no primeiro botão cujo texto contém o trecho (ex.: opção com nome e detalhe). */
-export async function clicarContendo(trecho) {
+export async function clicarContendo(trecho: string) {
   const achar = () =>
     [...document.querySelectorAll('button')].find((b) =>
-      b.textContent.includes(trecho),
+      (b.textContent ?? '').includes(trecho),
     );
   await esperar(() => {
     if (!achar()) throw new Error(`Nenhum botão com "${trecho}"`);
   });
-  achar().click();
+  const botao = achar();
+  if (!botao) throw new Error(`Nenhum botão com "${trecho}"`);
+  botao.click();
   await flushPromises();
+}
+
+/** Resposta simulada: os dados (200) ou uma função do corpo para [status, dados]. */
+export type RotaSimulada = unknown | ((corpo: unknown) => [number, unknown]);
+
+/** Chamada que a tela fez à API simulada. */
+export interface ChamadaSimulada {
+  metodo: string;
+  url: string;
+  corpo: unknown;
 }
 
 /**
  * Simula a API: rotas { 'GET /api/usuarios': dados | (corpo) => [status, dados] }.
  * Devolve a lista de chamadas feitas, para conferir o que a tela enviou.
  */
-export function simularApi(rotas) {
-  const chamadas = [];
-  vi.stubGlobal('fetch', async (url, opcoes = {}) => {
+export function simularApi(
+  rotas: Record<string, RotaSimulada>,
+): ChamadaSimulada[] {
+  const chamadas: ChamadaSimulada[] = [];
+  vi.stubGlobal('fetch', async (url: string, opcoes: RequestInit = {}) => {
     const metodo = opcoes.method ?? 'GET';
-    const corpo = opcoes.body ? JSON.parse(opcoes.body) : undefined;
+    const corpo = opcoes.body ? JSON.parse(String(opcoes.body)) : undefined;
     chamadas.push({ metodo, url, corpo });
     const rota = rotas[`${metodo} ${url}`];
     const [status, dados] =
       rota === undefined
         ? [404, { mensagem: `Rota não simulada: ${metodo} ${url}` }]
         : typeof rota === 'function'
-          ? rota(corpo)
+          ? (rota as (corpo: unknown) => [number, unknown])(corpo)
           : [200, rota];
     return new Response(status === 204 ? null : JSON.stringify(dados), {
       status,
@@ -133,21 +163,24 @@ export function simularApi(rotas) {
 }
 
 /** Abre um DsSelect pelo rótulo e escolhe a opção que contém o texto. */
-export async function escolherNoSelect(rotulo, textoDaOpcao) {
+export async function escolherNoSelect(rotulo: string, textoDaOpcao: string) {
   await esperar(() => {
     if (!campo(rotulo)) throw new Error(`Select "${rotulo}" não apareceu`);
   });
   const caixa = campo(rotulo)
-    .closest('.v-input')
-    .querySelector('[role="combobox"]');
+    ?.closest('.v-input')
+    ?.querySelector('[role="combobox"]');
+  if (!caixa) throw new Error(`Select "${rotulo}" sem a caixa de opções`);
   caixa.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
   const opcao = () =>
-    [...document.querySelectorAll('[role="option"]')].find((o) =>
-      o.textContent.includes(textoDaOpcao),
+    [...document.querySelectorAll<HTMLElement>('[role="option"]')].find((o) =>
+      (o.textContent ?? '').includes(textoDaOpcao),
     );
   await esperar(() => {
     if (!opcao()) throw new Error(`Opção "${textoDaOpcao}" não apareceu`);
   });
-  opcao().click();
+  const escolhida = opcao();
+  if (!escolhida) throw new Error(`Opção "${textoDaOpcao}" não apareceu`);
+  escolhida.click();
   await flushPromises();
 }

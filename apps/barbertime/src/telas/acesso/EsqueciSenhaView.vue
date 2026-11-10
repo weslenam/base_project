@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { DsBotao, DsFormulario, DsInput } from '@barbertime/ui';
-import { useSessao } from '../../sessao/sessao.js';
+import { useSessao } from '../../sessao/sessao.ts';
 import './estilos.css';
 
 // Planejamento 0023: quem esqueceu a senha pede um link por e-mail. A resposta

@@ -4,7 +4,7 @@ import type { Conexao } from '../infra/banco.ts';
 import { naoEncontrado } from '../infra/erros.ts';
 import { SELECT_ATENDIMENTO, SELECT_BLOQUEIO, comEstado } from './agenda.ts';
 import type { LinhaDeBloqueio } from './agenda.ts';
-import type { AtendimentoNaAgenda } from './agenda.contratos.ts';
+import type { AtendimentoNaAgenda } from '@barbertime/contratos';
 
 // Leitura de atendimentos e bloqueios para as rotas da operação (agenda,
 // balcão e caixa), já com os tipos da linha completa (planejamento 0040,

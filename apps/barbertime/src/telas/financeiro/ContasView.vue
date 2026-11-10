@@ -11,7 +11,7 @@ import {
 } from '@barbertime/ui';
 import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
 import { hojeIso, totaisDasContas } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 import { SITUACOES, seloDaSituacao } from './rotulos.js';
 import ContaDialogo from './ContaDialogo.vue';
 

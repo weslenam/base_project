@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { criarApiHttp } from './apiHttp.js';
+import { criarApiHttp } from './apiHttp.ts';
+import type { ConfigFidelidade } from '@barbertime/dominio';
+import type { Api } from './tipos.ts';
 
 // Planejamento 0022 / ADR 0014: o reconhecimento por telefone tem limite contra
 // varredura. Barrado, o agendamento segue como "cliente novo".
 
-const resposta = (status, corpo) =>
+const resposta = (status: number, corpo: unknown) =>
   Promise.resolve({
     ok: status < 400,
     status,
@@ -19,16 +21,18 @@ describe('página pública: reconhecer por telefone', () => {
       'fetch',
       vi.fn(() => resposta(429, { mensagem: 'Muitas tentativas seguidas.' })),
     );
-    const api = criarApiHttp({});
+    const api = criarApiHttp({} as Api);
     await expect(
-      api.publico.reconhecer('studio', null, '11987654321'),
+      api.publico.reconhecer('studio', undefined, '11987654321'),
     ).resolves.toBeNull();
   });
 
   it('cliente conhecido continua com o primeiro nome', async () => {
-    const fetch = vi.fn(() => resposta(200, { primeiroNome: 'Rafael' }));
+    const fetch = vi.fn<(url: string) => ReturnType<typeof resposta>>(() =>
+      resposta(200, { primeiroNome: 'Rafael' }),
+    );
     vi.stubGlobal('fetch', fetch);
-    const api = criarApiHttp({});
+    const api = criarApiHttp({} as Api);
     await expect(
       api.publico.reconhecer('studio', 'abc', '11987654321'),
     ).resolves.toEqual({
@@ -44,9 +48,9 @@ describe('página pública: reconhecer por telefone', () => {
       'fetch',
       vi.fn(() => resposta(500, { mensagem: 'Erro interno.' })),
     );
-    const api = criarApiHttp({});
+    const api = criarApiHttp({} as Api);
     await expect(
-      api.publico.reconhecer('studio', null, '11987654321'),
+      api.publico.reconhecer('studio', undefined, '11987654321'),
     ).rejects.toThrow('Erro interno.');
   });
 });
@@ -59,10 +63,13 @@ describe('fidelidade com a API real (planejamento 0034)', () => {
         : resposta(200, { ok: op?.method }),
     );
     vi.stubGlobal('fetch', fetch);
-    const api = criarApiHttp({});
+    const api = criarApiHttp({} as Api);
     expect(await api.fidelidade.saldo(5)).toEqual({ selos: 3, cashback: 2.5 });
     expect(fetch.mock.calls[0][0]).toBe('/api/clientes/5/fidelidade');
-    await api.fidelidade.salvarConfig({ selos: { ativo: false } });
+    // Só a parte que a tela mudou: a API completa com o resto da configuração.
+    await api.fidelidade.salvarConfig({
+      selos: { ativo: false },
+    } as ConfigFidelidade);
     expect(fetch.mock.calls[1][0]).toBe('/api/fidelidade/config');
     expect(fetch.mock.calls[1][1].method).toBe('PUT');
   });
@@ -74,7 +81,7 @@ describe('pacotes com a API real (planejamento 0034, etapa B)', () => {
       resposta(200, { url, metodo: op?.method }),
     );
     vi.stubGlobal('fetch', fetch);
-    const api = criarApiHttp({});
+    const api = criarApiHttp({} as Api);
     await api.assinaturas.doCliente(5);
     await api.assinaturas.vender({ clienteId: 5, pacoteId: 2, barbeiroId: 1 });
     await api.assinaturas.renovar(9, { barbeiroId: 1 });

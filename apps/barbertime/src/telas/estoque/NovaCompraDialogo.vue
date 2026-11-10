@@ -17,8 +17,8 @@ import {
   totalDaCompra,
 } from '@barbertime/dominio';
 import { formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 // Nova compra (planejamento 0027): itens, frete, desconto e parcelas. As
 // parcelas são sugeridas por dividirParcelas e podem ser editadas antes de salvar.

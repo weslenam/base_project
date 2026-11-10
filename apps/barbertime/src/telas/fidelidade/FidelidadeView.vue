@@ -9,8 +9,8 @@ import {
   DsSelect,
   useNotificacao,
 } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 // Configuração do módulo Fidelidade (planejamento 0015): selos e/ou cashback.
 const executar = useAcao();

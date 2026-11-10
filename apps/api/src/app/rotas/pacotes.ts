@@ -16,7 +16,7 @@ import type {
   AbrirComandaDoPacote,
   DadosDoPacote,
 } from '../../servicos/pacotes.ts';
-import type { VendaDePacote } from '../../servicos/pacotes.contratos.ts';
+import type { VendaDePacote } from '@barbertime/contratos';
 import { TAM, corpo, escalar, inteiro, texto } from '../esquemas.ts';
 
 type ComId = { Params: { id: string } };

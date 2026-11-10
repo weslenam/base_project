@@ -2,9 +2,9 @@
 import { computed, onMounted, ref } from 'vue';
 import { DsCartao, DsPagina, DsSelo } from '@barbertime/ui';
 import { historiaDoPapel, resumoDoPapel } from '@barbertime/dominio';
-import { administracao } from '../../dados/administracao.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { administracao } from '../../dados/administracao.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import HistoriaDoPapel from './HistoriaDoPapel.vue';
 
 // Papéis contados como histórias (planejamento 0033): o que cada um faz no dia

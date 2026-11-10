@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { api } from '../dados/api.js';
-import { clicarContendo, esperar, montarApp } from '../testes/apoio.js';
+import { api } from '../dados/api.ts';
+import { clicarContendo, esperar, montarApp } from '../testes/apoio.ts';
 
 // Atalhos na coluna da agenda (planejamento 0035): + e bloquear já abrem o
 // diálogo com o barbeiro da coluna; os botões do topo continuam sem barbeiro.

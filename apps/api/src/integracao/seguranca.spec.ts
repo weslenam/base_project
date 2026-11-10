@@ -11,7 +11,7 @@ import {
 import type { ServidorDeTeste } from './apoio.ts';
 import type { InjectOptions, LightMyRequestResponse } from 'fastify';
 import type { Mensagem } from '../infra/correio.ts';
-import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
+import type { PapelDaBarbearia } from '@barbertime/contratos';
 
 type Navegador = ReturnType<typeof navegador>;
 /** Requisição ao servidor com os limites reais, de um IP escolhido. */

@@ -8,8 +8,8 @@ import {
   DsSelect,
   useNotificacao,
 } from '@barbertime/ui';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 // Consumo manual (planejamento 0027): uso registrado à mão, com motivo.
 const aberto = defineModel({ type: Boolean, default: false });

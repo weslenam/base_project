@@ -1,15 +1,9 @@
 import { MODULOS, transicaoDeModulo } from '@barbertime/dominio';
-import type { Modulo } from '@barbertime/dominio';
 import { sql } from 'kysely';
 import type { FastifyInstance } from 'fastify';
 import { invalido, naoEncontrado, proibido } from '../../infra/erros.ts';
 import type { Conexao } from '../../infra/banco.ts';
-
-/** Módulo do catálogo com o estado nesta barbearia (`GET /modulos`). */
-export interface ModuloDaBarbearia extends Modulo {
-  estado: string;
-  atualizadoEm: Date | null;
-}
+import type { ModuloDaBarbearia } from '@barbertime/contratos';
 
 const ACOES_DA_BARBEARIA = [
   'ativar',

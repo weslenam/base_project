@@ -339,6 +339,9 @@ importers:
 
   apps/barbertime:
     dependencies:
+      '@barbertime/contratos':
+        specifier: workspace:*
+        version: link:../../libs/contratos
       '@barbertime/dominio':
         specifier: workspace:*
         version: link:../../libs/dominio
@@ -372,7 +375,11 @@ importers:
 
   apps/e2e-layout: {}
 
-  libs/contratos: {}
+  libs/contratos:
+    dependencies:
+      '@barbertime/dominio':
+        specifier: workspace:*
+        version: link:../dominio
 
   libs/dominio: {}
 

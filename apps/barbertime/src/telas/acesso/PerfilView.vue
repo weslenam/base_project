@@ -10,8 +10,8 @@ import {
   DsSelo,
   useNotificacao,
 } from '@barbertime/ui';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 
 // Meu perfil (planejamento 0017): qualquer usuário logado troca o nome, a senha
 // e a barbearia em que está trabalhando.

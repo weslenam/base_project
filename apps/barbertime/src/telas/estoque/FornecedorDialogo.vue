@@ -12,8 +12,8 @@ import {
 } from '@barbertime/ui';
 import { documentoValido } from '@barbertime/dominio';
 import { somenteDigitos } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ fornecedor: { type: Object, default: null } });

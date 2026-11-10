@@ -1,21 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { criarApi } from './api.js';
-import { ErroDeNegocio } from './erros.js';
+import { criarApi } from './api.ts';
+import { ErroDeNegocio } from './erros.ts';
 import { somarDias } from '@barbertime/dominio';
+import type { Api, Corpo } from './tipos.ts';
 
 // Sábado, 7/11/2026, 08:00: antes de qualquer expediente.
 const agora = () => new Date(2026, 10, 7, 8, 0);
 const HOJE = '2026-11-07';
 const AMANHA = '2026-11-08';
-let api;
+let api: Api;
 
 beforeEach(() => {
   api = criarApi({ agora });
 });
 
-const recusa = (promessa, trecho) =>
+const recusa = (promessa: Promise<unknown>, trecho: string) =>
   expect(promessa).rejects.toSatisfy(
-    (e) => e instanceof ErroDeNegocio && e.message.includes(trecho),
+    (e: unknown) => e instanceof ErroDeNegocio && e.message.includes(trecho),
   );
 
 describe('agendamentos', () => {
@@ -33,7 +34,7 @@ describe('agendamentos', () => {
       clienteNome: 'Rafael Souza',
       barbeiroNome: 'Zé Carlos',
     });
-    expect(dia.find((a) => a.estado === 'bloqueado').clienteNome).toBe(
+    expect(dia.find((a) => a.estado === 'bloqueado')?.clienteNome).toBe(
       'Almoço',
     );
   });
@@ -44,11 +45,12 @@ describe('agendamentos', () => {
       barbeiroId: 1,
       servicoId: 1,
     });
-    const disponivel = (h) => livres.find((l) => l.hora === h)?.disponivel;
+    const disponivel = (h: string) =>
+      livres.find((l) => l.hora === h)?.disponivel;
     expect(disponivel('09:00')).toBe(false);
     expect(disponivel('11:00')).toBe(true);
     expect(disponivel('12:30')).toBe(false);
-    expect(livres.at(-1).hora).toBe('18:30');
+    expect(livres.at(-1)?.hora).toBe('18:30');
   });
 
   it('cria e recusa o mesmo horário com a mensagem de negação', async () => {
@@ -126,6 +128,18 @@ describe('agendamentos', () => {
     );
   });
 
+  it('responde no formato da API: status do atendimento e confirmação', async () => {
+    // Pendente é "agendado"; sem o balcão na memória, o confirmado conta como
+    // "chegou" e pode ser marcado atendido na agenda.
+    expect((await api.agendamentos.obter(2)).status).toBe('agendado');
+    const confirmado = await api.agendamentos.alterarEstado(2, 'confirmado');
+    expect(confirmado.status).toBe('chegou');
+    expect(confirmado.confirmadoEm).toBe(HOJE);
+    const atendido = await api.agendamentos.alterarEstado(2, 'atendido');
+    expect(atendido.status).toBe('atendido');
+    expect(atendido.confirmadoEm).toBe(HOJE);
+  });
+
   it('cancelar libera o horário', async () => {
     await api.agendamentos.alterarEstado(2, 'cancelado');
     const livres = await api.agendamentos.horariosLivres({
@@ -133,7 +147,7 @@ describe('agendamentos', () => {
       barbeiroId: 1,
       servicoId: 1,
     });
-    expect(livres.find((l) => l.hora === '10:00').disponivel).toBe(true);
+    expect(livres.find((l) => l.hora === '10:00')?.disponivel).toBe(true);
   });
 
   it('bloqueio ocupa o horário', async () => {
@@ -170,10 +184,22 @@ describe('clientes', () => {
   });
 
   it('reconhecer (público) devolve só o primeiro nome, ou null', async () => {
-    expect(await api.clientes.reconhecer('(11) 98765-4321')).toEqual({
+    expect(
+      await api.publico.reconhecer(
+        'barbearia-modelo',
+        undefined,
+        '(11) 98765-4321',
+      ),
+    ).toEqual({
       primeiroNome: 'Rafael',
     });
-    expect(await api.clientes.reconhecer('11900000000')).toBeNull();
+    expect(
+      await api.publico.reconhecer(
+        'barbearia-modelo',
+        undefined,
+        '11900000000',
+      ),
+    ).toBeNull();
   });
 
   it('recusa telefone repetido citando o dono', async () => {
@@ -259,7 +285,7 @@ describe('produtos', () => {
     });
     expect(novo.id).toBe(5);
     await api.produtos.salvar({ ...novo, preco: 35 });
-    expect((await api.produtos.listar()).find((p) => p.id === 5).preco).toBe(
+    expect((await api.produtos.listar()).find((p) => p.id === 5)?.preco).toBe(
       35,
     );
     await api.produtos.excluir(5);
@@ -285,13 +311,13 @@ describe('produtos', () => {
 describe('caixa e comandas', () => {
   it('resumo do caixa de exemplo: só pagas, por forma, total bate', async () => {
     const caixa = await api.caixa.obterDoDia();
-    expect(caixa.resumo.porForma).toEqual({
+    expect(caixa?.resumo.porForma).toEqual({
       dinheiro: 70,
       pix: 60,
       debito: 0,
       credito: 0,
     });
-    expect(caixa.resumo).toMatchObject({
+    expect(caixa?.resumo).toMatchObject({
       totalRecebido: 130,
       dinheiroEsperado: 170,
       abertas: 1,
@@ -364,8 +390,8 @@ describe('caixa e comandas', () => {
   it('receber entra no resumo; paga não pode ser cancelada', async () => {
     await api.comandas.receber(3, { forma: 'debito' });
     const caixa = await api.caixa.obterDoDia();
-    expect(caixa.resumo.porForma.debito).toBe(39.9);
-    expect(caixa.resumo.abertas).toBe(0);
+    expect(caixa?.resumo.porForma.debito).toBe(39.9);
+    expect(caixa?.resumo.abertas).toBe(0);
     await recusa(api.comandas.cancelar(3), 'não pode ser cancelada');
   });
 
@@ -397,7 +423,7 @@ describe('caixa e comandas', () => {
 });
 
 describe('fidelidade e pacotes (planejamento 0015)', () => {
-  const receberCom = async (dados, forma = 'pix') => {
+  const receberCom = async (dados: Corpo, forma = 'pix') => {
     const c = await api.comandas.salvar(dados);
     return api.comandas.receber(c.id, { forma });
   };
@@ -467,7 +493,7 @@ describe('fidelidade e pacotes (planejamento 0015)', () => {
     // Serviço usado por pacote não dá selo.
     expect(paga.creditos.filter((c) => c.tipo === 'selo')).toEqual([]);
     const [depois] = await api.assinaturas.doCliente(3);
-    expect(depois.saldo.find((s) => s.servicoId === 1).usados).toBe(1);
+    expect(depois.saldo.find((s) => s.servicoId === 1)?.usados).toBe(1);
     // Intervalo mínimo de 7 dias para o mesmo serviço.
     await recusa(
       api.comandas.salvar({
@@ -531,7 +557,7 @@ describe('fidelidade e pacotes (planejamento 0015)', () => {
     expect(assinatura.estado).toBe('aguardando_pagamento');
     expect(
       (await api.assinaturas.doCliente(3)).find((a) => a.id === clube.id)
-        .renovacao,
+        ?.renovacao,
     ).toBe('aguardando_pagamento');
     await recusa(
       api.assinaturas.renovar(clube.id, { barbeiroId: 2 }),
@@ -543,7 +569,7 @@ describe('fidelidade e pacotes (planejamento 0015)', () => {
     );
     expect(nova).toMatchObject({
       estado: 'ativa',
-      inicio: somarDias(clube.fim, 1),
+      inicio: somarDias(String(clube.fim), 1),
       vigente: false,
     });
   });

@@ -14,9 +14,9 @@ import {
   podeAgirSobre,
   resumoDoPapel,
 } from '@barbertime/dominio';
-import { administracao } from '../../dados/administracao.js';
-import { useAcao } from '../../dados/useAcao.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { administracao } from '../../dados/administracao.ts';
+import { useAcao } from '../../dados/useAcao.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import HistoriaDoPapel from './HistoriaDoPapel.vue';
 
 // Hierarquia fixa (ADR 0010, planejamento 0023): só se altera quem está abaixo,

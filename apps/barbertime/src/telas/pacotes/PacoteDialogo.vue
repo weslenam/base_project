@@ -12,8 +12,8 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { TIPOS_DE_PACOTE } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 
 const aberto = defineModel({ type: Boolean, default: false });
 const props = defineProps({ pacote: { type: Object, default: null } });

@@ -16,7 +16,7 @@ import type {
   Produto,
   ProdutoSemCusto,
   Servico,
-} from './cadastros.contratos.ts';
+} from '@barbertime/contratos';
 
 // Serviços, produtos e equipe (planejamento 0019). Exclusão lógica: o histórico
 // de agendamentos e comandas continua apontando para o registro.

@@ -4,9 +4,9 @@ import { defineComponent, h, ref } from 'vue';
 import { DsApp, instalarUi } from '@barbertime/ui';
 import { FIDELIDADE_PADRAO } from '@barbertime/dominio';
 import router from '../router';
-import { api } from '../dados/api.js';
-import { definirSessao } from '../sessao/sessao.js';
-import { SESSAO_DONO } from '../testes/apoio.js';
+import { api } from '../dados/api.ts';
+import { definirSessao } from '../sessao/sessao.ts';
+import { SESSAO_DONO } from '../testes/apoio.ts';
 import ComandaDialogo from './caixa/ComandaDialogo.vue';
 
 // Planejamento 0037 (revisão): reabrir outra comanda não pode apagar o
@@ -22,7 +22,9 @@ const comanda = (id, clienteId, extra = {}) => ({
   clienteId,
   clienteNome: `Cliente ${clienteId}`,
   barbeiroId: null,
-  itens: [{ tipo: 'servico', refId: 1, nome: 'Corte', preco: 50, quantidade: 1 }],
+  itens: [
+    { tipo: 'servico', refId: 1, nome: 'Corte', preco: 50, quantidade: 1 },
+  ],
   desconto: 0,
   premioFidelidade: false,
   cashbackUsado: 0,
@@ -54,15 +56,16 @@ describe('comanda com resgate da fidelidade', () => {
     definirSessao(SESSAO_DONO);
     const id = ref(1);
     const aberto = ref(false);
-    const Raiz = defineComponent(() => () =>
-      h(DsApp, null, {
-        default: () =>
-          h(ComandaDialogo, {
-            id: id.value,
-            modelValue: aberto.value,
-            'onUpdate:modelValue': (v) => (aberto.value = v),
-          }),
-      }),
+    const Raiz = defineComponent(
+      () => () =>
+        h(DsApp, null, {
+          default: () =>
+            h(ComandaDialogo, {
+              id: id.value,
+              modelValue: aberto.value,
+              'onUpdate:modelValue': (v) => (aberto.value = v),
+            }),
+        }),
     );
     const alvo = document.createElement('div');
     document.body.appendChild(alvo);

@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsTabela } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
-import { api } from '../../dados/api.js';
+import { api } from '../../dados/api.ts';
 import ServicoDialogo from './ServicoDialogo.vue';
 
 const servicos = ref([]);

@@ -10,8 +10,8 @@ import {
   unico,
 } from './apoio.ts';
 import type { ServidorDeTeste } from './apoio.ts';
-import type { PapelDaBarbearia } from '../app/rotas/papeis.ts';
-import type { ModuloDaBarbearia } from '../app/rotas/modulos.ts';
+import type { PapelDaBarbearia } from '@barbertime/contratos';
+import type { ModuloDaBarbearia } from '@barbertime/contratos';
 import type {
   BarbeariaNaLista,
   RegistroDeAuditoria,

@@ -1,7 +1,7 @@
 // Contratos do caixa e das comandas (planejamento 0040, etapa 4): o formato
 // das respostas que o front consome. A libs/contratos junta tudo na etapa 9.
 import type { ItemComanda, resumoDoCaixa } from '@barbertime/dominio';
-import type { CreditoDaComanda } from './fidelidade.contratos.ts';
+import type { CreditoDaComanda } from './fidelidade.ts';
 
 /** Caixa do dia (sem o resumo). */
 export interface Caixa {

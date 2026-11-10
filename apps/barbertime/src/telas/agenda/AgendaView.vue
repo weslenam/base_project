@@ -9,8 +9,8 @@ import {
 } from '@barbertime/ui';
 import { formatarDiaCurto } from '@barbertime/ui-utils';
 import { hojeIso, podeMarcarNaAgenda, somarDias } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { useSessao } from '../../sessao/sessao.js';
+import { api } from '../../dados/api.ts';
+import { useSessao } from '../../sessao/sessao.ts';
 import NovoAgendamento from './NovoAgendamento.vue';
 import DetalheAgendamento from './DetalheAgendamento.vue';
 import BloquearHorario from './BloquearHorario.vue';

@@ -3,13 +3,11 @@ import {
   SLUG,
   validarConfigBarbearia,
 } from '@barbertime/dominio';
-import type {
-  ConfigBarbearia,
-  ConfigBarbeariaGravada,
-} from '@barbertime/dominio';
+import type { ConfigBarbeariaGravada } from '@barbertime/dominio';
 import type { FastifyInstance } from 'fastify';
 import { conflito, invalido } from '../../infra/erros.ts';
 import { TAM, corpo, texto } from '../esquemas.ts';
+import type { BarbeariaConfigurada } from '@barbertime/contratos';
 
 // `barbearias` é tabela global (sem RLS por barbearia): as consultas daqui
 // rodam no pool, fora de transação, com o driver pg (planejamento 0040).
@@ -22,16 +20,6 @@ interface LinhaDaBarbearia {
   slug: string;
   configuracoes: ConfigBarbeariaGravada;
   token_publico: string;
-}
-
-/** Barbearia atual como a tela de configurações a recebe. */
-export interface BarbeariaConfigurada {
-  id: number;
-  nome: string;
-  slug: string;
-  configuracoes: ConfigBarbearia;
-  /** Código do link da página no modo "só com o link" (ADR 0013). */
-  tokenPublico: string;
 }
 
 const formatar = (b: LinhaDaBarbearia): BarbeariaConfigurada => ({

@@ -1,28 +1,44 @@
-import { ErroDeNegocio } from './erros.js';
-import { http } from './http.js';
+import { ErroDeNegocio } from './erros.ts';
+import { http } from './http.ts';
+import type { EmJson, FidelidadeDoCliente } from '@barbertime/contratos';
+import type { Api, Corpo, Recurso } from './tipos.ts';
 
 /**
  * Camada de dados pela API real (planejamento 0019). Mesma interface da versão
  * em memória (api.js): as telas não sabem qual está em uso.
  * `base` cobre o que ainda não migrou para o banco (parte de clientes).
  */
-const q = (params) => {
+const q = (params: Record<string, unknown>): string => {
   const s = new URLSearchParams(
-    Object.entries(params).filter(([, v]) => v != null && v !== ''),
+    Object.entries(params)
+      .filter(([, v]) => v != null && v !== '')
+      .map(([k, v]) => [k, String(v)]),
   ).toString();
   return s ? `?${s}` : '';
 };
 
 /** CRUD padrão: listar, salvar (POST/PUT pelo id) e excluir. */
-const recurso = (caminho) => ({
-  listar: () => http('GET', caminho),
-  salvar: (d) =>
-    d.id ? http('PUT', `${caminho}/${d.id}`, d) : http('POST', caminho, d),
-  excluir: (id) => http('DELETE', `${caminho}/${id}`),
+const recurso = <T>(caminho: string): Recurso<T> => ({
+  listar: () => http<T[]>('GET', caminho),
+  salvar: (d: Corpo) =>
+    d.id
+      ? http<T>('PUT', `${caminho}/${String(d.id)}`, d)
+      : http<T>('POST', caminho, d),
+  excluir: (id: number) => http('DELETE', `${caminho}/${id}`),
 });
 
-export function criarApiHttp(base) {
-  const publicoUrl = (slug, codigo, sufixo = '', params = {}) =>
+export function criarApiHttp(base: Api): Api {
+  const fidelidadeDo = (clienteId: number) =>
+    http<EmJson<FidelidadeDoCliente>>(
+      'GET',
+      `/api/clientes/${clienteId}/fidelidade`,
+    );
+  const publicoUrl = (
+    slug: string,
+    codigo: string | undefined,
+    sufixo = '',
+    params: Record<string, unknown> = {},
+  ) =>
     `/api/publico/${encodeURIComponent(slug)}${sufixo}${q({ c: codigo, ...params })}`;
 
   return {
@@ -30,7 +46,8 @@ export function criarApiHttp(base) {
     servicos: {
       ...recurso('/api/servicos'),
       contarFuturos: async (id) =>
-        (await http('GET', `/api/servicos/${id}/futuros`)).total,
+        (await http<{ total: number }>('GET', `/api/servicos/${id}/futuros`))
+          .total,
     },
     produtos: recurso('/api/produtos'),
     // Estoque e compras (planejamento 0027, parte 1): só com o módulo "estoque".
@@ -87,10 +104,8 @@ export function criarApiHttp(base) {
     fidelidade: {
       obterConfig: () => http('GET', '/api/fidelidade/config'),
       salvarConfig: (config) => http('PUT', '/api/fidelidade/config', config),
-      saldo: async (clienteId) =>
-        (await http('GET', `/api/clientes/${clienteId}/fidelidade`)).saldo,
-      extrato: async (clienteId) =>
-        (await http('GET', `/api/clientes/${clienteId}/fidelidade`)).extrato,
+      saldo: async (clienteId) => (await fidelidadeDo(clienteId)).saldo,
+      extrato: async (clienteId) => (await fidelidadeDo(clienteId)).extrato,
     },
     // Pacotes e assinaturas no banco (planejamento 0034, etapa B).
     pacotes: recurso('/api/pacotes'),
@@ -152,12 +167,13 @@ export function criarApiHttp(base) {
        * "cliente novo": a saudação se perde, mas o agendamento segue.
        */
       reconhecer: (slug, codigo, telefone) =>
-        http('GET', publicoUrl(slug, codigo, '/cliente', { telefone })).catch(
-          (erro) => {
-            if (erro instanceof ErroDeNegocio) return null;
-            throw erro;
-          },
-        ),
+        http<{ primeiroNome: string } | null>(
+          'GET',
+          publicoUrl(slug, codigo, '/cliente', { telefone }),
+        ).catch((erro) => {
+          if (erro instanceof ErroDeNegocio) return null;
+          throw erro;
+        }),
       agendar: (slug, codigo, d) =>
         http('POST', publicoUrl(slug, codigo, '/agendamentos'), d),
     },

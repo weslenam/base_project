@@ -22,11 +22,11 @@ import {
   motivoParaUsarPremio,
   totalDaComanda,
 } from '@barbertime/dominio';
-import { api } from '../../dados/api.js';
-import { useAcao } from '../../dados/useAcao.js';
+import { api } from '../../dados/api.ts';
+import { useAcao } from '../../dados/useAcao.ts';
 import { rotuloDaForma, seloDaComanda } from './rotulos.js';
 import BuscaCliente from '../clientes/BuscaCliente.vue';
-import { moduloAtivo } from '../../sessao/sessao.js';
+import { moduloAtivo } from '../../sessao/sessao.ts';
 
 // Comanda (planejamentos 0008 e 0010): itens em abas de serviço e produto à
 // esquerda; pagamento estilo PDV à direita.
