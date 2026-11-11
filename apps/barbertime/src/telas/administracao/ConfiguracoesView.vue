@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import {
   DsAbas,
@@ -23,6 +23,7 @@ import { administracao } from '../../dados/administracao.ts';
 import { ErroDeNegocio } from '../../dados/erros.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { carregarSessao, useSessao } from '../../sessao/sessao.ts';
+import type { BarbeariaEdicao } from '../../dados/modelos.ts';
 
 // Configurações da barbearia (planejamento 0017, ADR 0012): dados do negócio,
 // editados pelo Dono. Uma aba por assunto, para a página não rolar.
@@ -39,10 +40,10 @@ const abas = [
   { valor: 'pagina', rotulo: 'Página pública' },
 ];
 
-const form = ref(null);
+const form = ref<BarbeariaEdicao | null>(null);
 const slugSalvo = ref('');
 const salvando = ref(false);
-const copiar = (v) => JSON.parse(JSON.stringify(v));
+const copiar = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
 onMounted(async () => {
   const dados = await executar(() => administracao.barbearia.obter());
@@ -108,12 +109,13 @@ async function novoCodigo() {
   if (!ok) return;
   const r = await executar(() => administracao.barbearia.novoCodigo());
   if (!r) return;
-  form.value.tokenPublico = r.tokenPublico;
+  if (form.value) form.value.tokenPublico = r.tokenPublico;
   notificar.sucesso('Código novo gerado. O link antigo deixou de funcionar.');
 }
 
 /** Horário do primeiro dia aberto vai para os outros dias abertos. */
 function repetirHorario() {
+  if (!form.value) return;
   const dias = form.value.configuracoes.funcionamento;
   const modelo = dias.find((d) => d.aberto);
   if (!modelo) return;
@@ -127,30 +129,41 @@ function repetirHorario() {
 
 const ordemDosDias = [1, 2, 3, 4, 5, 6, 0]; // a semana do balcão começa na segunda
 const diasNaOrdem = computed(() =>
-  ordemDosDias.map((dia) =>
-    form.value.configuracoes.funcionamento.find((d) => d.dia === dia),
-  ),
+  ordemDosDias.flatMap((dia) => {
+    const d = form.value?.configuracoes.funcionamento.find(
+      (x) => x.dia === dia,
+    );
+    return d ? [d] : [];
+  }),
 );
 
-const REGRAS = [
-  {
-    campo: 'antecedenciaMinimaHoras',
-    rotulo: 'Antecedência mínima (horas)',
-    ajuda: 'O cliente não marca horário que começa antes disso',
-  },
-  {
-    campo: 'diasAFrente',
-    rotulo: 'Agenda aberta até (dias)',
-    ajuda: 'Quantos dias à frente o cliente consegue marcar',
-  },
-  {
-    campo: 'cancelamentoAteHoras',
-    rotulo: 'Cancelamento até (horas antes)',
-    ajuda: 'Depois disso, só a barbearia cancela',
-  },
-].map((r) => ({ ...r, ...LIMITES_DO_AGENDAMENTO[r.campo] }));
+const REGRAS = (
+  [
+    {
+      campo: 'antecedenciaMinimaHoras',
+      rotulo: 'Antecedência mínima (horas)',
+      ajuda: 'O cliente não marca horário que começa antes disso',
+    },
+    {
+      campo: 'diasAFrente',
+      rotulo: 'Agenda aberta até (dias)',
+      ajuda: 'Quantos dias à frente o cliente consegue marcar',
+    },
+    {
+      campo: 'cancelamentoAteHoras',
+      rotulo: 'Cancelamento até (horas antes)',
+      ajuda: 'Depois disso, só a barbearia cancela',
+    },
+  ] as {
+    campo: keyof typeof LIMITES_DO_AGENDAMENTO;
+    rotulo: string;
+    ajuda: string;
+  }[]
+).map((r) => ({ ...r, ...LIMITES_DO_AGENDAMENTO[r.campo] }));
 
 async function salvar() {
+  if (!form.value) return;
+  const liberada = form.value.paginaPublicaLiberada;
   const dados = copiar(form.value);
   const ag = dados.configuracoes.agendamento;
   for (const r of REGRAS) ag[r.campo] = Number(ag[r.campo]);
@@ -171,7 +184,12 @@ async function salvar() {
   });
   salvando.value = false;
   if (!salvo) return;
-  form.value = copiar(salvo);
+  // O PUT não traz o aviso da trava da página pública (só o GET): ele fica
+  // como estava (issue #54).
+  form.value = {
+    ...copiar(salvo),
+    paginaPublicaLiberada: liberada,
+  };
   slugSalvo.value = salvo.slug;
   modoSalvo.value = salvo.configuracoes.paginaPublica.modo;
   await carregarSessao(); // nome e endereço no cabeçalho e no menu

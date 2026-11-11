@@ -2,17 +2,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { permissoesDoPapel } from '@barbertime/dominio';
 import router from '../router';
 import {
+  SESSAO_DONO,
   clicar,
+  clicarEmQueContem,
   esperar,
   montarApp,
   preencher,
-  SESSAO_DONO,
   sessaoCom,
   simularApi,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
-let app;
+let app: AppMontado | undefined;
 afterEach(() => {
   app?.unmount();
   document.body.innerHTML = '';
@@ -64,7 +66,7 @@ describe('entrar e guarda de rotas', () => {
     await esperar(() =>
       expect(router.currentRoute.value.path).toBe('/clientes'),
     );
-    expect(chamadas.at(-1).corpo).toEqual({
+    expect(chamadas.at(-1)?.corpo).toEqual({
       email: 'dono@barbertime.dev',
       senha: 'barbertime123',
     });
@@ -83,9 +85,7 @@ describe('esqueci a senha (planejamento 0023)', () => {
     const chamadas = simularApi({ 'POST /api/auth/esqueci': RESPOSTA });
     app = await montarApp('/entrar', { sessao: null });
     await esperar(() => expect(texto()).toContain('Esqueci minha senha'));
-    [...document.querySelectorAll('a')]
-      .find((l) => l.textContent.includes('Esqueci minha senha'))
-      .click();
+    await clicarEmQueContem('a', 'Esqueci minha senha');
     await esperar(() =>
       expect(router.currentRoute.value.path).toBe('/esqueci-senha'),
     );
@@ -111,7 +111,7 @@ describe('esqueci a senha (planejamento 0023)', () => {
     await preencher('Repita a senha nova', 'senha-nova-123');
     await clicar('Criar senha');
     await esperar(() => expect(router.currentRoute.value.name).toBe('entrar'));
-    expect(chamadas.at(-1).corpo).toEqual({
+    expect(chamadas.at(-1)?.corpo).toEqual({
       token: 'abc123',
       senha: 'senha-nova-123',
     });

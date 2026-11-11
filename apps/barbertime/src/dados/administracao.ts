@@ -1,5 +1,6 @@
 import type {
   BarbeariaConfigurada,
+  BarbeariaParaConfigurar,
   EmJson,
   ModuloDaBarbearia,
   PapelDaBarbearia,
@@ -19,7 +20,7 @@ export const administracao = {
     remover: (id: number) => http<unknown>('DELETE', `/api/usuarios/${id}`),
   },
   barbearia: {
-    obter: () => http<EmJson<BarbeariaConfigurada>>('GET', '/api/barbearia'),
+    obter: () => http<EmJson<BarbeariaParaConfigurar>>('GET', '/api/barbearia'),
     salvar: (dados: Corpo) =>
       http<EmJson<BarbeariaConfigurada>>('PUT', '/api/barbearia', dados),
     /** Novo código do link "só com o link": o antigo deixa de funcionar. */

@@ -7,6 +7,7 @@ import {
 } from '@barbertime/dominio';
 import { invalido, naoEncontrado, conflito } from '../infra/erros.ts';
 import type { Conexao } from '../infra/banco.ts';
+import type { AtendimentoNaAgenda } from '@barbertime/contratos';
 
 // Agenda no servidor (planejamentos 0019 e 0020). Fonte única: `atendimentos`
 // (agenda e fila são visões dela) + `bloqueios`. Sempre numa transação com RLS (c).
@@ -52,12 +53,7 @@ export const SELECT_ATENDIMENTO = `
     left join comandas cm on cm.atendimento_id = a.id`;
 
 /** Linha de SELECT_ATENDIMENTO (colunas já em camelCase pelo `as`). */
-export interface LinhaDeAtendimento {
-  id: number;
-  status: string;
-  confirmadoEm: string | Date | null;
-  [coluna: string]: unknown;
-}
+export type LinhaDeAtendimento = Omit<AtendimentoNaAgenda, 'estado'>;
 
 /** Linha do atendimento com o status do balcão e o estado da agenda atual. */
 export const comEstado = <A extends LinhaDeAtendimento>(a: A) => ({

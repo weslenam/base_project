@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { DsIcone } from '@barbertime/ui';
 
 // "O que eu vou poder fazer?" (planejamento 0033): a história do papel em

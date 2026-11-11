@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import {
   DsBotao,
@@ -11,13 +11,15 @@ import {
 import { administracao } from '../../dados/administracao.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { carregarSessao, useSessao } from '../../sessao/sessao.ts';
+import type { Selo } from '../estados.ts';
+import type { Modulo } from '../../dados/modelos.ts';
 
 const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 const { pode } = useSessao();
 
-const modulos = ref([]);
+const modulos = ref<Modulo[]>([]);
 const podeGerenciar = computed(() => pode('modulos.gerenciar'));
 const inclusos = computed(() =>
   modulos.value.filter((m) => m.tipo === 'incluso'),
@@ -26,7 +28,7 @@ const adicionais = computed(() =>
   modulos.value.filter((m) => m.tipo === 'adicional'),
 );
 
-const SELO = {
+const SELO: Record<string, Selo> = {
   ativo: { estado: 'confirmado', texto: 'Ativo' },
   solicitado: { estado: 'pendente', texto: 'Aguardando contratação' },
   inativo: { estado: 'neutro', texto: 'Inativo' },
@@ -38,7 +40,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-async function agir(modulo, acao, mensagem) {
+async function agir(modulo: Modulo, acao: string, mensagem: string) {
   if (acao === 'solicitar') {
     const ok = await confirmar(
       `${modulo.nome} é um serviço adicional, cobrado à parte. Enviar a solicitação de contratação para a equipe BarberTime?`,

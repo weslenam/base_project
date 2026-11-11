@@ -3,16 +3,18 @@ import {
   SESSAO_DONO,
   clicar,
   clicarContendo,
+  clicarEmQueContem,
   esperar,
-  preencher,
   montarApp,
+  preencher,
   sessaoCom,
   simularApi,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 import { MODULOS, PAPEIS_PADRAO } from '@barbertime/dominio';
 
-let app;
+let app: AppMontado | undefined;
 afterEach(() => {
   app?.unmount();
   document.body.innerHTML = '';
@@ -28,8 +30,9 @@ const PAPEIS = PAPEIS_PADRAO.map((p, i) => ({
   permissoes: [...p.permissoes],
   usuarios: 1,
 }));
-const usuario = (id, nome, chave) => {
+const usuario = (id: number, nome: string, chave: string) => {
   const papel = PAPEIS.find((p) => p.chave === chave);
+  if (!papel) throw new Error(`Papel ${chave} não existe`);
   return {
     id,
     nome,
@@ -46,10 +49,7 @@ const USUARIOS = [
   usuario(2, 'Gil Gerente', 'gerente'),
   usuario(3, 'Renata Recepção', 'recepcao'),
 ];
-const abrirLinha = (nome) =>
-  [...document.querySelectorAll('td')]
-    .find((td) => td.textContent.includes(nome))
-    .click();
+const abrirLinha = (nome: string) => clicarEmQueContem('td', nome);
 
 describe('usuários', () => {
   it('lista quem tem acesso, com papel e situação; o próprio usuário aparece como "(você)"', async () => {
@@ -74,12 +74,12 @@ describe('usuários', () => {
     });
     app = await montarApp('/usuarios');
     await esperar(() => expect(texto()).toContain('Renata Recepção'));
-    abrirLinha('Renata');
+    await abrirLinha('Renata');
     await clicar('Desativado');
     await clicar('Salvar');
     await esperar(() => expect(texto()).toContain('Não foi possível'));
     expect(texto()).toContain('quem está abaixo de você');
-    expect(chamadas.find((c) => c.metodo === 'PUT').corpo).toEqual({
+    expect(chamadas.find((c) => c.metodo === 'PUT')?.corpo).toEqual({
       papelId: 3,
       ativo: false,
     });
@@ -89,7 +89,7 @@ describe('usuários', () => {
     simularApi({ 'GET /api/usuarios': USUARIOS, 'GET /api/papeis': PAPEIS });
     app = await montarApp('/usuarios');
     await esperar(() => expect(texto()).toContain('Renata Recepção'));
-    abrirLinha('Renata');
+    await abrirLinha('Renata');
     await esperar(() => expect(texto()).toContain('recepcao@barbertime.dev'));
     expect(texto()).not.toMatch(/senha provisória|Definir senha/i);
   });
@@ -100,7 +100,10 @@ describe('convite com a história do papel (planejamento 0033)', () => {
     const chamadas = simularApi({
       'GET /api/usuarios': USUARIOS,
       'GET /api/papeis': PAPEIS,
-      'POST /api/usuarios': (c) => [201, { id: 9, nome: c.nome }],
+      'POST /api/usuarios': (c: unknown) => [
+        201,
+        { id: 9, nome: (c as { nome: string }).nome },
+      ],
     });
     app = await montarApp('/usuarios');
     await esperar(() => expect(texto()).toContain('Renata Recepção'));
@@ -116,7 +119,7 @@ describe('convite com a história do papel (planejamento 0033)', () => {
     await esperar(() =>
       expect(chamadas.find((c) => c.metodo === 'POST')).toBeTruthy(),
     );
-    expect(chamadas.find((c) => c.metodo === 'POST').corpo).toMatchObject({
+    expect(chamadas.find((c) => c.metodo === 'POST')?.corpo).toMatchObject({
       nome: 'Ana Souza',
       papelId: 4,
     });
@@ -130,7 +133,7 @@ describe('hierarquia na tela de usuários (planejamento 0023)', () => {
     simularApi({ 'GET /api/usuarios': USUARIOS, 'GET /api/papeis': PAPEIS });
     app = await montarApp('/usuarios', { sessao: comoGerente });
     await esperar(() => expect(texto()).toContain('Zé Carlos'));
-    abrirLinha('Zé Carlos');
+    await abrirLinha('Zé Carlos');
     await esperar(() =>
       expect(texto()).toContain('está no seu nível ou acima'),
     );
@@ -146,7 +149,7 @@ describe('hierarquia na tela de usuários (planejamento 0023)', () => {
       ...document.querySelectorAll('[role="group"][aria-label="Papel"] button'),
     ];
     await esperar(() => expect(cartoes().length).toBe(2));
-    expect(cartoes().map((b) => b.querySelector('span').textContent)).toEqual([
+    expect(cartoes().map((b) => b.querySelector('span')?.textContent)).toEqual([
       'Recepção',
       'Barbeiro',
     ]);
@@ -177,11 +180,11 @@ describe('papéis', () => {
 });
 
 describe('módulos', () => {
-  const lista = (estados = {}) =>
+  const lista = (estados: Record<string, string> = {}) =>
     MODULOS.map((m) => ({ ...m, estado: estados[m.chave] ?? 'inativo' }));
 
   it('separa inclusos e serviços adicionais; solicitar pede confirmação e chama a API', async () => {
-    let estados = { agendamento_online: 'ativo' };
+    let estados: Record<string, string> = { agendamento_online: 'ativo' };
     const chamadas = simularApi({
       'GET /api/modulos': () => [200, lista(estados)],
       'GET /api/auth/eu': SESSAO_DONO,
@@ -197,9 +200,8 @@ describe('módulos', () => {
     const cartao = [...document.querySelectorAll('section')].find(
       (s) => s.getAttribute('aria-label') === 'Pagamento online',
     );
-    [...cartao.querySelectorAll('button')]
-      .find((b) => b.textContent.includes('Solicitar'))
-      .click();
+    if (!cartao) throw new Error('Cartão do Pagamento online não apareceu');
+    await clicarEmQueContem('button', 'Solicitar', cartao);
     await esperar(() => expect(texto()).toContain('cobrado à parte'));
     await clicar('Solicitar contratação', { ultimo: true });
     await esperar(() =>

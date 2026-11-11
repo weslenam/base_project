@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { DsBotao, DsFormulario, DsInput } from '@barbertime/ui';
@@ -20,7 +20,7 @@ async function aoEnviar() {
   try {
     aviso.value = (await pedirRedefinicao(email.value)).mensagem;
   } catch (e) {
-    erro.value = e.message;
+    erro.value = (e as Error).message;
   } finally {
     enviando.value = false;
   }

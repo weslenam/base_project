@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
@@ -20,6 +20,25 @@ import {
 import { hojeIso, somarDias } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
 import { ErroDeNegocio } from '../../dados/erros.ts';
+import type { AgendamentoPublico, EmJson } from '@barbertime/contratos';
+import type { Pagina } from '../../dados/modelos.ts';
+import type { HorarioLivre } from '../../dados/tipos.ts';
+
+type ServicoPublico = Pagina['servicos'][number];
+type BarbeiroPublico = Pagina['barbeiros'][number];
+/** O que o cliente escolheu, etapa por etapa. */
+interface Escolha {
+  servico: ServicoPublico | null;
+  barbeiro: BarbeiroPublico | null;
+  dia: string | null;
+  hora: string | null;
+}
+const escolhaVazia = (): Escolha => ({
+  servico: null,
+  barbeiro: null,
+  dia: null,
+  hora: null,
+});
 
 // Página do cliente final (planejamentos 0006 e 0014): uma etapa por vez, sem rolagem,
 // cartão "Seu agendamento" ao lado em telas largas e saudação a quem já é cliente.
@@ -27,36 +46,38 @@ import { ErroDeNegocio } from '../../dados/erros.ts';
 const route = useRoute();
 const { negar } = useDialogo();
 
-const barbearia = ref(null);
+const barbearia = ref<Pagina['barbearia'] | null>(null);
 const naoEncontrada = ref(false);
-const servicos = ref([]);
-const barbeiros = ref([]);
-const horarios = ref([]);
+const servicos = ref<ServicoPublico[]>([]);
+const barbeiros = ref<BarbeiroPublico[]>([]);
+const horarios = ref<HorarioLivre[]>([]);
 const enviando = ref(false);
-const confirmado = ref(null);
+const confirmado = ref<EmJson<AgendamentoPublico> | null>(null);
 
 const passo = ref(0);
-const escolha = ref({ servico: null, barbeiro: null, dia: null, hora: null });
+const escolha = ref<Escolha>(escolhaVazia());
 
 // Etapa "Seus dados": telefone primeiro; quem já é cliente é reconhecido.
-const telefone = ref(null);
+const telefone = ref<string | null>(null);
 const nome = ref('');
 /** undefined: ainda não consultou · null: cliente novo · { primeiroNome }: já é cliente */
-const reconhecido = ref(undefined);
+const reconhecido = ref<{ primeiroNome: string } | null | undefined>(undefined);
 const erroDados = ref('');
 
 const PASSOS = ['Serviço', 'Barbeiro', 'Dia', 'Horário', 'Seus dados'];
 const passos = PASSOS.map((rotulo) => ({ rotulo }));
 // Slug e, no modo "só com o link", o código ?c= (planejamento 0019, ADR 0013).
-const slug = route.params.slug;
-const codigo = route.query.c ?? null;
+const slug = String(route.params.slug);
+// Com o ?c= repetido no link, vale o primeiro.
+const c = [route.query.c].flat()[0];
+const codigo = c ? String(c) : undefined;
 const hoje = ref(hojeIso());
 
 /** Próximos 7 dias em que a barbearia abre, dentro do limite de dias à frente. */
 const dias = computed(() => {
   const b = barbearia.value;
   if (!b) return [];
-  const lista = [];
+  const lista: string[] = [];
   const limite = b.agendamento?.diasAFrente ?? 30;
   for (let i = 0; i <= limite && lista.length < 7; i++) {
     const iso = somarDias(hoje.value, i);
@@ -66,7 +87,7 @@ const dias = computed(() => {
   }
   return lista;
 });
-const rotuloDia = (iso) =>
+const rotuloDia = (iso: string) =>
   iso === hoje.value
     ? 'Hoje'
     : iso === somarDias(hoje.value, 1)
@@ -109,7 +130,7 @@ watch(
 );
 
 /** Escolher já avança, como num PDV. */
-function escolher(campo, valor) {
+function escolher<C extends keyof Escolha>(campo: C, valor: Escolha[C]) {
   escolha.value[campo] = valor;
   passo.value = Math.min(passo.value + 1, PASSOS.length - 1);
 }
@@ -128,7 +149,7 @@ let consulta = 0;
 watch(telefone, async (valor) => {
   erroDados.value = '';
   const esta = ++consulta;
-  if (!validarTelefone(valor)) {
+  if (!valor || !validarTelefone(valor)) {
     reconhecido.value = undefined;
     return;
   }
@@ -157,6 +178,12 @@ async function confirmar() {
   enviando.value = true;
   try {
     const { servico, barbeiro, dia, hora } = escolha.value;
+    // O botão de confirmar só aparece na última etapa, com tudo escolhido.
+    if (!servico || !barbeiro || !dia || !hora) {
+      erroDados.value = 'Escolha de novo o horário.';
+      passo.value = 3;
+      return;
+    }
     confirmado.value = await api.publico.agendar(slug, codigo, {
       data: dia,
       inicio: hora,
@@ -181,7 +208,7 @@ async function confirmar() {
 
 function recomecar() {
   confirmado.value = null;
-  escolha.value = { servico: null, barbeiro: null, dia: null, hora: null };
+  escolha.value = escolhaVazia();
   passo.value = 0;
 }
 </script>
@@ -338,7 +365,7 @@ function recomecar() {
 
               <div v-if="clienteQueVolta" class="saudacao" role="status">
                 <p class="saudacao__titulo">
-                  Olá, {{ reconhecido.primeiroNome }}!
+                  Olá, {{ reconhecido?.primeiroNome }}!
                 </p>
                 <p>Que bom te ver de novo. É só confirmar.</p>
                 <DsBotao

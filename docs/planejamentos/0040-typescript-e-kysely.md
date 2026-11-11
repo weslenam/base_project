@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 a 8 concluídas; etapa 9 em andamento: 9A a 9D feitas)
+- **Status:** Em andamento (etapas 1 a 3 e 5 a 9 concluídas; próxima: etapa 10, o fechamento)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -56,7 +56,7 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 - [x] 6. **API, serviços e rotas** convertidos para TS + Kysely, módulo a módulo: cadastros e clientes; agenda e balcão; caixa, fidelidade e pacotes; estoque e financeiro; plataforma e autenticação. Os testes de integração viram TS.
 - [x] 7. **`libs/ui-vuetify` e `libs/ui-contrato`:** componentes `Ds*` com `<script setup lang="ts">` e props tipadas.
 - [x] 8. **`apps/business-center`** (pequeno: 15 arquivos).
-- [ ] 9. **`apps/barbertime`:** camada de dados tipada pelos contratos e telas com `lang="ts"`, por pasta.
+- [x] 9. **`apps/barbertime`:** camada de dados tipada pelos contratos e telas com `lang="ts"`, por pasta.
 - [ ] 10. **Fechamento:** desligar `allowJs`, remover o `jsconfig.json`, rodar `/code-review` e `security-review` gerais e atualizar os índices.
 
 ## Guia da etapa 6 (para os agentes)
@@ -241,3 +241,17 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
   - **Modelos novos:** `Fornecedor`, `Compra`, `CompraResumida`, `ProdutoEstoque`, `MovimentoEstoque`, `ItemFicha`, `ContaFin` e `Categoria`.
   - **Exclusões e ações de diálogo:** conferem o id antes de pedir a confirmação.
   - **Selo de situação de conta desconhecida:** aparece com o próprio nome, em vez de vazio.
+- 2026-11-10 — Etapa 9E (acesso, administração, página pública e a vitrine de componentes) fecha a etapa 9: o app `barbertime` não tem mais nenhum `.js` em `src` e todos os `.vue` usam `lang="ts"`.
+  - **Contratos:**
+    - `BarbeariaParaConfigurar` (o `GET /barbearia` traz `paginaPublicaLiberada`);
+    - `AgendamentoPublico` com os tipos reais, que antes eram `unknown`.
+  - **API:** o `LinhaDeAtendimento` passa a ser o contrato `AtendimentoNaAgenda` sem o `estado`, em vez de um tipo aberto com `unknown`.
+  - **Modelos:** `Usuario` e `Papel`.
+  - **Apoio dos testes:** `clicarEmQueContem()`.
+  - **Bug #54** (anterior à conversão, achado na revisão): depois de salvar as configurações, o aviso de página pública bloqueada sumia. Corrigido com teste de regressão.
+  - **Da revisão:**
+    - a página pública volta ao horário quando falta escolha;
+    - com o `?c=` repetido no link, vale o primeiro;
+    - `LinhaDoSelect` virou `LinhaDeAtendimento`;
+    - `Modulo` e `Pagina` foram para os modelos;
+    - o `clicarEmQueContem` espera o elemento aparecer.

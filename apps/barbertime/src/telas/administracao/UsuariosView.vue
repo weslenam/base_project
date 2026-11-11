@@ -1,20 +1,22 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { DsBotao, DsIcone, DsPagina, DsSelo, DsTabela } from '@barbertime/ui';
 import { administracao } from '../../dados/administracao.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { useSessao } from '../../sessao/sessao.ts';
 import UsuarioDialogo from './UsuarioDialogo.vue';
+import type { ColunaDaTabela } from '@barbertime/ui';
+import type { Papel, Usuario } from '../../dados/modelos.ts';
 
 const executar = useAcao();
 const { sessao } = useSessao();
 
-const usuarios = ref([]);
-const papeis = ref([]);
+const usuarios = ref<Usuario[]>([]);
+const papeis = ref<Papel[]>([]);
 const dialogoAberto = ref(false);
-const selecionado = ref(null);
+const selecionado = ref<Usuario | null>(null);
 
-const colunas = [
+const colunas: ColunaDaTabela<Usuario>[] = [
   { campo: 'nome', titulo: 'Nome', ordenavel: true },
   { campo: 'email', titulo: 'E-mail' },
   { campo: 'papelNome', titulo: 'Papel', ordenavel: true },
@@ -32,7 +34,7 @@ async function carregar() {
 }
 onMounted(carregar);
 
-function abrir(usuario = null) {
+function abrir(usuario: Usuario | null = null) {
   selecionado.value = usuario;
   dialogoAberto.value = true;
 }
@@ -58,7 +60,7 @@ function abrir(usuario = null) {
     >
       <template #celula-nome="{ linha }">
         {{ linha.nome }}
-        <span v-if="linha.id === sessao?.usuario.id" class="ds-suave"
+        <span v-if="linha.id === sessao?.usuario?.id" class="ds-suave"
           >(você)</span
         >
       </template>
@@ -72,7 +74,7 @@ function abrir(usuario = null) {
       v-model="dialogoAberto"
       :usuario="selecionado"
       :papeis="papeis"
-      :eu="sessao?.usuario.id"
+      :eu="sessao?.usuario?.id"
       :meu-papel="sessao?.papel?.chave"
       @salvo="carregar"
     />
