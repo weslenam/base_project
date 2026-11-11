@@ -91,6 +91,8 @@ export async function criarIdentidadePropria(
     },
 
     async conferirCredenciais(email, senha) {
+      // Rejeita senha ausente ou não-string antes de qualquer hash (#44).
+      if (!senha || typeof senha !== 'string') return null;
       const {
         rows: [usuario],
       } = await db.query<{ id: number; senha_hash: string }>(
@@ -98,10 +100,9 @@ export async function criarIdentidadePropria(
         [String(email ?? '')],
       );
       // Mesmo tempo para e-mail inexistente e senha errada: sem usuário,
-      // confere contra um hash falso de mesmo custo (ADR 0014). A senha vai
-      // como texto, como sempre foi (o `conferirSenha` também faz String()).
+      // confere contra um hash falso de mesmo custo (ADR 0014).
       const confere = await conferirSenha(
-        String(senha),
+        senha,
         usuario ? usuario.senha_hash : await hashFalso(),
       );
       return usuario && confere ? usuario.id : null;
