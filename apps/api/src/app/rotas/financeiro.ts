@@ -6,17 +6,22 @@ import {
   cancelarConta,
   criarConta,
   editarConta,
+  encerrarRecorrencia,
   estornarBaixa,
   excluirCategoria,
   listarCategorias,
   listarContas,
+  listarRecorrencias,
   obterConta,
+  previsao,
   salvarCategoria,
+  salvarRecorrencia,
 } from '../../servicos/financeiro.ts';
 import type {
   DadosDaBaixa,
   DadosDaCategoria,
   DadosDaConta,
+  DadosDaRecorrencia,
   FiltrosDeContas,
 } from '../../servicos/financeiro.ts';
 import {
@@ -146,5 +151,60 @@ export default async function (fastify: FastifyInstance) {
   );
   fastify.post<ComId>('/financeiro/contas/:id/estornar', gerenciar, (req) =>
     na(req, (c) => estornarBaixa(c, req.params.id, hoje())),
+  );
+
+  // ---- recorrências ----
+  const recorrencia = {
+    ...gerenciar,
+    schema: corpo({
+      tipo: texto(10),
+      descricao: texto(200),
+      categoriaId: inteiro,
+      valor: escalar(),
+      diaDoMes: inteiro,
+      fornecedorId: inteiro,
+    }),
+  };
+  fastify.get('/financeiro/recorrencias', gerenciar, (req) =>
+    na(req, (c) => listarRecorrencias(c, barbearia(req), hoje())),
+  );
+  fastify.post<{ Body: DadosDaRecorrencia | null }>(
+    '/financeiro/recorrencias',
+    recorrencia,
+    async (req, reply) => {
+      reply.code(201);
+      return na(req, (c) =>
+        salvarRecorrencia(c, barbearia(req), req.body ?? {}, hoje()),
+      );
+    },
+  );
+  fastify.put<ComId & { Body: DadosDaRecorrencia | null }>(
+    '/financeiro/recorrencias/:id',
+    recorrencia,
+    (req) =>
+      na(req, (c) =>
+        salvarRecorrencia(
+          c,
+          barbearia(req),
+          { ...req.body, id: Number(req.params.id) },
+          hoje(),
+        ),
+      ),
+  );
+  fastify.post<ComId>('/financeiro/recorrencias/:id/encerrar', gerenciar, (req) =>
+    na(req, (c) => encerrarRecorrencia(c, barbearia(req), req.params.id, hoje())),
+  );
+
+  // ---- previsão ----
+  fastify.get<{ Querystring: { dias?: number } }>(
+    '/financeiro/previsao',
+    {
+      ...gerenciar,
+      schema: query({ dias: { type: ['integer', 'null'], enum: [30, 60, 90, null] } }),
+    },
+    (req) =>
+      na(req, (c) =>
+        previsao(c, barbearia(req), req.query.dias ?? 30, hoje()),
+      ),
   );
 }

@@ -123,7 +123,7 @@ export function criarApiHttp(base: Api): Api {
           jaNaComanda,
         }),
     },
-    // Financeiro (planejamento 0027, parte 2, fatia 2A).
+    // Financeiro (planejamento 0027, parte 2).
     financeiro: {
       categorias: recurso('/api/financeiro/categorias'),
       contas: {
@@ -138,6 +138,17 @@ export function criarApiHttp(base: Api): Api {
           http('POST', `/api/financeiro/contas/${id}/baixar`, d),
         estornar: (id) => http('POST', `/api/financeiro/contas/${id}/estornar`),
       },
+      recorrencias: {
+        listar: () => http('GET', '/api/financeiro/recorrencias'),
+        salvar: (d) =>
+          d.id
+            ? http('PUT', `/api/financeiro/recorrencias/${d.id}`, d)
+            : http('POST', '/api/financeiro/recorrencias', d),
+        encerrar: (id) =>
+          http('POST', `/api/financeiro/recorrencias/${id}/encerrar`),
+      },
+      previsao: (dias = 30) =>
+        http('GET', `/api/financeiro/previsao?dias=${dias}`),
     },
     // Caixa e comandas (planejamento 0020, fase 1).
     caixa: {

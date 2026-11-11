@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  agruparPrevisaoPorSemana,
+  datasDeRecorrencia,
   movimentoDaBaixa,
   situacaoDaConta,
   totaisDasContas,
@@ -118,5 +120,110 @@ describe('totais das contas', () => {
         HOJE,
       ),
     ).toEqual({ aberto: 100, vencido: 50, quitado: 82.5 });
+  });
+});
+
+// Planejamento 0027, fatia 2B: recorrências e previsão.
+
+describe('datasDeRecorrencia', () => {
+  it('dia passado no mês atual → próximas 3 ocorrências em meses seguintes', () => {
+    // hoje = 2026-11-11, dia = 10 (já passou)
+    expect(datasDeRecorrencia(10, '2026-11-11')).toEqual([
+      '2026-12-10',
+      '2027-01-10',
+      '2027-02-10',
+    ]);
+  });
+
+  it('dia futuro no mês atual → inclui este mês', () => {
+    expect(datasDeRecorrencia(15, '2026-11-11')).toEqual([
+      '2026-11-15',
+      '2026-12-15',
+      '2027-01-15',
+    ]);
+  });
+
+  it('dia = hoje → não inclui hoje (exclusive)', () => {
+    expect(datasDeRecorrencia(11, '2026-11-11')).toEqual([
+      '2026-12-11',
+      '2027-01-11',
+      '2027-02-11',
+    ]);
+  });
+
+  it('virada de ano', () => {
+    // hoje = 2026-12-31, dia = 1
+    expect(datasDeRecorrencia(1, '2026-12-31')).toEqual([
+      '2027-01-01',
+      '2027-02-01',
+      '2027-03-01',
+    ]);
+  });
+});
+
+describe('agruparPrevisaoPorSemana', () => {
+  const conta = (extra: Partial<{
+    tipo: string; valor: number; vencimento: string;
+    situacao: string; categoriaNome: string;
+  }> = {}) => ({
+    tipo: 'pagar',
+    valor: 100,
+    vencimento: '2026-11-14',
+    situacao: 'aberta',
+    categoriaNome: 'Aluguel',
+    ...extra,
+  });
+
+  it('conta no período entra na semana correta', () => {
+    const r = agruparPrevisaoPorSemana([conta()], '2026-11-11', 30);
+    // 2026-11-14 é sábado; inicio da semana (segunda) = 2026-11-09
+    expect(r.semanas).toHaveLength(1);
+    expect(r.semanas[0].pagar).toBe(100);
+    expect(r.semanas[0].receber).toBe(0);
+    expect(r.semanas[0].saldo).toBe(-100);
+    expect(r.totalPagar).toBe(100);
+    expect(r.saldoPrevisto).toBe(-100);
+  });
+
+  it('conta vencida entra nos totais mas não nas semanas', () => {
+    const r = agruparPrevisaoPorSemana(
+      [conta({ vencimento: '2026-11-01' })],
+      '2026-11-11',
+      30,
+    );
+    expect(r.semanas).toHaveLength(0);
+    expect(r.vencidaPagar).toBe(100);
+    expect(r.totalPagar).toBe(100);
+  });
+
+  it('conta a receber aumenta o saldo previsto', () => {
+    const r = agruparPrevisaoPorSemana(
+      [
+        conta({ tipo: 'receber', valor: 200, vencimento: '2026-11-14', categoriaNome: 'Aluguel de cadeira' }),
+        conta({ tipo: 'pagar', valor: 150, vencimento: '2026-11-14' }),
+      ],
+      '2026-11-11',
+      30,
+    );
+    expect(r.saldoPrevisto).toBeCloseTo(50);
+  });
+
+  it('conta além do limite não entra', () => {
+    const r = agruparPrevisaoPorSemana(
+      [conta({ vencimento: '2026-12-20' })],
+      '2026-11-11',
+      30,
+    );
+    expect(r.semanas).toHaveLength(0);
+    expect(r.totalPagar).toBe(0);
+  });
+
+  it('quitadas são ignoradas', () => {
+    const r = agruparPrevisaoPorSemana(
+      [conta({ situacao: 'quitada' })],
+      '2026-11-11',
+      30,
+    );
+    expect(r.totalPagar).toBe(0);
   });
 });

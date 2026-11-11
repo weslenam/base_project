@@ -1,6 +1,6 @@
 # Planejamento 0027: Estoque, compras e financeiro (contas a pagar e a receber)
 
-- **Status:** Parte 1 concluída; parte 2: fatia 2A concluída (PR #31), fatia 2B pausada até o planejamento 0040 (TypeScript + Kysely)
+- **Status:** Parte 1 concluída; parte 2: fatia 2A concluída (PR #31), fatia 2B implementada — pendente: verificar:tudo, code-review, security-review e commit
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0010 (papéis e permissões), 0011 (módulos), 0014 (proteção da API); planejamentos 0008 (caixa e comanda), 0020 (balcão) e 0026
@@ -216,15 +216,15 @@ As telas usam só os componentes `Ds*` (skill `design-system`). Um componente no
 ## Etapas
 
 - [x] 1. Aprovação do mini-spec pelo Weslen.
-- [ ] 2. Domínio: módulos e permissões novos, mais as regras de estoque, parcelas, recorrência, previsão e caixa, com testes. _(Parte 1 concluída: módulos, permissões, estoque, parcelas e `documentoValido`. Falta recorrência, previsão e caixa.)_
-- [ ] 3. Migração: tabelas, RLS, campos de produto e categorias iniciais. _(Parte 1 concluída em `1762500000007_estoque-e-compras.js`. Falta `recorrencias` e `movimentos_caixa`.)_
+- [x] 2. Domínio: módulos e permissões novos, mais as regras de estoque, parcelas, recorrência, previsão e caixa, com testes. _(`datasDeRecorrencia`, `agruparPrevisaoPorSemana` na 2B.)_
+- [x] 3. Migração: tabelas, RLS, campos de produto e categorias iniciais. _(`20261111000000_recorrencias.sql` na 2B: tabela `recorrencias` + `recorrencia_id` em `contas`.)_
 - [x] 4. API de estoque: produtos, movimentos, inventário, ficha técnica e baixa na comanda paga.
 - [x] 5. API de compras e fornecedores, gerando as parcelas.
-- [ ] 6. API do financeiro: contas, baixa e estorno com caixa, categorias, recorrências e previsão.
-- [ ] 7. Caixa: saídas e entradas no resumo e no fechamento.
-- [ ] 8. Telas: produtos, estoque, fornecedores, compras, ficha técnica, contas, cadastros, previsão e caixa, mais menu e rotas. _(Parte 1 concluída: produtos, estoque, fornecedores, compras, ficha técnica, comanda sem consumíveis, menu e rotas.)_
-- [ ] 9. Testes de integração e de tela dos critérios de aceite. _(Parte 1 concluída: critérios 1, 2, 3, 7 e 8 em `apps/api/src/integracao/estoque.spec.js` e telas em `apps/barbertime/src/telas/estoque.spec.js`.)_
-- [ ] 10. ADRs 0019 e 0021 e índices.
+- [x] 6. API do financeiro: contas, baixa e estorno com caixa, categorias, recorrências e previsão. _(Recorrências e previsão na 2B.)_
+- [x] 7. Caixa: saídas e entradas no resumo e no fechamento. _(Fatia 2A.)_
+- [x] 8. Telas: produtos, estoque, fornecedores, compras, ficha técnica, contas, cadastros, previsão e caixa, mais menu e rotas. _(`CadastrosView` com abas, `RecorrenciaDialogo` e `PrevisaoView` na 2B.)_
+- [x] 9. Testes de integração e de tela dos critérios de aceite. _(Critérios 5 e 6 adicionados na 2B.)_
+- [x] 10. ADRs 0019 e 0021 e índices.
 - [ ] 11. `pnpm verificar:tudo`, `/code-review`, `security-review` e commit.
 
 ## Riscos e pendências
@@ -246,6 +246,12 @@ As telas usam só os componentes `Ds*` (skill `design-system`). Um componente no
   - **Semente:** módulo Financeiro ativo na barbearia modelo, com três contas de exemplo.
   - **Revisão (`/code-review`):** corrigidos #25 (categoria padrão voltava), #26 (Business Center sem as saídas na gaveta), #27 (conta de fornecedor excluído não editava), #28 (baixa e fechamento ao mesmo tempo: caixa travado; o teste é de guarda, a corrida não se reproduz de forma confiável), #29 (valor enorme dava 500) e #30 (texto do estorno e resposta fora de ordem). Mantidos: data padrão da baixa vem do aparelho (o campo é editável; dinheiro do caixa usa a data da barbearia); a lista corta em 500 contas (pendência); `:id` já é tipado pela guarda global.
   - **Testes:** domínio 124; integração 146; tela 8 do financeiro; layout 89.
+- 2026-11-11: **fatia 2B implementada** (branch `main`, pendente commit):
+  - **Migração `20261111000000_recorrencias.sql`:** tabela `app.recorrencias` (tipo, descrição, categoria, valor, dia 1–28, fornecedor opcional, `encerrada_em`) + `recorrencia_id` em `contas`, com RLS e FK composta por barbearia.
+  - **Domínio:** `datasDeRecorrencia` (próximas 3 datas de um dia fixo) e `agruparPrevisaoPorSemana` (agrupa contas abertas por semana ISO, separa vencidas), com testes.
+  - **API:** `GET/POST /financeiro/recorrencias`, `PUT /financeiro/recorrencias/:id`, `POST /financeiro/recorrencias/:id/encerrar` e `GET /financeiro/previsao?dias=`. Geração idempotente de 3 contas por recorrência. Encerrar cancela contas futuras abertas.
+  - **Telas:** `CadastrosView` refatorado com abas Categorias + Recorrências; novo `RecorrenciaDialogo` (criar/editar/encerrar); nova `PrevisaoView` (indicadores, tabela por semana e por categoria, seletor de período 30/60/90 dias). Router atualizado: "Categorias" → "Cadastros" + rota `/financeiro/previsao`.
+  - **ADRs 0019** (recorrências e previsão) **e 0021** (estoque por movimentos) escritos.
 - 2026-11-08: parte 1 (estoque e compras) implementada, ainda sem commit. `pnpm verificar:tudo` passou (476 testes: 398 de unidade e de tela, 78 de integração). Desvios do mini-spec:
   - **Validação de CPF/CNPJ do fornecedor:** nova regra pura `documentoValido` no `@barbertime/dominio`, usada pela API, pelo fake e pela tela.
   - **Categorias iniciais:** criadas sob demanda (`garantirCategoriasPadrao`) na primeira compra com valor, não na migração. As tabelas `recorrencias` e `movimentos_caixa` ficam para a migração da parte 2.

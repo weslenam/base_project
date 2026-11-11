@@ -30,7 +30,9 @@ import type {
   PacoteDoCatalogo,
   PaginaPublica,
   PodeUsarPacote,
+  PrevisaoFinanceira,
   ProdutoNoEstoque,
+  RecorrenciaFinanceira,
   ResumoDoCliente,
   Servico,
   VendaDePacote,
@@ -175,6 +177,12 @@ export interface Api {
       baixar: (id: number, d: Corpo) => Promise<EmJson<ContaFinanceira>>;
       estornar: (id: number) => Promise<EmJson<ContaFinanceira>>;
     };
+    recorrencias: {
+      listar: () => Promise<EmJson<RecorrenciaFinanceira>[]>;
+      salvar: (d: Corpo) => Promise<EmJson<RecorrenciaFinanceira>>;
+      encerrar: (id: number) => Promise<EmJson<RecorrenciaFinanceira>>;
+    };
+    previsao: (dias?: number) => Promise<EmJson<PrevisaoFinanceira>>;
   };
   caixa: {
     obterDoDia: () => Promise<EmJson<CaixaComResumo> | null>;

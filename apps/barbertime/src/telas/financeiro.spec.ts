@@ -32,10 +32,11 @@ const menu = () =>
 const abrirLinha = clicarCelula;
 
 describe('menu e permissões', () => {
-  it('com o módulo, Contas e Categorias aparecem no grupo Financeiro', async () => {
+  it('com o módulo, Contas, Cadastros e Previsão aparecem no grupo Financeiro', async () => {
     app = await montarApp('/agenda');
     await esperar(() => expect(menu()).toContain('Contas'));
-    expect(menu()).toContain('Categorias');
+    expect(menu()).toContain('Cadastros');
+    expect(menu()).toContain('Previsão');
   });
 
   it('sem o módulo ou sem financeiro.gerenciar (Recepção), somem', async () => {

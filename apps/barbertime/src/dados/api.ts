@@ -33,6 +33,8 @@ import {
   totalDaCompra,
   motivoParcelasInvalidas,
   documentoValido,
+  agruparPrevisaoPorSemana,
+  datasDeRecorrencia,
   movimentoDaBaixa,
   situacaoDaConta,
   validarBaixa,
@@ -55,6 +57,7 @@ import type {
   ComandaNoBanco,
   CompraNoBanco,
   ContaNoBanco,
+  RecorrenciaNoBanco,
   TabelaComId,
 } from './banco.ts';
 
@@ -469,6 +472,7 @@ export function criarApi({
   function completarConta(ct: ContaNoBanco) {
     return {
       ...ct,
+      recorrenciaId: ct.recorrenciaId ?? null,
       parcela: ct.parcela ?? null,
       parcelas: ct.parcelas ?? null,
       categoriaNome:
@@ -485,6 +489,50 @@ export function criarApi({
     ...cat,
     emUso: banco.contas.some((ct) => ct.categoriaId === cat.id),
   });
+
+  function completarRecorrencia(r: RecorrenciaNoBanco) {
+    return {
+      ...r,
+      categoriaNome:
+        banco.categoriasFinanceiras.find((x) => x.id === r.categoriaId)
+          ?.nome ?? '',
+      fornecedorNome:
+        banco.fornecedores.find((x) => x.id === r.fornecedorId)?.nome ?? null,
+    };
+  }
+
+  /** Garante contas dos próximos 3 meses para recorrências ativas. */
+  function gerarContasFake() {
+    for (const r of banco.recorrencias) {
+      if (r.encerradaEm) continue;
+      for (const vencimento of datasDeRecorrencia(r.diaDoMes, hoje())) {
+        const ja = banco.contas.some(
+          (ct) =>
+            ct.recorrenciaId === r.id &&
+            ct.vencimento === vencimento &&
+            ct.situacao !== 'cancelada',
+        );
+        if (ja) continue;
+        banco.contas.push({
+          id: proximoId(banco.contas),
+          tipo: r.tipo,
+          descricao: r.descricao,
+          categoriaId: r.categoriaId,
+          valor: r.valor,
+          vencimento,
+          fornecedorId: r.tipo === 'pagar' ? r.fornecedorId : null,
+          clienteId: null,
+          compraId: null,
+          recorrenciaId: r.id,
+          origem: 'recorrencia',
+          situacao: 'aberta',
+          pagoEm: null,
+          valorPago: null,
+          forma: null,
+        });
+      }
+    }
+  }
 
   function exigirCategoriaDaConta(id: unknown, tipo: unknown) {
     const cat = banco.categoriasFinanceiras.find((x) => x.id === Number(id));
@@ -1627,6 +1675,97 @@ export function criarApi({
           });
           return copia(completarConta(ct));
         },
+      },
+      recorrencias: {
+        async listar() {
+          gerarContasFake();
+          return copia(banco.recorrencias.map(completarRecorrencia));
+        },
+        async salvar(dados) {
+          const tipo = String(dados.tipo ?? '');
+          if (!['pagar', 'receber'].includes(tipo))
+            throw new ErroDeNegocio(
+              'Escolha se a recorrência é a pagar ou a receber.',
+            );
+          const desc = String(dados.descricao ?? '').trim();
+          if (!desc) throw new ErroDeNegocio('Informe a descrição.');
+          if (!dados.categoriaId)
+            throw new ErroDeNegocio('Escolha a categoria.');
+          const valor = Number(dados.valor);
+          if (!valor || valor <= 0)
+            throw new ErroDeNegocio('Informe o valor.');
+          const dia = Number(dados.diaDoMes);
+          if (!Number.isInteger(dia) || dia < 1 || dia > 28)
+            throw new ErroDeNegocio('O dia do mês deve ser entre 1 e 28.');
+          const id = dados.id ? Number(dados.id) : null;
+          const atual = id
+            ? buscar('recorrencias', id, 'Recorrência')
+            : null;
+          const cat = buscar(
+            'categoriasFinanceiras',
+            Number(dados.categoriaId),
+            'Categoria',
+          );
+          if (cat.tipo !== tipo && !atual)
+            throw new ErroDeNegocio('Tipo da categoria não bate com o da recorrência.');
+          if (atual) {
+            Object.assign(atual, { descricao: desc, categoriaId: cat.id, valor, diaDoMes: dia });
+          } else {
+            banco.recorrencias.push({
+              id: proximoId(banco.recorrencias),
+              tipo,
+              descricao: desc,
+              categoriaId: cat.id,
+              valor,
+              diaDoMes: dia,
+              fornecedorId: null,
+              encerradaEm: null,
+            });
+          }
+          gerarContasFake();
+          return copia(
+            completarRecorrencia(
+              banco.recorrencias.find((r) =>
+                atual ? r.id === atual.id : r.descricao === desc,
+              )!,
+            ),
+          );
+        },
+        async encerrar(id) {
+          const r = buscar('recorrencias', id, 'Recorrência');
+          if (r.encerradaEm)
+            throw new ErroDeNegocio('Esta recorrência já foi encerrada.');
+          r.encerradaEm = hoje();
+          banco.contas
+            .filter(
+              (ct) =>
+                ct.recorrenciaId === r.id &&
+                ct.situacao === 'aberta' &&
+                ct.vencimento > hoje(),
+            )
+            .forEach((ct) => {
+              ct.situacao = 'cancelada';
+            });
+          return copia(completarRecorrencia(r));
+        },
+      },
+      async previsao(dias = 30) {
+        return agruparPrevisaoPorSemana(
+          banco.contas
+            .filter((ct) => ct.situacao === 'aberta')
+            .map((ct) => ({
+              tipo: ct.tipo,
+              valor: ct.valor,
+              vencimento: ct.vencimento,
+              situacao: ct.situacao,
+              categoriaNome:
+                banco.categoriasFinanceiras.find(
+                  (c) => c.id === ct.categoriaId,
+                )?.nome ?? '',
+            })),
+          hoje(),
+          [30, 60, 90].includes(dias) ? dias : 30,
+        );
       },
     },
 

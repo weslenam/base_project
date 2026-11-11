@@ -118,6 +118,8 @@ export {
   validarBaixa,
   movimentoDaBaixa,
   totaisDasContas,
+  datasDeRecorrencia,
+  agruparPrevisaoPorSemana,
 } from './financeiro.ts';
 
 // Tipos do domínio (planejamento 0040).
@@ -142,4 +144,4 @@ export type {
 } from './fidelidade.ts';
 export type { Pacote, UsoDePacote, Assinatura } from './pacotes.ts';
 export type { ProdutoEstoque, LinhaDeFicha, Baixa } from './estoque.ts';
-export type { Conta, BaixaDeConta } from './financeiro.ts';
+export type { Conta, BaixaDeConta, ContaParaPrevisao } from './financeiro.ts';

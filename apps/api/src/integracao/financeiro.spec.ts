@@ -377,3 +377,151 @@ describe('acesso', () => {
     expect((await b.dono.get('/api/financeiro/contas')).status).toBe(403);
   });
 });
+
+// Critério 5: recorrências (planejamento 0027, fatia 2B)
+describe('recorrências', () => {
+  it('cria recorrência, gera 3 contas e encerrar cancela as futuras', async () => {
+    const b = await comFinanceiro({ caixa: false });
+    const catId = b.categoria('Aluguel')?.id;
+
+    // Criar recorrência a pagar.
+    const r1 = await b.dono.post('/api/financeiro/recorrencias', {
+      tipo: 'pagar',
+      descricao: 'Aluguel mensal',
+      categoriaId: catId,
+      valor: 2000,
+      diaDoMes: 10,
+    });
+    expect(r1.status).toBe(201);
+    expect(r1.corpo).toMatchObject({
+      tipo: 'pagar',
+      descricao: 'Aluguel mensal',
+      diaDoMes: 10,
+      encerradaEm: null,
+    });
+
+    // GET deve ter gerado 3 contas.
+    const lista = (await b.dono.get('/api/financeiro/recorrencias')).corpo;
+    expect(lista).toHaveLength(1);
+    const contas = (
+      await b.dono.get('/api/financeiro/contas?situacao=todas')
+    ).corpo;
+    // Contas geradas da recorrência são 3 (pode ter outras da semente).
+    const daRecorrencia = contas.filter(
+      (ct: { recorrenciaId: number | null }) =>
+        ct.recorrenciaId === r1.corpo.id,
+    );
+    expect(daRecorrencia).toHaveLength(3);
+    expect(
+      daRecorrencia.every(
+        (ct: { situacao: string }) => ct.situacao === 'aberta',
+      ),
+    ).toBe(true);
+
+    // Idempotente: listar de novo não duplica.
+    await b.dono.get('/api/financeiro/recorrencias');
+    const contas2 = (
+      await b.dono.get('/api/financeiro/contas?situacao=todas')
+    ).corpo;
+    expect(
+      contas2.filter(
+        (ct: { recorrenciaId: number | null }) =>
+          ct.recorrenciaId === r1.corpo.id,
+      ),
+    ).toHaveLength(3);
+
+    // Encerrar cancela as futuras em aberto.
+    const enc = await b.dono.post(
+      `/api/financeiro/recorrencias/${r1.corpo.id}/encerrar`,
+    );
+    expect(enc.status).toBe(200);
+    expect(enc.corpo.encerradaEm).toBeTruthy();
+
+    const contas3 = (
+      await b.dono.get('/api/financeiro/contas?situacao=todas')
+    ).corpo;
+    const abertas = contas3.filter(
+      (ct: { recorrenciaId: number | null; situacao: string }) =>
+        ct.recorrenciaId === r1.corpo.id && ct.situacao === 'aberta',
+    );
+    expect(abertas).toHaveLength(0);
+
+    // Já encerrada: recusa novo encerramento.
+    expect(
+      (
+        await b.dono.post(
+          `/api/financeiro/recorrencias/${r1.corpo.id}/encerrar`,
+        )
+      ).status,
+    ).toBe(409);
+  });
+
+  it('valida tipo, dia e categoria', async () => {
+    const b = await comFinanceiro({ caixa: false });
+    const catId = b.categoria('Aluguel')?.id;
+    const base = {
+      tipo: 'pagar',
+      descricao: 'Teste',
+      categoriaId: catId,
+      valor: 100,
+      diaDoMes: 10,
+    };
+    expect(
+      (await b.dono.post('/api/financeiro/recorrencias', { ...base, diaDoMes: 29 })).status,
+    ).toBe(400);
+    expect(
+      (await b.dono.post('/api/financeiro/recorrencias', { ...base, diaDoMes: 0 })).status,
+    ).toBe(400);
+    expect(
+      (await b.dono.post('/api/financeiro/recorrencias', { ...base, tipo: 'outro' })).status,
+    ).toBe(400);
+  });
+});
+
+// Critério 6: previsão de fluxo de caixa (planejamento 0027, fatia 2B)
+describe('previsão', () => {
+  it('agrega contas abertas por semana; vencidas ficam separadas', async () => {
+    const b = await comFinanceiro({ caixa: false });
+    const catId = b.categoria('Aluguel')?.id;
+
+    // Lança conta vencida.
+    await b.dono.post('/api/financeiro/contas', {
+      tipo: 'pagar',
+      descricao: 'Vencida',
+      categoriaId: catId,
+      valor: 500,
+      vencimento: somarDias(hoje(), -5),
+    });
+    // Lança conta futura no período.
+    await b.dono.post('/api/financeiro/contas', {
+      tipo: 'pagar',
+      descricao: 'Futura',
+      categoriaId: catId,
+      valor: 1000,
+      vencimento: somarDias(hoje(), 10),
+    });
+    // Lança conta a receber futura.
+    await b.dono.post('/api/financeiro/contas', {
+      tipo: 'receber',
+      descricao: 'Receita',
+      categoriaId: b.categoria('Aluguel de cadeira')?.id,
+      valor: 800,
+      vencimento: somarDias(hoje(), 10),
+    });
+
+    const r = await b.dono.get('/api/financeiro/previsao?dias=30');
+    expect(r.status).toBe(200);
+    expect(r.corpo.vencidaPagar).toBe(500);
+    expect(r.corpo.semanas.length).toBeGreaterThan(0);
+    // Semana com as contas futuras
+    const semana = r.corpo.semanas.find(
+      (s: { pagar: number }) => s.pagar === 1000,
+    );
+    expect(semana).toBeDefined();
+    expect(semana.receber).toBe(800);
+    expect(semana.saldo).toBe(-200);
+    expect(r.corpo.totalPagar).toBe(1500);
+    expect(r.corpo.totalReceber).toBe(800);
+    expect(r.corpo.saldoPrevisto).toBe(-700);
+  });
+});

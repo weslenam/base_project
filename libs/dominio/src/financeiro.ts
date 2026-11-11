@@ -1,5 +1,140 @@
-// Contas a pagar e a receber (planejamento 0027, parte 2). Valores em reais;
-// comparações em centavos para não errar no arredondamento.
+// Contas a pagar e a receber e recorrências (planejamento 0027, parte 2).
+// Valores em reais; comparações em centavos para não errar no arredondamento.
+
+import { inicioDaSemana, somarDias } from './agenda.ts';
+
+export interface SemanaDePrevisao {
+  inicio: string;
+  fim: string;
+  pagar: number;
+  receber: number;
+  saldo: number;
+}
+
+/**
+ * Datas das próximas 3 ocorrências do dia `dia` (1–28) a partir de `hoje`
+ * (exclusive). Mês e ano são derivados de `hoje` em diante.
+ */
+export function datasDeRecorrencia(dia: number, hoje: string): string[] {
+  const datas: string[] = [];
+  const [ano, mes] = hoje.split('-').map(Number);
+  for (let i = 0; datas.length < 3; i++) {
+    const totalMes = mes - 1 + i;
+    const a = ano + Math.floor(totalMes / 12);
+    const m = (totalMes % 12) + 1;
+    const data = `${a}-${String(m).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    if (data > hoje) datas.push(data);
+  }
+  return datas;
+}
+
+/** Conta mínima para a previsão (open). */
+export interface ContaParaPrevisao {
+  tipo: string;
+  valor: number;
+  vencimento: string;
+  situacao: string;
+  categoriaNome: string;
+}
+
+/**
+ * Agrupa contas abertas (vencidas e futuras) para a previsão de fluxo de
+ * caixa. Vencidas: `vencimento < hoje`. Futuras: dentro de `dias` dias.
+ * As semanas usam segunda-feira como início (via `inicioDaSemana`).
+ */
+export function agruparPrevisaoPorSemana(
+  contas: ContaParaPrevisao[],
+  hoje: string,
+  dias: number,
+): {
+  semanas: SemanaDePrevisao[];
+  vencidaPagar: number;
+  vencidaReceber: number;
+  totalPagar: number;
+  totalReceber: number;
+  saldoPrevisto: number;
+  categorias: { nome: string; tipo: string; total: number }[];
+} {
+  const limite = somarDias(hoje, dias);
+  const abertas = contas.filter((c) => c.situacao === 'aberta');
+
+  let vencidaPagar = 0;
+  let vencidaReceber = 0;
+
+  // Mapa de semana → { pagar, receber } para contas futuras.
+  const mapaSemanaPagar: Map<string, number> = new Map();
+  const mapaSemanaReceber: Map<string, number> = new Map();
+  const mapaCat: Map<string, { nome: string; tipo: string; total: number }> =
+    new Map();
+
+  for (const c of abertas) {
+    const v = Math.round(c.valor * 100);
+    if (c.vencimento < hoje) {
+      if (c.tipo === 'pagar') vencidaPagar += v;
+      else vencidaReceber += v;
+      // Vencidas não entram nas semanas mas entram em categorias.
+    } else if (c.vencimento <= limite) {
+      const semana = inicioDaSemana(c.vencimento);
+      if (c.tipo === 'pagar') {
+        mapaSemanaPagar.set(semana, (mapaSemanaPagar.get(semana) ?? 0) + v);
+      } else {
+        mapaSemanaReceber.set(
+          semana,
+          (mapaSemanaReceber.get(semana) ?? 0) + v,
+        );
+      }
+    } else {
+      continue;
+    }
+    // Totais por categoria (vencidas + futuras no período).
+    const chave = `${c.tipo}|${c.categoriaNome}`;
+    const cat = mapaCat.get(chave) ?? {
+      nome: c.categoriaNome,
+      tipo: c.tipo,
+      total: 0,
+    };
+    cat.total += v;
+    mapaCat.set(chave, cat);
+  }
+
+  // Monta as semanas ordenadas.
+  const semanas: SemanaDePrevisao[] = [];
+  const todasSemanas = new Set([
+    ...mapaSemanaPagar.keys(),
+    ...mapaSemanaReceber.keys(),
+  ]);
+  for (const inicio of [...todasSemanas].sort()) {
+    const pagar = (mapaSemanaPagar.get(inicio) ?? 0) / 100;
+    const receber = (mapaSemanaReceber.get(inicio) ?? 0) / 100;
+    semanas.push({
+      inicio,
+      fim: somarDias(inicio, 6),
+      pagar,
+      receber,
+      saldo: receber - pagar,
+    });
+  }
+
+  const totalPagar =
+    semanas.reduce((acc, s) => acc + s.pagar, 0) + vencidaPagar / 100;
+  const totalReceber =
+    semanas.reduce((acc, s) => acc + s.receber, 0) + vencidaReceber / 100;
+
+  const categorias = [...mapaCat.values()].map((c) => ({
+    ...c,
+    total: c.total / 100,
+  }));
+
+  return {
+    semanas,
+    vencidaPagar: vencidaPagar / 100,
+    vencidaReceber: vencidaReceber / 100,
+    totalPagar,
+    totalReceber,
+    saldoPrevisto: totalReceber - totalPagar,
+    categorias,
+  };
+}
 
 export const TIPOS_DE_CONTA: readonly string[] = Object.freeze([
   'pagar',

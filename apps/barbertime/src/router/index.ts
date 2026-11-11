@@ -149,7 +149,16 @@ export const rotas: RouteRecordRaw[] = [
     meta: {
       permissoes: ['financeiro.gerenciar'],
       modulo: 'financeiro',
-      menu: { titulo: 'Categorias', icone: 'categoria', grupo: 'Financeiro' },
+      menu: { titulo: 'Cadastros', icone: 'categoria', grupo: 'Financeiro' },
+    },
+  },
+  {
+    path: '/financeiro/previsao',
+    component: () => import('../telas/financeiro/PrevisaoView.vue'),
+    meta: {
+      permissoes: ['financeiro.gerenciar'],
+      modulo: 'financeiro',
+      menu: { titulo: 'Previsão', icone: 'relatorios', grupo: 'Financeiro' },
     },
   },
   {

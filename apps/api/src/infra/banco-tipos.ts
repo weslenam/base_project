@@ -189,6 +189,7 @@ export interface Contas {
   pagoEm: string | null;
   parcela: number | null;
   parcelas: number | null;
+  recorrenciaId: number | null;
   situacao: Generated<string>;
   tipo: string;
   valor: Numeric;
@@ -327,6 +328,19 @@ export interface Produtos {
   unidade: Generated<string>;
 }
 
+export interface Recorrencias {
+  barbeariaId: number;
+  categoriaId: number;
+  criadoEm: Generated<Timestamp>;
+  descricao: string;
+  diaDoMes: number;
+  encerradaEm: string | null;
+  fornecedorId: number | null;
+  id: Generated<number>;
+  tipo: string;
+  valor: Numeric;
+}
+
 export interface RedefinicoesSenha {
   criadaEm: Generated<Timestamp>;
   expiraEm: Timestamp;
@@ -412,6 +426,7 @@ export interface DB {
   pacotes: Pacotes;
   papeis: Papeis;
   produtos: Produtos;
+  recorrencias: Recorrencias;
   redefinicoesSenha: RedefinicoesSenha;
   servicos: Servicos;
   sessoes: Sessoes;

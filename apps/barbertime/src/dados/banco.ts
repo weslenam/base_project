@@ -105,6 +105,7 @@ export interface ContaNoBanco {
   fornecedorId: number | null;
   clienteId: number | null;
   compraId: number | null;
+  recorrenciaId?: number | null;
   parcela?: number | null;
   parcelas?: number | null;
   origem: string;
@@ -112,6 +113,17 @@ export interface ContaNoBanco {
   pagoEm: string | null;
   valorPago: number | null;
   forma: string | null;
+}
+
+export interface RecorrenciaNoBanco {
+  id: number;
+  tipo: string;
+  descricao: string;
+  categoriaId: number;
+  valor: number;
+  diaDoMes: number;
+  fornecedorId: number | null;
+  encerradaEm: string | null;
 }
 
 export interface MovimentoDeCaixaNoBanco {
@@ -224,6 +236,7 @@ export interface Banco {
   movimentosEstoque: MovimentoDeEstoqueNoBanco[];
   categoriasFinanceiras: CategoriaNoBanco[];
   contas: ContaNoBanco[];
+  recorrencias: RecorrenciaNoBanco[];
   movimentosCaixa: MovimentoDeCaixaNoBanco[];
   fichas: FichaNoBanco[];
   clientes: ClienteNoBanco[];

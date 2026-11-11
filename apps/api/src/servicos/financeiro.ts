@@ -1,10 +1,12 @@
 import {
+  agruparPrevisaoPorSemana,
+  datasDeRecorrencia,
   movimentoDaBaixa,
   situacaoDaConta,
   validarBaixa,
   validarConta,
 } from '@barbertime/dominio';
-import type { Valor } from '@barbertime/dominio';
+import type { ContaParaPrevisao, Valor } from '@barbertime/dominio';
 import { sql } from 'kysely';
 import { conflito, invalido, naoEncontrado } from '../infra/erros.ts';
 import type { Conexao } from '../infra/banco.ts';
@@ -12,6 +14,8 @@ import { garantirCategoriasPadrao } from './estoque.ts';
 import type {
   CategoriaFinanceira,
   ContaFinanceira,
+  PrevisaoFinanceira,
+  RecorrenciaFinanceira,
 } from '@barbertime/contratos';
 
 // Contas a pagar e a receber e categorias (planejamento 0027, parte 2, fatia
@@ -154,6 +158,7 @@ const selecionarContas = (c: Conexao) =>
       'ct.clienteId',
       'cl.nome as clienteNome',
       'ct.compraId',
+      'ct.recorrenciaId',
       'ct.parcela',
       'ct.parcelas',
       'ct.origem',
@@ -566,4 +571,235 @@ export async function estornarBaixa(
     .where('id', '=', conta.id)
     .execute();
   return obterConta(c, conta.id, hoje);
+}
+
+// ---- recorrências ----
+
+const selecionarRecorrencias = (c: Conexao) =>
+  c.db
+    .selectFrom('recorrencias as r')
+    .innerJoin('categoriasFinanceiras as cf', 'cf.id', 'r.categoriaId')
+    .leftJoin('fornecedores as f', 'f.id', 'r.fornecedorId')
+    .select([
+      'r.id',
+      'r.tipo',
+      'r.descricao',
+      'r.categoriaId',
+      'cf.nome as categoriaNome',
+      'r.valor',
+      'r.diaDoMes',
+      'r.fornecedorId',
+      'f.nome as fornecedorNome',
+      'r.encerradaEm',
+    ]);
+
+type LinhaDeRecorrencia = Awaited<
+  ReturnType<ReturnType<typeof selecionarRecorrencias>['execute']>
+>[number];
+
+const toRecorrencia = (r: LinhaDeRecorrencia): RecorrenciaFinanceira => ({
+  id: r.id,
+  tipo: r.tipo,
+  descricao: r.descricao,
+  categoriaId: r.categoriaId,
+  categoriaNome: r.categoriaNome,
+  valor: Number(r.valor),
+  diaDoMes: r.diaDoMes,
+  fornecedorId: r.fornecedorId,
+  fornecedorNome: r.fornecedorNome ?? null,
+  encerradaEm: r.encerradaEm,
+});
+
+/**
+ * Gera as contas dos próximos 3 meses para uma recorrência, se ainda não
+ * existirem. Idempotente: pode ser chamada várias vezes sem duplicar.
+ */
+async function gerarContasDaRecorrencia(
+  c: Conexao,
+  barbeariaId: number,
+  r: LinhaDeRecorrencia,
+  hoje: string,
+): Promise<void> {
+  if (r.encerradaEm) return;
+  const datas = datasDeRecorrencia(r.diaDoMes, hoje);
+  for (const vencimento of datas) {
+    const ja = await c.db
+      .selectFrom('contas')
+      .select('id')
+      .where('recorrenciaId', '=', r.id)
+      .where('vencimento', '=', vencimento)
+      .executeTakeFirst();
+    if (ja) continue;
+    await c.db
+      .insertInto('contas')
+      .values({
+        barbeariaId,
+        tipo: r.tipo,
+        descricao: r.descricao,
+        categoriaId: r.categoriaId,
+        valor: Number(r.valor),
+        vencimento,
+        fornecedorId: r.tipo === 'pagar' ? r.fornecedorId : null,
+        recorrenciaId: r.id,
+        origem: 'recorrencia',
+      })
+      .onConflict((oc) =>
+        oc.constraint('contas_recorrencia_vencimento_unique').doNothing(),
+      )
+      .execute();
+  }
+}
+
+/** Lista recorrências e garante as contas dos próximos 3 meses. */
+export async function listarRecorrencias(
+  c: Conexao,
+  barbeariaId: number,
+  hoje: string,
+): Promise<RecorrenciaFinanceira[]> {
+  const linhas = await selecionarRecorrencias(c)
+    .where('r.barbeariaId', '=', barbeariaId)
+    .orderBy((eb) => eb.fn('lower', ['r.descricao']))
+    .execute();
+  for (const r of linhas) {
+    await gerarContasDaRecorrencia(c, barbeariaId, r, hoje);
+  }
+  return linhas.map(toRecorrencia);
+}
+
+async function buscarRecorrencia(
+  c: Conexao,
+  barbeariaId: number,
+  id: number | string,
+): Promise<LinhaDeRecorrencia> {
+  const r = await selecionarRecorrencias(c)
+    .where('r.barbeariaId', '=', barbeariaId)
+    .where('r.id', '=', Number(id))
+    .executeTakeFirst();
+  if (!r) throw naoEncontrado('Recorrência não encontrada.');
+  return r;
+}
+
+/** Corpo de POST/PUT /financeiro/recorrencias. */
+export interface DadosDaRecorrencia {
+  tipo?: string | null;
+  descricao?: string | null;
+  categoriaId?: number | null;
+  valor?: Valor;
+  diaDoMes?: number | null;
+  fornecedorId?: number | null;
+}
+
+/** Valida e normaliza. Retorna mensagem de erro ou null. */
+function validarRecorrencia(d: DadosDaRecorrencia, tipo?: string | null): string | null {
+  if (!['pagar', 'receber'].includes(String(tipo ?? '')))
+    return 'Escolha se a recorrência é a pagar ou a receber.';
+  const desc = String(d.descricao ?? '').trim();
+  if (!desc) return 'Informe a descrição.';
+  if (desc.length > 200) return 'A descrição está muito longa.';
+  if (!d.categoriaId) return 'Escolha a categoria.';
+  const valor = Number(d.valor);
+  if (!Number.isFinite(valor) || valor <= 0 || valor > 999_999_999.99)
+    return 'Informe o valor.';
+  const dia = Number(d.diaDoMes);
+  if (!Number.isInteger(dia) || dia < 1 || dia > 28)
+    return 'O dia do mês deve ser entre 1 e 28.';
+  return null;
+}
+
+export async function salvarRecorrencia(
+  c: Conexao,
+  barbeariaId: number,
+  dados: DadosDaRecorrencia & { id?: number | null },
+  hoje: string,
+): Promise<RecorrenciaFinanceira> {
+  const id = dados.id ? Number(dados.id) : null;
+  const atual = id ? await buscarRecorrencia(c, barbeariaId, id) : null;
+  const tipo = atual?.tipo ?? dados.tipo;
+  const motivo = validarRecorrencia(dados, tipo);
+  if (motivo) throw invalido(motivo);
+  if (!tipo) throw invalido('Escolha se a recorrência é a pagar ou a receber.');
+  const descricao = String(dados.descricao ?? '').trim();
+  const categoriaId = Number(dados.categoriaId);
+  const valor = Number(dados.valor);
+  const diaDoMes = Number(dados.diaDoMes);
+  await exigirCategoria(c, categoriaId, tipo);
+  const fornecedorId =
+    tipo === 'pagar'
+      ? await exigirReferencia(
+          c,
+          'fornecedores',
+          dados.fornecedorId,
+          'Fornecedor não encontrado.',
+        )
+      : null;
+  let rId: number;
+  if (atual) {
+    await c.db
+      .updateTable('recorrencias')
+      .set({ descricao, categoriaId, valor, diaDoMes, fornecedorId })
+      .where('id', '=', atual.id)
+      .execute();
+    rId = atual.id;
+  } else {
+    const nova = await c.db
+      .insertInto('recorrencias')
+      .values({ barbeariaId, tipo, descricao, categoriaId, valor, diaDoMes, fornecedorId })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    rId = nova.id;
+  }
+  const linha = await buscarRecorrencia(c, barbeariaId, rId);
+  await gerarContasDaRecorrencia(c, barbeariaId, linha, hoje);
+  return toRecorrencia(linha);
+}
+
+/** Encerra a recorrência e cancela as contas futuras em aberto. */
+export async function encerrarRecorrencia(
+  c: Conexao,
+  barbeariaId: number,
+  id: number | string,
+  hoje: string,
+): Promise<RecorrenciaFinanceira> {
+  const r = await buscarRecorrencia(c, barbeariaId, id);
+  if (r.encerradaEm) throw conflito('Esta recorrência já foi encerrada.');
+  await c.db
+    .updateTable('recorrencias')
+    .set({ encerradaEm: hoje })
+    .where('id', '=', r.id)
+    .execute();
+  await c.db
+    .updateTable('contas')
+    .set({ situacao: 'cancelada' })
+    .where('recorrenciaId', '=', r.id)
+    .where('situacao', '=', 'aberta')
+    .where('vencimento', '>', hoje)
+    .execute();
+  return toRecorrencia(await buscarRecorrencia(c, barbeariaId, r.id));
+}
+
+// ---- previsão ----
+
+/** Previsão de fluxo de caixa: contas abertas agrupadas por semana. */
+export async function previsao(
+  c: Conexao,
+  barbeariaId: number,
+  dias: number,
+  hoje: string,
+): Promise<PrevisaoFinanceira> {
+  const diasValidos = [30, 60, 90].includes(dias) ? dias : 30;
+  const linhas = await c.db
+    .selectFrom('contas as ct')
+    .innerJoin('categoriasFinanceiras as cf', 'cf.id', 'ct.categoriaId')
+    .select(['ct.tipo', 'ct.valor', 'ct.vencimento', 'ct.situacao', 'cf.nome as categoriaNome'])
+    .where('ct.barbeariaId', '=', barbeariaId)
+    .where('ct.situacao', '=', 'aberta')
+    .execute();
+  const contas: ContaParaPrevisao[] = linhas.map((l) => ({
+    tipo: l.tipo,
+    valor: Number(l.valor),
+    vencimento: l.vencimento,
+    situacao: l.situacao,
+    categoriaNome: l.categoriaNome,
+  }));
+  return agruparPrevisaoPorSemana(contas, hoje, diasValidos);
 }

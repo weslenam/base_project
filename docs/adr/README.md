@@ -20,10 +20,12 @@ Decisões arquiteturais duradouras. O trabalho do dia a dia fica em `docs/planej
 | [0016](0016-identidade-atras-de-adaptador.md)                    | Identidade atrás de um adaptador, com Supabase Auth e BFF na API        | Aceito                |
 | [0017](0017-schema-app-e-postgrest-fechado.md)                   | Schema `app` não exposto e PostgREST fechado ao front                   | Aceito                |
 | [0018](0018-business-center-e-operadores-da-plataforma.md)       | Business Center e operadores da plataforma (2FA, RLS, auditoria)        | Aceito                |
+| [0019](0019-recorrencias-e-previsao-de-fluxo.md)                 | Recorrências financeiras e previsão de fluxo de caixa                   | Aceito                |
 | [0020](0020-testes-de-layout-com-playwright.md)                  | Testes de layout com Playwright (Chromium)                              | Aceito                |
+| [0021](0021-estoque-por-movimentos-com-saldo-materializado.md)   | Estoque por movimentos com saldo materializado                          | Aceito                |
 | [0022](0022-typescript-strict-e-kysely.md)                       | TypeScript strict e Kysely no acesso ao banco                           | Aceito                |
 
-**Números 0004 e 0005:** livres. Os ADRs 0006 e 0007 mantêm os números do protótipo Agenda porque as regras e skills do repositório os citam assim. Eles foram **reconstruídos** a partir dessas regras, já que o texto original não veio junto. O próximo ADR novo é o 0023. Os números 0019 e 0021 estão reservados para o planejamento 0027 (o 0018, antes reservado a ele, ficou com o Business Center).
+**Números 0004 e 0005:** livres. Os ADRs 0006 e 0007 mantêm os números do protótipo Agenda porque as regras e skills do repositório os citam assim. Eles foram **reconstruídos** a partir dessas regras, já que o texto original não veio junto. O próximo ADR novo é o 0023.
 
 ## Modelo
 

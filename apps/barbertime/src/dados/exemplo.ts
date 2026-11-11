@@ -226,6 +226,7 @@ export function criarDadosDeExemplo(hoje: string): Banco {
         forma: null,
       },
     ],
+    recorrencias: [],
     movimentosCaixa: [],
     fichas: [],
     clientes: [
