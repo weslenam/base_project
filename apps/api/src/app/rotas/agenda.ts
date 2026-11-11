@@ -211,16 +211,20 @@ export default async function (fastify: FastifyInstance) {
       }),
     },
     async (req, reply) => {
-      const dados = req.body ?? {};
+      const { data, inicio, barbeiroId, servicoId, clienteId, cliente } =
+        req.body ?? {};
       const r = await na(req, (c) =>
         criarAgendamento(
           c,
           req.contexto.barbeariaId,
           {
-            ...dados,
+            data,
+            inicio,
             // Os buscar* fazem Number(id): o mesmo valor de antes da conversão.
-            barbeiroId: Number(dados.barbeiroId),
-            servicoId: Number(dados.servicoId),
+            barbeiroId: Number(barbeiroId),
+            servicoId: Number(servicoId),
+            clienteId,
+            cliente,
           },
           { criadoPor: req.contexto.usuarioId },
         ),
