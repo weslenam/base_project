@@ -105,7 +105,7 @@ onMounted(async () => {
         }}</DsSelo>
       </template>
       <template #celula-donoNome="{ linha }">
-        <span>{{ linha.donoNome ?? '—' }}</span>
+        <span class="nome">{{ linha.donoNome ?? '—' }}</span>
         <span class="ds-corpo-sm ds-suave">{{ linha.donoEmail }}</span>
       </template>
       <template #celula-modulosPendentes="{ valor }">
