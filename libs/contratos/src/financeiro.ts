@@ -25,14 +25,8 @@ export interface RecorrenciaFinanceira {
   encerradaEm: string | null;
 }
 
-/** Agrupamento de contas abertas por semana para a previsão de fluxo de caixa. */
-export interface SemanaDePrevisao {
-  inicio: string;
-  fim: string;
-  pagar: number;
-  receber: number;
-  saldo: number;
-}
+import type { SemanaDePrevisao } from '@barbertime/dominio';
+export type { SemanaDePrevisao };
 
 /** Resultado de GET /financeiro/previsao. */
 export interface PrevisaoFinanceira {
