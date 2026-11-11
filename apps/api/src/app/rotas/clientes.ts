@@ -151,7 +151,7 @@ export default async function (fastify: FastifyInstance) {
     }>,
   ): Promise<ClienteComResumo> =>
     na(req, async (c) => {
-      const id = req.params.id ? Number(req.params.id) : null;
+      const id = req.params.id !== undefined ? Number(req.params.id) : null;
       const d = req.body ?? {};
       const nome = String(d.nome ?? '').trim();
       const telefone = String(d.telefone ?? '').replace(/\D/g, '');
@@ -175,7 +175,7 @@ export default async function (fastify: FastifyInstance) {
         cpf: String(d.cpf ?? '').replace(/\D/g, '') || null,
         observacoes: String(d.observacoes ?? '').trim(),
       };
-      if (id) {
+      if (id !== null) {
         await obter(c, id);
         await c.db
           .updateTable('clientes')
