@@ -203,7 +203,7 @@ export default async function (fastify: FastifyInstance) {
     req: FastifyRequest<ComId & { Body: CorpoDoServico | undefined }>,
   ): Promise<Servico | undefined> =>
     na(req, async (c) => {
-      const id = req.params.id ? Number(req.params.id) : null;
+      const id = req.params.id !== undefined ? Number(req.params.id) : null;
       const d = req.body ?? {};
       const nome = String(d.nome ?? '').trim();
       if (!nome) throw invalido('Informe o nome do serviço.');
@@ -217,7 +217,7 @@ export default async function (fastify: FastifyInstance) {
         duracao: Math.round(Number(d.duracao)),
         preco: Number(d.preco),
       };
-      if (id) {
+      if (id !== null) {
         await obterAtivo(c, 'servicos', id, 'Serviço');
         await c.db
           .updateTable('servicos')
@@ -293,7 +293,7 @@ export default async function (fastify: FastifyInstance) {
     req: FastifyRequest<ComId & { Body: CorpoDoProduto | undefined }>,
   ): Promise<Produto | ProdutoSemCusto> =>
     na(req, async (c) => {
-      const id = req.params.id ? Number(req.params.id) : null;
+      const id = req.params.id !== undefined ? Number(req.params.id) : null;
       const d = req.body ?? {};
       const nome = String(d.nome ?? '').trim();
       if (!nome) throw invalido('Informe o nome do produto.');
@@ -321,7 +321,7 @@ export default async function (fastify: FastifyInstance) {
         unidade,
         estoqueMinimo: arredondarQuantidade(minimo),
       };
-      if (id) {
+      if (id !== null) {
         const atual = await c.db
           .selectFrom('produtos')
           .select('tipo')
@@ -446,7 +446,7 @@ export default async function (fastify: FastifyInstance) {
     req: FastifyRequest<ComId & { Body: CorpoDoBarbeiro | undefined }>,
   ): Promise<Barbeiro | undefined> =>
     na(req, async (c) => {
-      const id = req.params.id ? Number(req.params.id) : null;
+      const id = req.params.id !== undefined ? Number(req.params.id) : null;
       const d = req.body ?? {};
       const nome = String(d.nome ?? '').trim();
       if (!nome) throw invalido('Informe o nome do barbeiro.');
@@ -473,7 +473,7 @@ export default async function (fastify: FastifyInstance) {
             d.usuarioId ? Number(d.usuarioId) : null,
           )
         : null;
-      if (id) {
+      if (id !== null) {
         await obterAtivo(c, 'barbeiros', id, 'Barbeiro');
         await c.db
           .updateTable('barbeiros')

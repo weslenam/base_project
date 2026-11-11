@@ -401,6 +401,33 @@ describe('clientes, equipe e permissões', () => {
   });
 });
 
+describe('cadastros com id inválido (#42)', () => {
+  it('PUT /servicos/0 responde 404, não cria novo serviço (#42)', async () => {
+    const b = await novaBarbearia(servidor);
+    const antes = (await b.dono.get('/api/servicos')).corpo.length;
+    const r = await b.dono.put('/api/servicos/0', {
+      nome: 'Fraude',
+      duracao: 30,
+      preco: 10,
+    });
+    expect(r.status).toBe(404);
+    expect((await b.dono.get('/api/servicos')).corpo.length).toBe(antes);
+  });
+
+  it('PUT /barbeiros/0 responde 404, não cria novo barbeiro (#42)', async () => {
+    const b = await novaBarbearia(servidor);
+    const antes = (await b.dono.get('/api/barbeiros')).corpo.length;
+    const r = await b.dono.put('/api/barbeiros/0', {
+      nome: 'Fraude',
+      inicio: '09:00',
+      fim: '18:00',
+      comissao: 0,
+    });
+    expect(r.status).toBe(404);
+    expect((await b.dono.get('/api/barbeiros')).corpo.length).toBe(antes);
+  });
+});
+
 describe('página pública', () => {
   /** Próxima segunda-feira (aberta no horário padrão). */
   function proximaSegunda() {
