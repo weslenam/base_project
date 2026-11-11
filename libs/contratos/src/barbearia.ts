@@ -10,3 +10,8 @@ export interface BarbeariaConfigurada {
   /** Código do link da página no modo "só com o link" (ADR 0013). */
   tokenPublico: string;
 }
+
+/** `GET /barbearia`: avisa também se a página pública está travada no sistema. */
+export type BarbeariaParaConfigurar = BarbeariaConfigurada & {
+  paginaPublicaLiberada: boolean;
+};

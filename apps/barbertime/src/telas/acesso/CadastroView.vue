@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { DsBotao, DsFormulario, DsInput } from '@barbertime/ui';
@@ -14,7 +14,7 @@ const erro = ref('');
 const enviando = ref(false);
 
 /** "Barbearia do Zé" → "barbearia-do-ze" */
-const paraSlug = (texto) =>
+const paraSlug = (texto: string) =>
   texto
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -41,7 +41,7 @@ async function aoEnviar() {
     });
     router.replace('/modulos');
   } catch (e) {
-    erro.value = e.message;
+    erro.value = (e as Error).message;
   } finally {
     enviando.value = false;
   }

@@ -207,3 +207,23 @@ export function clicarCelula(texto: string): void {
 /** Texto com os espaços especiais (ex.: o do R$) trocados por espaço comum. */
 export const normalizar = (t: string | null | undefined): string =>
   String(t ?? '').replace(/\s/g, ' ');
+
+/**
+ * Clica no primeiro elemento do seletor cujo texto contém o trecho, esperando
+ * ele aparecer (como o `clicarContendo`, mas com seletor e região).
+ */
+export async function clicarEmQueContem(
+  seletor: string,
+  trecho: string,
+  dentro: ParentNode = document,
+): Promise<void> {
+  const achar = () =>
+    [...dentro.querySelectorAll<HTMLElement>(seletor)].find((e) =>
+      (e.textContent ?? '').includes(trecho),
+    );
+  await esperar(() => {
+    if (!achar()) throw new Error(`Nenhum "${seletor}" com "${trecho}"`);
+  });
+  achar()?.click();
+  await flushPromises();
+}

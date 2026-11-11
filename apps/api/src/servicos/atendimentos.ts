@@ -3,7 +3,7 @@ import type { RawBuilder } from 'kysely';
 import type { Conexao } from '../infra/banco.ts';
 import { naoEncontrado } from '../infra/erros.ts';
 import { SELECT_ATENDIMENTO, SELECT_BLOQUEIO, comEstado } from './agenda.ts';
-import type { LinhaDeBloqueio } from './agenda.ts';
+import type { LinhaDeAtendimento, LinhaDeBloqueio } from './agenda.ts';
 import type { AtendimentoNaAgenda } from '@barbertime/contratos';
 
 // Leitura de atendimentos e bloqueios para as rotas da operação (agenda,
@@ -13,14 +13,12 @@ import type { AtendimentoNaAgenda } from '@barbertime/contratos';
 // texto fixo do código (sem dado da requisição); o filtro (`onde`) é sempre
 // um `sql` com parâmetros.
 
-type LinhaDoSelect = Omit<AtendimentoNaAgenda, 'estado'>;
-
 /** Atendimentos de SELECT_ATENDIMENTO com o filtro e a ordem de `onde`. */
 export async function atendimentosOnde(
   c: Conexao,
   onde: RawBuilder<unknown>,
 ): Promise<AtendimentoNaAgenda[]> {
-  const { rows } = await sql<LinhaDoSelect>`${sql.raw(
+  const { rows } = await sql<LinhaDeAtendimento>`${sql.raw(
     SELECT_ATENDIMENTO,
   )} ${onde}`.execute(c.db);
   return rows.map(comEstado);

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
@@ -42,12 +42,12 @@ async function salvarNome() {
 const senha = ref({ atual: '', nova: '', repetir: '' });
 const trocandoSenha = ref(false);
 const regrasNova = [
-  (v) =>
+  (v: unknown) =>
     String(v ?? '').length >= SENHA_MINIMA ||
     `Pelo menos ${SENHA_MINIMA} caracteres`,
 ];
 const regrasRepetir = [
-  (v) => v === senha.value.nova || 'As senhas não são iguais',
+  (v: unknown) => v === senha.value.nova || 'As senhas não são iguais',
 ];
 
 async function salvarSenha() {
@@ -68,7 +68,7 @@ async function salvarSenha() {
 const barbearias = computed(() => sessao.value?.barbearias ?? []);
 const atual = computed(() => sessao.value?.barbearia?.id);
 
-async function entrarEm(b) {
+async function entrarEm(b: { id: number; nome: string }) {
   const ok = await executar(async () => (await trocarBarbearia(b.id), true));
   if (!ok) return;
   notificar.sucesso(`Você está em ${b.nome}.`);

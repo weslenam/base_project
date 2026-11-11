@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { DsBotao, DsFormulario, DsInput } from '@barbertime/ui';
@@ -21,7 +21,7 @@ async function aoEnviar() {
     await entrar(email.value, senha.value);
     router.replace(String(route.query.volta || '/'));
   } catch (e) {
-    erro.value = e.message;
+    erro.value = (e as Error).message;
   } finally {
     entrando.value = false;
   }

@@ -3,14 +3,17 @@ import { api } from '../dados/api.ts';
 import {
   campo,
   clicar,
+  clicarCelula,
   clicarContendo,
+  elemento,
   esperar,
   montarApp,
   preencher,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
-let app;
+let app: AppMontado | undefined;
 beforeEach(() => api.reiniciar());
 afterEach(() => {
   app?.unmount();
@@ -88,8 +91,8 @@ describe('detalhe do agendamento (estilo PDV)', () => {
     const info = document.querySelector(
       'section[aria-label="Informações do agendamento"]',
     );
-    expect(info.textContent).toContain('Prefere máquina 2');
-    expect(info.textContent).toContain('09:00–09:50');
+    expect(info?.textContent).toContain('Prefere máquina 2');
+    expect(info?.textContent).toContain('09:00–09:50');
   });
 
   it('pendente mostra só confirmar e cancelar', async () => {
@@ -127,9 +130,7 @@ describe('equipe', () => {
     app = await montarApp('/equipe');
     await esperar(() => expect(texto()).toContain('Léo'));
     expect(texto()).not.toContain('Pigmentação');
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.trim() === 'Léo')
-      .click();
+    clicarCelula('Léo');
     await esperar(() => expect(campo('Nome')?.value).toBe('Léo'));
     await clicar('Tirar da equipe');
     await clicar('Tirar da equipe', { ultimo: true });
@@ -175,9 +176,7 @@ describe('serviços', () => {
   it('excluir serviço com agendamentos futuros é negado', async () => {
     app = await montarApp('/servicos');
     await esperar(() => expect(texto()).toContain('Pigmentação'));
-    [...document.querySelectorAll('td')]
-      .find((td) => td.textContent.trim() === 'Pigmentação')
-      .click();
+    clicarCelula('Pigmentação');
     await esperar(() => expect(campo('Nome')?.value).toBe('Pigmentação'));
     await clicar('Excluir');
     await esperar(() =>
@@ -215,7 +214,7 @@ describe('agendamento público', () => {
     await clicarContendo('Voltar');
     await esperar(() => expect(etapaAtual()).toBe('2Barbeiro'));
     // Etapa concluída vira botão para voltar direto a ela.
-    document.querySelector('button[aria-label="Voltar para Serviço"]').click();
+    elemento('button[aria-label="Voltar para Serviço"]').click();
     await esperar(() => expect(etapaAtual()).toBe('1Serviço'));
     expect(texto()).toContain('Qual serviço?');
   });
@@ -232,9 +231,7 @@ describe('agendamento público', () => {
         document.querySelector('[role="group"][aria-label="Horários livres"]'),
       ).toBeTruthy(),
     );
-    document
-      .querySelector('[role="group"][aria-label="Horários livres"] button')
-      .click();
+    elemento('[role="group"][aria-label="Horários livres"] button').click();
     await esperar(() => expect(etapaAtual()).toBe('5Seus dados'));
   }
 
@@ -270,9 +267,7 @@ describe('agendamento público', () => {
 
   it('cartão "Seu agendamento" mostra as escolhas e o valor', async () => {
     await ateSeusDados();
-    const cartao = document.querySelector(
-      'aside[aria-label="Seu agendamento"]',
-    ).textContent;
+    const cartao = elemento('aside[aria-label="Seu agendamento"]').textContent;
     expect(cartao.replace(/\s/g, ' ')).toMatch(
       /Corte.*30 min.*Marcos.*Amanhã.*R\$ 45,00/,
     );

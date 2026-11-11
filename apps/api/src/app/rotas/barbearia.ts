@@ -7,7 +7,10 @@ import type { ConfigBarbeariaGravada } from '@barbertime/dominio';
 import type { FastifyInstance } from 'fastify';
 import { conflito, invalido } from '../../infra/erros.ts';
 import { TAM, corpo, texto } from '../esquemas.ts';
-import type { BarbeariaConfigurada } from '@barbertime/contratos';
+import type {
+  BarbeariaConfigurada,
+  BarbeariaParaConfigurar,
+} from '@barbertime/contratos';
 
 // `barbearias` é tabela global (sem RLS por barbearia): as consultas daqui
 // rodam no pool, fora de transação, com o driver pg (planejamento 0040).
@@ -46,9 +49,7 @@ export default async function (
   fastify.get(
     '/barbearia',
     acesso,
-    async (
-      req,
-    ): Promise<BarbeariaConfigurada & { paginaPublicaLiberada: boolean }> => {
+    async (req): Promise<BarbeariaParaConfigurar> => {
       const { rows } = await fastify.db.query<LinhaDaBarbearia>(LER, [
         req.contexto.barbeariaId,
       ]);

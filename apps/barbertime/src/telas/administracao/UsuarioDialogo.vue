@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
   DsBotao,
@@ -18,19 +18,21 @@ import { administracao } from '../../dados/administracao.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { useSessao } from '../../sessao/sessao.ts';
 import HistoriaDoPapel from './HistoriaDoPapel.vue';
+import type { PropType } from 'vue';
+import type { Papel, Usuario } from '../../dados/modelos.ts';
 
 // Hierarquia fixa (ADR 0010, planejamento 0023): só se altera quem está abaixo,
 // e só se dá papel abaixo do seu. Senha de outra pessoa não se troca aqui: cada
 // um troca a sua em Meu perfil ou pede "Esqueci minha senha". A API decide; a
 // tela só não oferece o que seria recusado.
-const aberto = defineModel({ type: Boolean, default: false });
+const aberto = defineModel<boolean>({ default: false });
 const props = defineProps({
   /** null = convidar novo */
-  usuario: { type: Object, default: null },
-  papeis: { type: Array, default: () => [] },
-  eu: { type: Number, default: null },
+  usuario: { type: Object as PropType<Usuario | null>, default: null },
+  papeis: { type: Array as PropType<Papel[]>, default: () => [] },
+  eu: { type: Number as PropType<number | null>, default: null },
   /** Chave do papel de quem está usando a tela. */
-  meuPapel: { type: String, default: null },
+  meuPapel: { type: String as PropType<string | null>, default: null },
 });
 const emit = defineEmits(['salvo']);
 
@@ -38,7 +40,14 @@ const { confirmar } = useDialogo();
 const notificar = useNotificacao();
 const executar = useAcao();
 
-const form = ref({});
+/** Convite (nome, e-mail e senha) ou alteração (papel e situação). */
+const form = ref<{
+  nome?: string;
+  email?: string;
+  senha?: string;
+  papelId: number | null;
+  ativo?: boolean;
+}>({ papelId: null });
 const novo = computed(() => !props.usuario);
 const souEu = computed(() => props.usuario?.id === props.eu);
 const podeAlterar = computed(
@@ -84,10 +93,11 @@ watch(aberto, (abriu) => {
 });
 
 async function salvar() {
+  const usuario = props.usuario;
   const feito = await executar(() =>
-    novo.value
-      ? administracao.usuarios.convidar(form.value)
-      : administracao.usuarios.alterar(props.usuario.id, form.value),
+    usuario
+      ? administracao.usuarios.alterar(usuario.id, form.value)
+      : administracao.usuarios.convidar(form.value),
   );
   if (!feito) return;
   notificar.sucesso(
@@ -98,8 +108,10 @@ async function salvar() {
 }
 
 async function remover() {
+  const usuario = props.usuario;
+  if (!usuario) return;
   const ok = await confirmar(
-    `Remover o acesso de ${props.usuario.nome} a esta barbearia?`,
+    `Remover o acesso de ${usuario.nome} a esta barbearia?`,
     {
       perigo: true,
       textoOk: 'Remover acesso',
@@ -108,7 +120,7 @@ async function remover() {
   );
   if (!ok) return;
   const feito = await executar(
-    async () => (await administracao.usuarios.remover(props.usuario.id), true),
+    async () => (await administracao.usuarios.remover(usuario.id), true),
   );
   if (!feito) return;
   notificar.sucesso('Acesso removido.');
@@ -120,7 +132,7 @@ async function remover() {
 <template>
   <DsDialogo
     v-model="aberto"
-    :titulo="novo ? 'Convidar usuário' : usuario.nome"
+    :titulo="novo ? 'Convidar usuário' : usuario?.nome"
     largura="md"
     fechavel
   >
@@ -129,7 +141,7 @@ async function remover() {
       trocar a sua senha, use Meu perfil.
     </p>
     <p v-else-if="!podeAlterar" class="ds-corpo-sm ds-suave">
-      {{ usuario.nome }} ({{ usuario.papelNome }}) está no seu nível ou acima:
+      {{ usuario?.nome }} ({{ usuario?.papelNome }}) está no seu nível ou acima:
       só quem está acima pode alterar este acesso.
     </p>
     <DsFormulario v-else id="form-usuario" @enviar="salvar">
@@ -148,7 +160,7 @@ async function remover() {
           ajuda="A pessoa troca em Meu perfil. Se o e-mail já tiver conta, a senha dela é mantida"
         />
       </template>
-      <p v-else class="ds-valor ds-suave">{{ usuario.email }}</p>
+      <p v-else class="ds-valor ds-suave">{{ usuario?.email }}</p>
       <DsEscolha
         v-model="form.papelId"
         rotulo="Papel"

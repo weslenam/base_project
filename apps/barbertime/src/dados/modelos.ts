@@ -1,6 +1,11 @@
 // Modelos do app como chegam da API (JSON). As telas tipam o estado com eles
 // em vez de repetir EmJson<Contrato> (planejamento 0040, etapa 9).
 import type {
+  BarbeariaParaConfigurar,
+  ModuloDaBarbearia,
+  PaginaPublica,
+  PapelDaBarbearia,
+  UsuarioDaBarbearia,
   AssinaturaDoCliente,
   CategoriaFinanceira,
   Compra as CompraDaApi,
@@ -68,3 +73,9 @@ export interface Renovacao {
   pacoteId: number;
   inicio: string;
 }
+
+export type Usuario = EmJson<UsuarioDaBarbearia>;
+export type Papel = EmJson<PapelDaBarbearia>;
+export type BarbeariaEdicao = EmJson<BarbeariaParaConfigurar>;
+export type Modulo = EmJson<ModuloDaBarbearia>;
+export type Pagina = EmJson<PaginaPublica>;

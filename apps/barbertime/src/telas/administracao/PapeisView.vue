@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { DsCartao, DsPagina, DsSelo } from '@barbertime/ui';
 import { historiaDoPapel, resumoDoPapel } from '@barbertime/dominio';
@@ -6,12 +6,13 @@ import { administracao } from '../../dados/administracao.ts';
 import { useAcao } from '../../dados/useAcao.ts';
 import { useSessao } from '../../sessao/sessao.ts';
 import HistoriaDoPapel from './HistoriaDoPapel.vue';
+import type { Papel } from '../../dados/modelos.ts';
 
 // Papéis contados como histórias (planejamento 0033): o que cada um faz no dia
 // a dia e o que fica de fora, sem as chaves técnicas das permissões.
 const executar = useAcao();
 const { sessao } = useSessao();
-const papeis = ref([]);
+const papeis = ref<Papel[]>([]);
 
 async function carregar() {
   const lista = await executar(() => administracao.papeis.listar());

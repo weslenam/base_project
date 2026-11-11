@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import {
   DsAbas,
@@ -23,6 +23,7 @@ import {
   useNotificacao,
 } from '@barbertime/ui';
 import { formatarMoeda } from '@barbertime/ui-utils';
+import type { ColunaDaTabela, EstadoVisual } from '@barbertime/ui';
 
 // Vitrine do kit base (substitui o catálogo enquanto ele não existe).
 const notificar = useNotificacao();
@@ -55,7 +56,13 @@ const horarios = [
   '14:00',
   '14:30',
 ].map((hora, i) => ({ hora, disponivel: ![1, 4].includes(i) }));
-const blocos = [
+const blocos: {
+  cliente: string;
+  servico?: string;
+  inicio: string;
+  fim: string;
+  estado: EstadoVisual;
+}[] = [
   {
     cliente: 'Rafael Souza',
     servico: 'Corte + barba',
@@ -92,7 +99,7 @@ const servicos = [
   { valor: 'barba', rotulo: 'Barba' },
   { valor: 'combo', rotulo: 'Corte + barba' },
 ];
-const colunas = [
+const colunas: ColunaDaTabela<LinhaDeExemplo>[] = [
   { campo: 'servico', titulo: 'Serviço', ordenavel: true },
   {
     campo: 'duracao',
@@ -107,7 +114,13 @@ const colunas = [
     formatar: formatarMoeda,
   },
 ];
-const linhas = [
+type LinhaDeExemplo = {
+  id: number;
+  servico: string;
+  duracao: number;
+  preco: number;
+};
+const linhas: LinhaDeExemplo[] = [
   { id: 1, servico: 'Corte', duracao: 30, preco: 45 },
   { id: 2, servico: 'Barba', duracao: 20, preco: 30 },
   { id: 3, servico: 'Corte + barba', duracao: 50, preco: 70 },

@@ -4,6 +4,7 @@ import {
   SESSAO_DONO,
   campo,
   clicar,
+  elemento,
   esperar,
   montarApp,
   preencher,
@@ -11,25 +12,28 @@ import {
   simularApi,
   texto,
 } from '../testes/apoio.ts';
+import type { AppMontado } from '../testes/apoio.ts';
 
 // Planejamento 0017: área de administração, configurações, perfil e senha provisória.
 
-let app;
+let app: AppMontado | undefined;
 afterEach(() => {
   app?.unmount();
   document.body.innerHTML = '';
   vi.unstubAllGlobals();
 });
 
-const BARBEARIA = () => ({
+const BARBEARIA = (): Record<string, unknown> & {
+  configuracoes: ReturnType<typeof mesclarConfigBarbearia>;
+} => ({
   id: 1,
   nome: 'Barbearia do Zé',
   slug: 'barbearia-modelo',
   configuracoes: mesclarConfigBarbearia({}),
 });
-const linkDoMenu = (t) =>
+const linkDoMenu = (t: string) =>
   [...document.querySelectorAll('[aria-label="Menu principal"] a')].find(
-    (a) => a.textContent.trim() === t,
+    (a) => (a.textContent ?? '').trim() === t,
   );
 
 describe('área de administração no menu', () => {
@@ -37,9 +41,7 @@ describe('área de administração no menu', () => {
     simularApi({ 'GET /api/barbearia': BARBEARIA() });
     app = await montarApp('/configuracoes');
     await esperar(() => expect(linkDoMenu('Configurações')).toBeTruthy());
-    const menu = document.querySelector(
-      '[aria-label="Menu principal"]',
-    ).textContent;
+    const menu = elemento('[aria-label="Menu principal"]').textContent;
     expect(menu.indexOf('Administração')).toBeLessThan(
       menu.indexOf('Configurações'),
     );
@@ -64,7 +66,7 @@ describe('configurações da barbearia', () => {
   it('edita o horário de domingo e salva o que foi preenchido', async () => {
     const chamadas = simularApi({
       'GET /api/barbearia': BARBEARIA(),
-      'PUT /api/barbearia': (corpo) => [200, corpo],
+      'PUT /api/barbearia': (corpo: unknown) => [200, corpo],
       'GET /api/auth/eu': SESSAO_DONO,
     });
     app = await montarApp('/configuracoes');
@@ -72,39 +74,45 @@ describe('configurações da barbearia', () => {
       expect(campo('Nome da barbearia')?.value).toBe('Barbearia do Zé'),
     );
     await clicar('Funcionamento');
-    const domingo = () => document.querySelector('[data-dia="0"]');
+    const domingo = () => elemento('[data-dia="0"]');
     await esperar(() => expect(domingo().textContent).toContain('Fechado'));
-    domingo().querySelector('input[type="checkbox"]').click();
+    elemento<HTMLInputElement>('[data-dia="0"] input[type="checkbox"]').click();
     await esperar(() =>
       expect(domingo().querySelectorAll('input[type="time"]')).toHaveLength(2),
     );
-    const [abre, fecha] = domingo().querySelectorAll('input[type="time"]');
+    const [abre, fecha] =
+      domingo().querySelectorAll<HTMLInputElement>('input[type="time"]');
     for (const [el, v] of [
       [abre, '10:00'],
       [fecha, '14:00'],
-    ]) {
+    ] as const) {
+      if (!el) throw new Error('Campo de horário não apareceu');
       el.value = v;
       el.dispatchEvent(new Event('input', { bubbles: true }));
     }
     await clicar('Salvar');
     await esperar(() => expect(texto()).toContain('Configurações salvas'));
-    const put = chamadas.find((c) => c.metodo === 'PUT');
-    expect(put.corpo.configuracoes.funcionamento[0]).toEqual({
+    const put = chamadas.find((c) => c.metodo === 'PUT')?.corpo as
+      | { configuracoes: ReturnType<typeof mesclarConfigBarbearia> }
+      | undefined;
+    expect(put?.configuracoes.funcionamento[0]).toEqual({
       dia: 0,
       aberto: true,
       abre: '10:00',
       fecha: '14:00',
     });
-    expect(put.corpo.configuracoes.agendamento.diasAFrente).toBe(30);
+    expect(put?.configuracoes.agendamento.diasAFrente).toBe(30);
   });
 
   it('horário inválido é negado antes de chamar a API', async () => {
     const chamadas = simularApi({ 'GET /api/barbearia': BARBEARIA() });
     app = await montarApp('/configuracoes');
     await clicar('Funcionamento');
-    const segunda = () => document.querySelector('[data-dia="1"]');
+    const segunda = () => elemento('[data-dia="1"]');
     await esperar(() => expect(segunda()).toBeTruthy());
-    const fecha = segunda().querySelectorAll('input[type="time"]')[1];
+    const fecha =
+      segunda().querySelectorAll<HTMLInputElement>('input[type="time"]')[1];
+    if (!fecha) throw new Error('Campo de fechamento não apareceu');
     fecha.value = '08:00';
     fecha.dispatchEvent(new Event('input', { bubbles: true }));
     await clicar('Salvar');
@@ -119,7 +127,7 @@ describe('configurações da barbearia', () => {
   it('trocar o endereço público passa pela advertência', async () => {
     const chamadas = simularApi({
       'GET /api/barbearia': BARBEARIA(),
-      'PUT /api/barbearia': (corpo) => [200, corpo],
+      'PUT /api/barbearia': (corpo: unknown) => [200, corpo],
       'GET /api/auth/eu': SESSAO_DONO,
     });
     app = await montarApp('/configuracoes');
@@ -138,9 +146,10 @@ describe('configurações da barbearia', () => {
     await clicar('Salvar');
     await clicar('Trocar endereço');
     await esperar(() =>
-      expect(chamadas.find((c) => c.metodo === 'PUT')?.corpo.slug).toBe(
-        'ze-barbearia',
-      ),
+      expect(
+        (chamadas.find((c) => c.metodo === 'PUT')?.corpo as { slug?: string })
+          ?.slug,
+      ).toBe('ze-barbearia'),
     );
   });
 });
@@ -151,17 +160,17 @@ describe('meu perfil', () => {
     await esperar(() =>
       expect(document.querySelector('a[title="Meu perfil"]')).toBeTruthy(),
     );
-    expect(
-      document.querySelector('a[title="Meu perfil"]').getAttribute('href'),
-    ).toBe('/perfil');
+    expect(elemento('a[title="Meu perfil"]').getAttribute('href')).toBe(
+      '/perfil',
+    );
     app.unmount();
     document.body.innerHTML = '';
     app = await montarApp('/perfil');
     await esperar(() => expect(campo('Nome')?.value).toBe('Zé Carlos'));
-    expect(campo('E-mail').value).toBe('dono@barbertime.dev');
-    expect(
-      document.querySelector('[aria-label="Suas barbearias"]').textContent,
-    ).toContain('Atual');
+    expect(campo('E-mail')?.value).toBe('dono@barbertime.dev');
+    expect(elemento('[aria-label="Suas barbearias"]').textContent).toContain(
+      'Atual',
+    );
   });
 
   it('troca a senha e avisa que a outra sessão caiu', async () => {
@@ -212,7 +221,7 @@ describe('meu perfil', () => {
 });
 
 describe('página pública nas configurações', () => {
-  const comModo = (modo) => {
+  const comModo = (modo: string) => {
     const b = BARBEARIA();
     b.configuracoes.paginaPublica.modo = modo;
     b.tokenPublico = 'abc123';
@@ -274,6 +283,32 @@ describe('trava geral da página pública', () => {
     await esperar(() =>
       expect(texto()).toContain('bloqueada no sistema por enquanto'),
     );
+    expect(
+      document.querySelector('[aria-label="Compartilhar a página"]'),
+    ).toBeNull();
+  });
+
+  it('#54: depois de salvar, o aviso continua e o link não aparece', async () => {
+    const b = BARBEARIA();
+    b.configuracoes.paginaPublica.modo = 'publica';
+    b.tokenPublico = 'abc123';
+    b.paginaPublicaLiberada = false;
+    // O PUT devolve a barbearia sem o aviso da trava (só o GET o traz).
+    const salva = { ...b };
+    delete salva.paginaPublicaLiberada;
+    simularApi({
+      'GET /api/barbearia': b,
+      'PUT /api/barbearia': () => [200, salva],
+      'GET /api/auth/eu': SESSAO_DONO,
+    });
+    app = await montarApp('/configuracoes');
+    await clicar('Página pública');
+    await esperar(() =>
+      expect(texto()).toContain('bloqueada no sistema por enquanto'),
+    );
+    await clicar('Salvar');
+    await esperar(() => expect(texto()).toContain('Configurações salvas'));
+    expect(texto()).toContain('bloqueada no sistema por enquanto');
     expect(
       document.querySelector('[aria-label="Compartilhar a página"]'),
     ).toBeNull();

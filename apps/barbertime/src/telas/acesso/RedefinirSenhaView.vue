@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { DsBotao, DsFormulario, DsInput } from '@barbertime/ui';
@@ -29,7 +29,7 @@ async function aoEnviar() {
     await redefinirSenha(token, senha.value);
     router.replace({ name: 'entrar', query: { senha: 'nova' } });
   } catch (e) {
-    erro.value = e.message;
+    erro.value = (e as Error).message;
   } finally {
     salvando.value = false;
   }

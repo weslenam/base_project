@@ -18,10 +18,10 @@ export interface PaginaPublica {
 /** `POST /publico/:slug/agendamentos`: só o necessário para a confirmação. */
 export interface AgendamentoPublico {
   id: number;
-  data: unknown;
-  inicio: unknown;
-  fim: unknown;
-  servicoNome: unknown;
-  barbeiroNome: unknown;
+  data: string;
+  inicio: string | null;
+  fim: string | null;
+  servicoNome: string;
+  barbeiroNome: string;
   primeiroNome: string | null;
 }
