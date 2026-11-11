@@ -96,7 +96,7 @@ export default async function (fastify: FastifyInstance) {
     async (req, reply) => {
       const { nome, email, senha, papelId } = req.body ?? {};
       return fastify.naBarbearia(req, async (c) => {
-        const papel = await papelPorId(c, Number(papelId));
+        const papel = await papelPorId(c, Number(papelId) || 0);
         if (!papel) throw invalido('Escolha o papel do usuário.');
         exigirAbaixo(req, papel.chave, SO_ABAIXO);
 

@@ -428,6 +428,22 @@ describe('cadastros com id inválido (#42)', () => {
   });
 });
 
+describe('id ausente vira NaN e rota responde 500 (#43)', () => {
+  it('GET /publico/:slug/horarios sem barbeiroId ou servicoId responde 404, não 500 (#43)', async () => {
+    const b = await novaBarbearia(servidor);
+    const cfg = (await b.dono.get('/api/barbearia')).corpo;
+    cfg.configuracoes.paginaPublica.modo = 'publica';
+    await b.dono.put('/api/barbearia', cfg);
+    const p = navegador(servidor);
+    const hoje = new Date().toISOString().slice(0, 10);
+    // sem barbeiroId nem servicoId
+    const r = await p.get(
+      `/api/publico/${b.slug}/horarios?data=${hoje}&barbeiroId=&servicoId=`,
+    );
+    expect(r.status).not.toBe(500);
+  });
+});
+
 describe('página pública', () => {
   /** Próxima segunda-feira (aberta no horário padrão). */
   function proximaSegunda() {
