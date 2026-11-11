@@ -1,6 +1,6 @@
 # Planejamento 0015: Módulos de fidelidade (selos e cashback) e pacotes
 
-- **Status:** Em andamento
+- **Status:** Concluído (fase 2/canal verificado postergada para planejamento futuro)
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** ADRs 0010 e 0011; planejamentos 0008 (comanda), 0013 (módulos) e 0001 (diferenciais: assinatura e fidelidade)
@@ -94,3 +94,8 @@ Dois módulos adicionais (ADR 0011):
 - 2026-11-07: Fase 1 (núcleo) concluída. Testes: 15 de domínio (créditos, saldo, vigência, quantidade, intervalo, máximo semanal, os dois limites juntos, renovação), 8 de dados (módulo inativo não credita, avulso não acumula, uso de pacote por R$ 0 sem selo, pacote de outro cliente, venda que só vale depois de paga, cancelamento da venda, validações) e 7 de tela (menu por módulo, lista de pacotes, negação de configuração, saldo no cliente, usar pacote e negação por intervalo, crédito ao receber). Integração da API passando com a migração de permissões.
 - 2026-11-07: Regra ajustada durante a execução: **só item do tipo serviço** dá selo. A venda de pacote (item "Pacote: …") não dá.
 - **Pendentes:** fase 2 (consulta pelo cliente com código de verificação e avisos ao ganhar ou usar), fase 3 (resgate do prêmio e do cashback na comanda), renovação de pacote recorrente pela tela (a regra `renovarAssinatura` já existe) e a migração para a API real.
+- 2026-11-11: Fases 3 e 4 concluídas no planejamento 0034:
+  - **Resgate na comanda:** `ComandaDialogo.vue` mostra saldo, checkbox "Usar prêmio" e campo "Usar cashback"; API valida (`conferirResgate`) e grava (`fidelidadeAoReceber`) ao receber.
+  - **Renovação de pacote recorrente:** botão "Renovar" em `FidelidadeEPacotesCliente.vue`; chama `api.assinaturas.renovar()` → comanda no caixa → vale ao pagar.
+  - **API real:** fidelidade, pacotes e assinaturas migrados para o banco no 0034.
+  - Fase 2 (consulta pelo link do cliente) postergada — depende de canal verificado (e-mail ou WhatsApp).

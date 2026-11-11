@@ -1,10 +1,10 @@
 # Planejamento 0027: Estoque, compras e financeiro (contas a pagar e a receber)
 
-- **Status:** Parte 1 concluída; parte 2: fatia 2A concluída (PR #31), fatia 2B implementada — pendente: verificar:tudo, code-review, security-review e commit
+- **Status:** Concluído (parte 1 + fatia 2A PR #31 + fatia 2B commit 787a07b)
 - **Data:** 2026-11-08
 - **Solicitado por:** Weslen
 - **Relacionado:** ADRs 0010 (papéis e permissões), 0011 (módulos), 0014 (proteção da API); planejamentos 0008 (caixa e comanda), 0020 (balcão) e 0026
-- **Commits:** ainda não commitado
+- **Commits:** 787a07b (fatia 2B)
 
 ## Solicitação de origem
 
@@ -225,7 +225,7 @@ As telas usam só os componentes `Ds*` (skill `design-system`). Um componente no
 - [x] 8. Telas: produtos, estoque, fornecedores, compras, ficha técnica, contas, cadastros, previsão e caixa, mais menu e rotas. _(`CadastrosView` com abas, `RecorrenciaDialogo` e `PrevisaoView` na 2B.)_
 - [x] 9. Testes de integração e de tela dos critérios de aceite. _(Critérios 5 e 6 adicionados na 2B.)_
 - [x] 10. ADRs 0019 e 0021 e índices.
-- [ ] 11. `pnpm verificar:tudo`, `/code-review`, `security-review` e commit.
+- [x] 11. `pnpm verificar:tudo`, `/code-review`, `security-review` e commit.
 
 ## Riscos e pendências
 

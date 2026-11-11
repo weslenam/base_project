@@ -1,6 +1,6 @@
 # Planejamento 0013: Backend real, administração com ACL e módulos adicionais
 
-- **Status:** Em andamento
+- **Status:** Concluído (fases 1 e 2; fase 3 entregue incrementalmente; fase 4/gateway fica para planejamento futuro)
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam@gmail.com
 - **Relacionado:** ADRs 0001, 0002, 0008, 0009, 0010 e 0011; planejamento 0001 (fase 0)
@@ -86,3 +86,4 @@ Detalhes nos ADRs 0009 (stack), 0010 (ACL) e 0011 (módulos). Resumo:
 
 - 2026-11-07: Plano criado.
 - 2026-11-07: Fases 1 e 2 concluídas. Testes: 13 de integração na API, contra o Postgres real (login, 401/403, papéis personalizados, Dono protegido, RLS barrando gravação em outra barbearia, módulo adicional que só libera depois de confirmado, gateway simulado); 10 de domínio para os catálogos; 3 contratos do `DsCaixaDeSelecao`; 11 de tela (guarda de rotas, login, menu por papel, usuários, papéis, módulos). A semente de desenvolvimento entrou (`pnpm banco`). Fases 3 (migrar as telas para a API) e 4 (gateway real) continuam pendentes.
+- 2026-11-11: Fase 3 concluída de forma incremental nos planejamentos 0019 (página pública e operação no banco), 0020 (caixa e comandas), 0025 (Supabase local), 0026 (correções do backend), 0027 (estoque, compras e financeiro) e 0034 (fidelidade e pacotes). `criarApiHttp` agora cobre 100% da interface `Api`; `reiniciar` e `definirModulosAtivos` permanecem no fake como utilitários de dev/teste. Fase 4 (gateway) postergada para planejamento futuro.
