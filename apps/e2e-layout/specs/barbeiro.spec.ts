@@ -1,5 +1,5 @@
-import { test, expect } from '../apoio/teste.js';
-import { APP, ESTADO_BARBEIRO } from '../apoio/urls.js';
+import { test, expect } from '../apoio/teste.ts';
+import { APP, ESTADO_BARBEIRO } from '../apoio/urls.ts';
 
 // Barbeiro da barbearia modelo (semente): abas Balcão e Agenda, sem menu
 // sanduíche; entra pelo Balcão (planejamentos 0035 e 0036).

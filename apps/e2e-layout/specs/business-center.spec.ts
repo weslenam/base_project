@@ -1,5 +1,5 @@
-import { test, expect } from '../apoio/teste.js';
-import { BC, ESTADO_BC } from '../apoio/urls.js';
+import { test, expect } from '../apoio/teste.ts';
+import { BC, ESTADO_BC } from '../apoio/urls.ts';
 
 test.use({ baseURL: BC });
 
@@ -20,10 +20,11 @@ test.describe('Business Center', () => {
     });
 
     test('painel da barbearia', async ({ page, request, conferirLayout }) => {
-      const lista = await (
+      const lista = (await (
         await request.get(`${BC}/api/plataforma/barbearias`)
-      ).json();
+      ).json()) as Array<{ id: number; slug: string }>;
       const modelo = lista.find((b) => b.slug === 'barbearia-modelo');
+      if (!modelo) throw new Error('Barbearia modelo não encontrada');
       await page.goto(`/barbearias/${modelo.id}`);
       await expect(page.getByLabel('Indicadores do mês')).toBeVisible();
       await conferirLayout('bc-painel');

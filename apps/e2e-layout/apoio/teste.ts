@@ -1,5 +1,5 @@
 import { mkdirSync } from 'node:fs';
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type TestInfo } from '@playwright/test';
 
 /**
  * test com a checagem de layout (ADR 0020):
@@ -9,14 +9,19 @@ import { test as base, expect } from '@playwright/test';
  *  4. sem erro de JavaScript na página;
  *  5. captura de tela inteira em capturas/<largura>/<nome>.png.
  */
-export const test = base.extend({
+type MeusFixtures = {
+  errosDaPagina: string[];
+  conferirLayout: (nome: string) => Promise<void>;
+};
+
+export const test = base.extend<MeusFixtures>({
   errosDaPagina: async ({ page }, usar) => {
-    const erros = [];
+    const erros: string[] = [];
     page.on('pageerror', (e) => erros.push(e.message));
     await usar(erros);
   },
-  conferirLayout: async ({ page, errosDaPagina }, usar, info) => {
-    await usar(async (nome) => {
+  conferirLayout: async ({ page, errosDaPagina }, usar, info: TestInfo) => {
+    await usar(async (nome: string) => {
       await page.waitForLoadState('networkidle');
       await page.evaluate(() => document.fonts.ready);
       const r = await page.evaluate(medirLayout);
@@ -45,7 +50,7 @@ export { expect };
 /** Roda no navegador. Devolve o que quebra o layout, descrito para leitura. */
 function medirLayout() {
   const largura = document.documentElement.clientWidth;
-  const descrever = (el) => {
+  const descrever = (el: Element): string => {
     const classe = [...el.classList]
       .filter((c) => !c.startsWith('v-'))
       .slice(0, 3)
@@ -56,11 +61,11 @@ function medirLayout() {
       .slice(0, 40);
     return `${el.tagName.toLowerCase()}${classe ? `.${classe}` : ''} "${texto}"`;
   };
-  const visivel = (el, cs) =>
+  const visivel = (el: Element, cs: CSSStyleDeclaration): boolean =>
     cs.display !== 'none' &&
     cs.visibility !== 'hidden' &&
     el.getClientRects().length > 0;
-  const cortadoPorAncestral = (el) => {
+  const cortadoPorAncestral = (el: Element): boolean => {
     for (
       let a = el.parentElement;
       a && a !== document.body;

@@ -1,12 +1,12 @@
 import { defineConfig } from '@playwright/test';
-import { ambienteDoNavegador } from './apoio/navegador.js';
+import { ambienteDoNavegador } from './apoio/navegador.ts';
 
 // Testes de regressão de layout (ADR 0020, planejamento 0032).
 // Rodam contra o ambiente de desenvolvimento no ar (pnpm dev + semente).
 // Sobrescreva as URLs com APP_URL e BC_URL se usar outras portas.
 export default defineConfig({
   testDir: './specs',
-  globalSetup: './apoio/entrar.js',
+  globalSetup: './apoio/entrar.ts',
   fullyParallel: true,
   workers: 4,
   retries: 0,

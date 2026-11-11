@@ -1,6 +1,6 @@
 # Planejamento 0040: TypeScript em todo o workspace e Kysely no acesso ao banco
 
-- **Status:** Em andamento (etapas 1 a 3 e 5 a 9 concluídas; próxima: etapa 10, o fechamento)
+- **Status:** Concluído (etapas 1 a 3 e 5 a 10 concluídas)
 - **Data:** 2026-11-09
 - **Solicitado por:** Weslen
 - **Relacionado:** ADR 0008 (JS puro, que será substituído), ADR 0009 (SQL à mão, sem ORM, a revisar), ADRs 0001, 0014 e 0017; planejamento 0027 (a fatia 2B do financeiro fica pausada)
@@ -57,7 +57,7 @@ Converter o workspace (cerca de 190 arquivos e 26 mil linhas, sem contar os test
 - [x] 7. **`libs/ui-vuetify` e `libs/ui-contrato`:** componentes `Ds*` com `<script setup lang="ts">` e props tipadas.
 - [x] 8. **`apps/business-center`** (pequeno: 15 arquivos).
 - [x] 9. **`apps/barbertime`:** camada de dados tipada pelos contratos e telas com `lang="ts"`, por pasta.
-- [ ] 10. **Fechamento:** desligar `allowJs`, remover o `jsconfig.json`, rodar `/code-review` e `security-review` gerais e atualizar os índices.
+- [x] 10. **Fechamento:** desligar `allowJs`, remover o `jsconfig.json`, rodar `/code-review` e `security-review` gerais e atualizar os índices.
 
 ## Guia da etapa 6 (para os agentes)
 
@@ -254,4 +254,9 @@ Arquivos de fora desta lista (`infra/*`, `app/app.ts`, `app/esquemas.ts`, `segur
     - com o `?c=` repetido no link, vale o primeiro;
     - `LinhaDoSelect` virou `LinhaDeAtendimento`;
     - `Modulo` e `Pagina` foram para os modelos;
-    - o `clicarEmQueContem` espera o elemento aparecer.
+    - o `clicarEmQueContem` espera o aparecer.
+- 2026-11-11 — **Etapa 10 concluída.** Fechamento do planejamento 0040.
+  - `allowJs` e `checkJs` removidos do `tsconfig.base.json`; `jsconfig.json` removido.
+  - `apps/e2e-layout`: 9 arquivos (`apoio/` + `specs/`) convertidos para `.ts`, com tipos Playwright (`MeusFixtures`, `TestInfo`, `Element`, `CSSStyleDeclaration`).
+  - 11 configs (vitest/vite/playwright) convertidos para `.ts`; `provider: 'v8' as const` nos configs em forma de callback (Vitest não infere o literal sem contexto).
+  - **Pendência aberta:** `apps/api/migracoes/*.js` (8 arquivos `node-pg-migrate` v9): fora do `include` do TypeScript e sem importador em TS, portanto não afetam a compilação. Decisão sobre converter ou remover fica para o próximo planejamento.

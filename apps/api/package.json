@@ -31,7 +31,7 @@
         }
       },
       "integracao": {
-        "command": "vitest run -c vitest.integracao.config.js",
+        "command": "vitest run -c vitest.integracao.config.ts",
         "options": {
           "cwd": "apps/api"
         }

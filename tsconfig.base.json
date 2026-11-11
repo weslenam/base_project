@@ -1,8 +1,7 @@
 {
   // Planejamento 0040 / ADR 0022: TypeScript strict em todo o workspace.
   // Só sintaxe "apagável" (erasableSyntaxOnly): a API roda o .ts direto no
-  // Node, que remove os tipos sem compilar. allowJs fica ligado até o fim da
-  // conversão (etapa 10).
+  // Node, que remove os tipos sem compilar.
   "compilerOptions": {
     "target": "es2023",
     "lib": ["es2023", "dom", "dom.iterable"],
@@ -19,8 +18,6 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "allowJs": true,
-    "checkJs": false,
     "paths": {
       "@barbertime/ui": ["./libs/ui-vuetify/src/index.ts"]
     }
