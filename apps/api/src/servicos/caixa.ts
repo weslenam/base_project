@@ -301,9 +301,7 @@ async function normalizarItens(
   barbeiroId: number | null,
   pacotes: PacotesNoPedido & { anteriores: ItemComanda[] },
 ): Promise<ItemComanda[]> {
-  // O schema aceita `itens: null`, e antes da conversão isso já parava aqui
-  // com erro 500 (o for...of sobre null). Mantido na conversão: issue #41.
-  if (itens === null) throw new TypeError('itens is not iterable');
+  if (itens === null) return [];
   const normalizados: ItemComanda[] = [];
   const conferidos = new Set(barbeiroId ? [barbeiroId] : []);
   for (const i of itens) {
