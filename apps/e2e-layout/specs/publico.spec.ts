@@ -1,5 +1,5 @@
-import { test, expect } from '../apoio/teste.js';
-import { APP } from '../apoio/urls.js';
+import { test, expect } from '../apoio/teste.ts';
+import { APP } from '../apoio/urls.ts';
 
 // Telas sem login: acesso e página pública de agendamento.
 const TELAS = [

@@ -1,5 +1,5 @@
-import { test, expect } from '../apoio/teste.js';
-import { APP, ESTADO_APP } from '../apoio/urls.js';
+import { test, expect } from '../apoio/teste.ts';
+import { APP, ESTADO_APP } from '../apoio/urls.ts';
 
 // App das barbearias logado como Dono da barbearia modelo (semente).
 // Telas de módulo inativo redirecionam: o teste registra e segue.

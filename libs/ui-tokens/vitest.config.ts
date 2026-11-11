@@ -2,9 +2,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/libs/dominio',
+  cacheDir: '../../node_modules/.vite/libs/ui-tokens',
   test: {
-    name: 'dominio',
+    name: 'ui-tokens',
     watch: false,
     globals: true,
     environment: 'node',
@@ -12,7 +12,7 @@ export default defineConfig(() => ({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8',
+      provider: 'v8' as const,
     },
   },
 }));

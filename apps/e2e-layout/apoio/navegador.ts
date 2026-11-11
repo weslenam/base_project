@@ -8,11 +8,11 @@ import { join } from 'node:path';
  * ~/.cache/pw-libs/raiz. Aqui elas entram no LD_LIBRARY_PATH do navegador.
  * Com as bibliotecas instaladas no sistema, isto não muda nada.
  */
-export function ambienteDoNavegador() {
+export function ambienteDoNavegador(): NodeJS.ProcessEnv {
   const raiz = join(homedir(), '.cache/pw-libs/raiz');
   if (!existsSync(raiz)) return { ...process.env };
-  const pastas = new Set();
-  const visitar = (dir) => {
+  const pastas = new Set<string>();
+  const visitar = (dir: string): void => {
     for (const nome of readdirSync(dir)) {
       const caminho = join(dir, nome);
       const info = statSync(caminho, { throwIfNoEntry: false });
