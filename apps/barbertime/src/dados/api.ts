@@ -1711,8 +1711,9 @@ export function criarApi({
           if (atual) {
             Object.assign(atual, { descricao: desc, categoriaId: cat.id, valor, diaDoMes: dia });
           } else {
+            const novoId = proximoId(banco.recorrencias);
             banco.recorrencias.push({
-              id: proximoId(banco.recorrencias),
+              id: novoId,
               tipo,
               descricao: desc,
               categoriaId: cat.id,
@@ -1721,27 +1722,26 @@ export function criarApi({
               fornecedorId: null,
               encerradaEm: null,
             });
+            gerarContasFake();
+            return copia(completarRecorrencia(buscar('recorrencias', novoId, 'Recorrência')));
           }
           gerarContasFake();
           return copia(
-            completarRecorrencia(
-              banco.recorrencias.find((r) =>
-                atual ? r.id === atual.id : r.descricao === desc,
-              )!,
-            ),
+            completarRecorrencia(buscar('recorrencias', atual!.id, 'Recorrência')),
           );
         },
         async encerrar(id) {
           const r = buscar('recorrencias', id, 'Recorrência');
           if (r.encerradaEm)
             throw new ErroDeNegocio('Esta recorrência já foi encerrada.');
-          r.encerradaEm = hoje();
+          const dataHoje = hoje();
+          r.encerradaEm = dataHoje;
           banco.contas
             .filter(
               (ct) =>
                 ct.recorrenciaId === r.id &&
                 ct.situacao === 'aberta' &&
-                ct.vencimento > hoje(),
+                ct.vencimento > dataHoje,
             )
             .forEach((ct) => {
               ct.situacao = 'cancelada';

@@ -144,4 +144,4 @@ export type {
 } from './fidelidade.ts';
 export type { Pacote, UsoDePacote, Assinatura } from './pacotes.ts';
 export type { ProdutoEstoque, LinhaDeFicha, Baixa } from './estoque.ts';
-export type { Conta, BaixaDeConta, ContaParaPrevisao } from './financeiro.ts';
+export type { Conta, BaixaDeConta, ContaParaPrevisao, SemanaDePrevisao } from './financeiro.ts';

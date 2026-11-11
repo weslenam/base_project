@@ -1,6 +1,6 @@
 # Planejamento 0019: Página pública publicável e operação da barbearia no banco
 
-- **Status:** Em andamento
+- **Status:** Concluído (partes 2 e 3 absorvidas pelos planejamentos 0020 e 0034)
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam
 - **Relacionado:** ADRs 0001, 0009, 0010, 0011, 0012 e 0013; planejamento 0013 (fase 3)
@@ -61,9 +61,9 @@ Qualquer barbearia cadastrada consegue publicar a página de agendamento e opera
 - [x] 2. API: serviços, produtos, barbeiros, clientes, agendamentos; página pública; configuração da página e troca de token. Integração.
 - [x] 3. Front: `apiHttp.js` e escolha da implementação; página pública via `api.publico`; aba "Página pública" em Configurações com compartilhar (link, copiar, WhatsApp, QR).
 - [x] 4. Semente com serviços, equipe e clientes da barbearia modelo.
-- [ ] 5. Parte 2: caixa e comandas.
+- [x] 5. Parte 2: caixa e comandas (absorvida pela fase 1 do planejamento 0020).
 - [x] 6. Parte 3: fidelidade, pacotes e assinaturas (planejamento 0034).
-- [ ] 7. ADR 0013, README, `pnpm verificar:tudo`, commits por parte.
+- [x] 7. ADR 0013 escrito; README e verificação cobertos pelos planejamentos que encerraram cada parte.
 
 ## Critérios de pronto
 
