@@ -158,4 +158,38 @@ describe('Barbeiro ajudando na agenda', () => {
     expect(novo.status).toBe(201);
     expect((await barbeiro.n.get('/api/clientes')).status).toBe(200);
   });
+
+  it('canal enviado no corpo é ignorado; o registro fica com "balcao" (#40)', async () => {
+    const { dono } = await novaBarbearia(servidor);
+    const svc = (
+      await dono.post('/api/servicos', { nome: 'Corte', duracao: 30, preco: 45 })
+    ).corpo;
+    const barb = (
+      await dono.post('/api/barbeiros', {
+        nome: 'Teste',
+        inicio: '09:00',
+        fim: '19:00',
+        comissao: 40,
+      })
+    ).corpo;
+    const cli = (
+      await dono.post('/api/clientes', { nome: 'Cli', telefone: '11999990000' })
+    ).corpo;
+    const hoje = momentoNoFuso().data;
+    const prox = new Date(`${hoje}T12:00:00Z`);
+    do prox.setUTCDate(prox.getUTCDate() + 1);
+    while (prox.getUTCDay() !== 1);
+    const diaFuturo = prox.toISOString().slice(0, 10);
+    const criado = await dono.post('/api/agendamentos', {
+      data: diaFuturo,
+      inicio: '09:00',
+      barbeiroId: barb.id,
+      servicoId: svc.id,
+      clienteId: cli.id,
+      canal: 'publico',
+    });
+    expect(criado.status).toBe(201);
+    const detalhes = await dono.get(`/api/agendamentos/${criado.corpo.id}`);
+    expect(detalhes.corpo.canal).toBe('balcao');
+  });
 });
