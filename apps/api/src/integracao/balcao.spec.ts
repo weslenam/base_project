@@ -50,6 +50,16 @@ async function balcao() {
 }
 
 describe('caixa e comandas no banco', () => {
+  it('POST /comandas com itens: null responde 201, não 500 (#41)', async () => {
+    const { dono, joao } = await balcao();
+    const r = await dono.post('/api/comandas', {
+      barbeiroId: joao.id,
+      itens: null,
+    });
+    expect(r.status).toBe(201);
+    expect(r.corpo.total).toBe(0);
+  });
+
   it('abre, lança, recebe e fecha com o resumo por forma', async () => {
     const { dono, corte, joao } = await balcao();
     const cm = (
