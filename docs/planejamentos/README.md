@@ -41,4 +41,4 @@
 | [0037](0037-correcoes-da-revisao-fidelidade-e-barbeiro.md)       | Correções da revisão (fidelidade e Barbeiro)                                  | Concluído                | 2026-11-09 |
 | [0038](0038-rastreabilidade-de-bugs-e-branches.md)               | Rastreabilidade de bugs e branches                                            | Concluído                | 2026-11-09 |
 | [0039](0039-barbeiro-sem-abrir-caixa.md)                         | Barbeiro sem abrir o caixa                                                    | Concluído                | 2026-11-09 |
-| [0040](0040-typescript-e-kysely.md)                             | TypeScript em todo o workspace e Kysely no acesso ao banco                    | Em andamento             | 2026-11-09 |
+| [0040](0040-typescript-e-kysely.md)                             | TypeScript em todo o workspace e Kysely no acesso ao banco                    | Concluído                | 2026-11-09 |
