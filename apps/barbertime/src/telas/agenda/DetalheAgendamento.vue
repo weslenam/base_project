@@ -58,6 +58,12 @@ const permite = (estado: string) =>
     estado,
   );
 const podeComanda = computed(() => pode('caixa.operar'));
+const eHojeOuPassado = computed(() => {
+  const data = agendamento.value?.data;
+  if (!data) return false;
+  const hoje = new Intl.DateTimeFormat('sv', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  return data <= hoje;
+});
 const temAcao = computed(() => {
   const a = agendamento.value;
   if (!a) return false;
@@ -188,7 +194,7 @@ async function removerBloqueio() {
         </p>
         <template v-else-if="agendamento.estado === 'pendente'">
           <DsAcao
-            v-if="permite('confirmado')"
+            v-if="permite('confirmado') && eHojeOuPassado"
             icone="check"
             titulo="Confirmar presença"
             descricao="O cliente confirmou que vem"

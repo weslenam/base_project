@@ -147,12 +147,20 @@ async function finalizar(b: BarbeiroBalcao) {
   );
 }
 
-const pausar = (b: BarbeiroBalcao) =>
-  agir(
+async function pausar(b: BarbeiroBalcao) {
+  if (b.estado !== 'pausa') {
+    const ok = await confirmar(`Colocar ${b.nome} em pausa?`, {
+      textoOk: 'Colocar em pausa',
+      textoCancelar: 'Cancelar',
+    });
+    if (!ok) return;
+  }
+  await agir(
     `p${b.id}`,
     () => balcao.pausa(b.id, b.estado !== 'pausa'),
     (r) => (r.emPausa ? `${b.nome} em pausa.` : `${b.nome} voltou.`),
   );
+}
 
 /** A cobrar só lista quem tem comanda aberta. */
 function cobrar(id: number | null) {
@@ -253,7 +261,7 @@ const servicos = computed(() => painel.value?.servicos ?? []);
               :carregando="ocupado === `p${b.id}`"
               @click="pausar(b)"
             >
-              {{ b.estado === 'pausa' ? 'Voltar' : 'Pausa' }}
+              {{ b.estado === 'pausa' ? 'Voltar' : 'Colocar em Pausa' }}
             </DsBotao>
           </div>
         </article>
