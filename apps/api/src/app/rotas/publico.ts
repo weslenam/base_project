@@ -186,8 +186,8 @@ export default async function (
     if (typeof data !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data))
       throw invalido('Escolha o dia.');
     return fastify.comBarbearia(b.id, async (c) => {
-      const barbeiro = await buscarBarbeiro(c, Number(barbeiroId));
-      const servico = await buscarServico(c, Number(servicoId));
+      const barbeiro = await buscarBarbeiro(c, Number(barbeiroId) || 0);
+      const servico = await buscarServico(c, Number(servicoId) || 0);
       const j = janela(b.config, barbeiro, data);
       if (!j) return [];
       return horariosLivres({
