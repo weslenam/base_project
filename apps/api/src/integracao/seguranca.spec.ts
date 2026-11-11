@@ -125,6 +125,24 @@ describe('força bruta no login', () => {
     });
   });
 
+  it('login com senha null ou ausente responde 401 sem checar hash (#44)', async () => {
+    const { email } = await novaBarbearia(preparo);
+    const casos = [
+      { email, senha: null },
+      { email, senha: undefined },
+      { email },
+    ];
+    for (const corpo of casos) {
+      const r = await preparo.inject({
+        method: 'POST',
+        url: '/api/auth/entrar',
+        payload: corpo,
+      });
+      expect(r.statusCode).toBe(401);
+      expect(r.json().mensagem).toBe('E-mail ou senha incorretos.');
+    }
+  });
+
   it('e-mail inexistente e senha errada levam o mesmo tempo (sem descoberta de contas)', async () => {
     const { email } = await novaBarbearia(preparo);
     const tentar = (corpo: object) =>
