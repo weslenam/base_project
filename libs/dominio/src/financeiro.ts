@@ -102,12 +102,12 @@ export function agruparPrevisaoPorSemana(
     ...mapaSemanaPagar.keys(),
     ...mapaSemanaReceber.keys(),
   ]);
-  for (const inicio of [...todasSemanas].sort()) {
-    const pagar = (mapaSemanaPagar.get(inicio) ?? 0) / 100;
-    const receber = (mapaSemanaReceber.get(inicio) ?? 0) / 100;
+  for (const iniSemana of [...todasSemanas].sort()) {
+    const pagar = (mapaSemanaPagar.get(iniSemana) ?? 0) / 100;
+    const receber = (mapaSemanaReceber.get(iniSemana) ?? 0) / 100;
     semanas.push({
-      inicio,
-      fim: somarDias(inicio, 6),
+      inicio: iniSemana,
+      fim: somarDias(iniSemana, 6),
       pagar,
       receber,
       saldo: receber - pagar,

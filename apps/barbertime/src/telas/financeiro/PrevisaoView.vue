@@ -9,7 +9,7 @@ import {
   DsSelo,
   DsTabela,
 } from '@barbertime/ui';
-import { somarDias } from '@barbertime/dominio';
+import { inicioDaSemana, somarDias } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
 import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
 import type { ColunaDaTabela } from '@barbertime/ui';
@@ -26,20 +26,12 @@ function dataHoje(): string {
   return new Intl.DateTimeFormat('sv', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 }
 
-function iniDaSemana(): string {
-  const hoje = dataHoje();
-  const d = new Date(hoje + 'T00:00:00');
-  const dow = d.getDay();
-  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
-  return d.toISOString().slice(0, 10);
-}
-
 const hoje = dataHoje();
 const inicio = ref(hoje);
 const fim = ref(somarDias(hoje, 30));
 const periodoAtivo = ref<number | null>(30);
 const personalizado = ref(false);
-const inicioPicker = ref(iniDaSemana());
+const inicioPicker = ref(inicioDaSemana(dataHoje()));
 const fimPicker = ref(somarDias(dataHoje(), 30));
 const previsao = ref<PrevisaoFinanceira | null>(null);
 const carregando = ref(false);

@@ -34,6 +34,7 @@ import {
   query,
   texto,
 } from '../esquemas.ts';
+import { invalido } from '../../infra/erros.ts';
 
 type ComId = { Params: { id: string } };
 
@@ -208,6 +209,7 @@ export default async function (fastify: FastifyInstance) {
         const h = hoje();
         const inicio = req.query.inicio || h;
         const fim = req.query.fim || somarDias(h, 30);
+        if (inicio > fim) throw invalido('O início não pode ser depois do fim.');
         return previsao(c, barbearia(req), inicio, fim);
       }),
   );

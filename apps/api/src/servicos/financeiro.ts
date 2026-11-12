@@ -792,6 +792,7 @@ export async function previsao(
     .select(['ct.tipo', 'ct.valor', 'ct.vencimento', 'ct.situacao', 'cf.nome as categoriaNome'])
     .where('ct.barbeariaId', '=', barbeariaId)
     .where('ct.situacao', '=', 'aberta')
+    .where('ct.vencimento', '<=', fim)
     .execute();
   const contas: ContaParaPrevisao[] = linhas.map((l) => ({
     tipo: l.tipo,
