@@ -24,8 +24,9 @@ Decisões arquiteturais duradouras. O trabalho do dia a dia fica em `docs/planej
 | [0020](0020-testes-de-layout-com-playwright.md)                  | Testes de layout com Playwright (Chromium)                              | Aceito                |
 | [0021](0021-estoque-por-movimentos-com-saldo-materializado.md)   | Estoque por movimentos com saldo materializado                          | Aceito                |
 | [0022](0022-typescript-strict-e-kysely.md)                       | TypeScript strict e Kysely no acesso ao banco                           | Aceito                |
+| [0023](0023-auditoria-e-pii.md)                                  | Logs de auditoria e proteção de PII dos clientes                        | Proposto              |
 
-**Números 0004 e 0005:** livres. Os ADRs 0006 e 0007 mantêm os números do protótipo Agenda porque as regras e skills do repositório os citam assim. Eles foram **reconstruídos** a partir dessas regras, já que o texto original não veio junto. O próximo ADR novo é o 0023.
+**Números 0004 e 0005:** livres. Os ADRs 0006 e 0007 mantêm os números do protótipo Agenda porque as regras e skills do repositório os citam assim. Eles foram **reconstruídos** a partir dessas regras, já que o texto original não veio junto. O próximo ADR novo é o 0024.
 
 ## Modelo
 

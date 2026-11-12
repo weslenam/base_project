@@ -18,9 +18,8 @@
     "verificar:tudo": "nx run-many -t lint,typecheck,test,build && nx run api:banco-tipos-conferir && nx run api:integracao",
     "verificar:layout": "nx run e2e-layout:e2e",
     "navegador": "bash scripts/preparar-navegador.sh",
-    "banco": "supabase start && nx run api:migrar && nx run api:semear",
-    "banco:parar": "supabase stop",
-    "banco:compose": "docker compose up -d --wait postgres redis mailpit && nx run api:semear",
+    "banco": "docker compose up -d --wait postgres redis mailpit && nx run api:migrar && nx run api:semear",
+    "banco:parar": "docker compose stop postgres redis mailpit",
     "banco:tipos": "nx run api:banco-tipos"
   },
   "devDependencies": {
@@ -51,7 +50,6 @@
     "kysely-codegen": "^0.20.0",
     "nx": "24.0.1",
     "prettier": "~3.6.2",
-    "supabase": "3.0.0",
     "tslib": "^2.3.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.58.0",

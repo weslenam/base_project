@@ -1,6 +1,6 @@
 # ADR 0015: Supabase local como plataforma de banco, migrações e e-mail
 
-- **Status:** Aceito
+- **Status:** Substituído por planejamento 0041 (2026-11-12)
 - **Data:** 2026-11-08
 - **Relacionado:** ADRs 0001, 0002, 0009 e 0014; planejamento 0025 (sprints S1 e S8)
 

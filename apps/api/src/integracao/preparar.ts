@@ -25,7 +25,7 @@ export default async function ({ provide }: TestProject) {
     await admin.connect();
   } catch (erro) {
     throw new Error(
-      `Postgres indisponível para os testes de integração (${(erro as Error).message}). Rode: pnpm supabase start`,
+      `Postgres indisponível para os testes de integração (${(erro as Error).message}). Rode: pnpm banco`,
     );
   }
   await admin.query(`drop database if exists ${BANCO} with (force)`);
