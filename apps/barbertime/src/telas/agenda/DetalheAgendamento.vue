@@ -73,7 +73,7 @@ const temAcao = computed(() => {
   if (a.estado === 'confirmado')
     return (
       (a.status !== 'agendado' && permite('atendido')) ||
-      podeComanda.value ||
+      (podeComanda.value && !a.comandaId) ||
       permite('faltou') ||
       permite('cancelado')
     );
@@ -225,7 +225,7 @@ async function removerBloqueio() {
             @click="mudar('atendido', 'Atendimento concluído.')"
           />
           <DsAcao
-            v-if="podeComanda"
+            v-if="podeComanda && !agendamento.comandaId"
             icone="caixa"
             titulo="Abrir comanda"
             descricao="Lança serviço e produtos no caixa"
