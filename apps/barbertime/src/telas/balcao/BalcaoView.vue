@@ -239,10 +239,19 @@ const servicos = computed(() => painel.value?.servicos ?? []);
           <p v-if="b.atual" class="ds-corpo-sm">
             {{ b.atual.clienteNome }} · {{ b.atual.servicoNome }}
           </p>
-          <p v-if="b.proximo" class="ds-corpo-sm ds-suave">
-            Próximo: <span class="ds-hora">{{ b.proximo.inicio }}</span>
-            {{ b.proximo.clienteNome }}
-          </p>
+          <div v-if="b.proximo" class="barbeiro__proximo">
+            <p class="ds-rotulo">Próximo</p>
+            <p class="barbeiro__proximo-nome">{{ b.proximo.clienteNome }}</p>
+            <p class="ds-corpo-sm ds-suave">
+              {{ b.proximo.servicoNome }}
+              <template v-if="b.proximo.inicio">
+                · <span class="ds-hora">{{ b.proximo.inicio }}</span>
+              </template>
+              <template v-if="b.proximo.esperaMin > 0">
+                · ~{{ b.proximo.esperaMin }} min
+              </template>
+            </p>
+          </div>
           <div class="barbeiro__acoes">
             <DsBotao
               v-if="
@@ -446,6 +455,18 @@ const servicos = computed(() => painel.value?.servicos ?? []);
   align-items: center;
   justify-content: space-between;
   gap: var(--esp-2);
+}
+.barbeiro__proximo {
+  padding: var(--esp-2) var(--esp-3);
+  border-radius: var(--raio-sm);
+  background: var(--placa-funda);
+  border-left: 3px solid var(--linha-forte);
+}
+.barbeiro__proximo p {
+  margin: 0;
+}
+.barbeiro__proximo-nome {
+  font-weight: 600;
 }
 .barbeiro__acoes,
 .item__acoes {

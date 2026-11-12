@@ -216,6 +216,8 @@ export default async function (fastify: FastifyInstance) {
                   id: proximo.id,
                   inicio: proximo.inicio,
                   clienteNome: proximo.clienteNome,
+                  servicoNome: proximo.servicoNome,
+                  esperaMin: s.restanteMin,
                 }
               : null,
             reservados: undefined,

@@ -1,6 +1,6 @@
 # Planejamento 0020: Balcão: atendimento rápido (avulso + agendado), fila e operação pelo barbeiro
 
-- **Status:** Fase 1 concluída: aguardando o teste do usuário para decidir as próximas fases
+- **Status:** Fase 1 concluída; fase 2 em andamento (fatia "Seu próximo" entregue)
 - **Data:** 2026-11-07
 - **Solicitado por:** weslenam
 - **Relacionado:** especificação [docs/atendimento/balcao.md](../atendimento/balcao.md); planejamentos 0009, 0010, 0012, 0015 e 0019; ADRs 0010, 0011 e 0013
@@ -132,3 +132,4 @@ A promoção de horário vazio, o Pix sem maquininha e o modo offline entram em 
 - 2026-11-07: reescrito a partir da especificação `docs/atendimento/balcao.md`. A parte 2 do 0019 (caixa e comandas) foi absorvida pela fase 1.
 - 2026-11-07: aprovado pelo usuário (só a fase 1; fechamento com formas manuais).
 - 2026-11-07: fase 1 implementada (ver _Como ficou a fase 1_). O usuário pediu dados para simular a Studio Negoboy ("implemente dados para a barbearia negoboy, serviços clientes, equipe, produtos e etc para eu poder simular").
+- 2026-11-11: fase 2 iniciada — "Seu próximo": `BarbeiroNoBalcao.proximo` ganhou `servicoNome` e `esperaMin`; na coluna "Agora" do Balcão o próximo agora aparece em destaque com nome, serviço, horário e tempo de espera.

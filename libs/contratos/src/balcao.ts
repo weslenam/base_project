@@ -21,7 +21,13 @@ export type BarbeiroNoBalcao = Omit<
     servicoNome: string;
     comandaId: number | null;
   } | null;
-  proximo: { id: number; inicio: string | null; clienteNome: string } | null;
+  proximo: {
+    id: number;
+    inicio: string | null;
+    clienteNome: string;
+    servicoNome: string;
+    esperaMin: number;
+  } | null;
   reservados: undefined;
 };
 
