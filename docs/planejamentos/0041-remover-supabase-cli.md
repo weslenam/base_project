@@ -1,10 +1,10 @@
 # Planejamento 0041: Remover o Supabase CLI e usar PostgreSQL direto
 
-- **Status:** Aprovado
+- **Status:** Concluído
 - **Data:** 2026-11-12
 - **Solicitado por:** weslenam
 - **Relacionado:** ADR 0015, ADR 0016, planejamento 0025
-- **Commits:** ainda não commitado
+- **Commits:** 2c30acc
 
 ## Solicitação de origem
 
@@ -36,13 +36,13 @@ Remover o Supabase CLI do ambiente de desenvolvimento local, substituindo-o pelo
 
 ## Etapas
 
-- [ ] 1. Mover `supabase/migrations/*.sql` para `migrations/` (nova pasta na raiz)
-- [ ] 2. Atualizar `apps/api/src/infra/migrar.ts` — novo caminho + remover bloco de compatibilidade `supabase_migrations`
-- [ ] 3. Atualizar `apps/api/src/integracao/preparar.ts` — mensagem de erro sem referência ao Supabase
-- [ ] 4. Atualizar scripts em `package.json` — `banco` passa a usar `docker compose up -d --wait postgres redis mailpit`; remover `banco:parar` via supabase
-- [ ] 5. Atualizar `.env.example` — portas do compose (5432, 1025) em vez das do Supabase (54322, 54325)
-- [ ] 6. Remover `supabase/` (config.toml, snippets e pasta vazia); remover `supabase` das devDependencies
-- [ ] 7. Revisar ADR 0015 e ADR 0016 — marcar como Substituído com nota
+- [x] 1. Mover `supabase/migrations/*.sql` para `migrations/` (nova pasta na raiz)
+- [x] 2. Atualizar `apps/api/src/infra/migrar.ts` — novo caminho + remover bloco de compatibilidade `supabase_migrations`
+- [x] 3. Atualizar `apps/api/src/integracao/preparar.ts` — mensagem de erro sem referência ao Supabase
+- [x] 4. Atualizar scripts em `package.json` — `banco` passa a usar `docker compose up -d --wait postgres redis mailpit`; remover `banco:parar` via supabase
+- [x] 5. Atualizar `.env.example` — portas do compose (5432, 1025) em vez das do Supabase (54322, 54325)
+- [x] 6. Remover `supabase/` (config.toml, snippets e pasta vazia); remover `supabase` das devDependencies
+- [x] 7. Revisar ADR 0015 e ADR 0016 — marcar como Substituído com nota
 - [ ] 8. `pnpm verificar:tudo` passa (precisa do compose no ar)
 
 ## Critérios de pronto
