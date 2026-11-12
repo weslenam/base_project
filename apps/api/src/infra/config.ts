@@ -7,11 +7,9 @@ if (existsSync(envRaiz)) process.loadEnvFile(envRaiz);
 
 export const config = {
   producao: process.env.NODE_ENV === 'production',
-  /** Conexão da aplicação: papel barbertime_app, sujeito a RLS. */
   databaseUrl:
     process.env.DATABASE_URL ??
     'postgres://barbertime_app:troque-me-app@localhost:5432/barbertime',
-  /** Conexão das migrações: superusuário, dono das tabelas. */
   databaseUrlMigracao:
     process.env.DATABASE_URL_MIGRACAO ??
     'postgres://postgres:troque-me-postgres@localhost:5432/barbertime',
@@ -21,10 +19,7 @@ export const config = {
    * PAGINA_PUBLICA=liberada.
    */
   paginaPublicaLiberada: process.env.PAGINA_PUBLICA === 'liberada',
-  /**
-   * Implementação da identidade (ADR 0016): "propria" (sessão e senha nossas,
-   * padrão) ou, a partir da S4 do planejamento 0025, "supabase" (GoTrue).
-   */
+  /** Implementação da identidade (ADR 0016): "propria" (sessão e senha nossas). */
   auth: process.env.AUTH ?? 'propria',
   /** Validade da sessão em dias. */
   diasDeSessao: 30,

@@ -1,6 +1,6 @@
 # ADR 0016: Identidade atrás de um adaptador, com Supabase Auth e BFF na API
 
-- **Status:** Aceito
+- **Status:** Parcialmente substituído — adaptador `supabase` (GoTrue) abandonado (planejamento 0041, 2026-11-12); adaptador `propria` continua ativo
 - **Data:** 2026-11-08
 - **Relacionado:** ADRs 0009, 0010, 0014 e 0015; planejamento 0025 (sprints S3, S4 e S5)
 
