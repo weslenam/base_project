@@ -2,34 +2,69 @@
 import { onMounted, ref } from 'vue';
 import {
   DsBotao,
-  DsEscolha,
   DsIcone,
   DsIndicador,
+  DsInputData,
   DsPagina,
   DsSelo,
   DsTabela,
 } from '@barbertime/ui';
+import { somarDias } from '@barbertime/dominio';
 import { api } from '../../dados/api.ts';
-import { formatarMoeda } from '@barbertime/ui-utils';
+import { formatarData, formatarMoeda } from '@barbertime/ui-utils';
 import type { ColunaDaTabela } from '@barbertime/ui';
 import type { PrevisaoFinanceira, SemanaDePrevisao } from '@barbertime/contratos';
 
 // Previsão de fluxo de caixa (planejamento 0027, parte 2, fatia 2B).
 const PERIODOS = [
-  { valor: 30, rotulo: '30 dias' },
-  { valor: 60, rotulo: '60 dias' },
-  { valor: 90, rotulo: '90 dias' },
+  { dias: 30, rotulo: '30 dias' },
+  { dias: 60, rotulo: '60 dias' },
+  { dias: 90, rotulo: '90 dias' },
 ];
 
-const periodo = ref(30);
+function dataHoje(): string {
+  return new Intl.DateTimeFormat('sv', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+}
+
+function iniDaSemana(): string {
+  const hoje = dataHoje();
+  const d = new Date(hoje + 'T00:00:00');
+  const dow = d.getDay();
+  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+  return d.toISOString().slice(0, 10);
+}
+
+const hoje = dataHoje();
+const inicio = ref(hoje);
+const fim = ref(somarDias(hoje, 30));
+const periodoAtivo = ref<number | null>(30);
+const personalizado = ref(false);
+const inicioPicker = ref(iniDaSemana());
+const fimPicker = ref(somarDias(dataHoje(), 30));
 const previsao = ref<PrevisaoFinanceira | null>(null);
 const carregando = ref(false);
+
+function aplicarRapido(dias: number) {
+  const h = dataHoje();
+  inicio.value = h;
+  fim.value = somarDias(h, dias);
+  periodoAtivo.value = dias;
+  personalizado.value = false;
+  carregar();
+}
+
+function aplicarPersonalizado() {
+  inicio.value = inicioPicker.value;
+  fim.value = fimPicker.value;
+  periodoAtivo.value = null;
+  carregar();
+}
 
 const colunasSemanas: ColunaDaTabela<SemanaDePrevisao>[] = [
   {
     campo: 'inicio',
     titulo: 'Semana',
-    formatar: (v, linha) => `${v} – ${(linha as SemanaDePrevisao).fim}`,
+    formatar: (v, linha) => `${formatarData(v as string)} – ${formatarData((linha as SemanaDePrevisao).fim)}`,
   },
   { campo: 'receber', titulo: 'A receber', formatar: (v) => formatarMoeda(Number(v)) },
   { campo: 'pagar', titulo: 'A pagar', formatar: (v) => formatarMoeda(Number(v)) },
@@ -50,7 +85,7 @@ const colunasCat: ColunaDaTabela<LinhaCat>[] = [
 async function carregar() {
   carregando.value = true;
   try {
-    previsao.value = await api.financeiro.previsao(periodo.value);
+    previsao.value = await api.financeiro.previsao(inicio.value, fim.value);
   } finally {
     carregando.value = false;
   }
@@ -62,17 +97,33 @@ onMounted(carregar);
 <template>
   <DsPagina titulo="Previsão" sobretitulo="Financeiro">
     <template #acoes>
-      <DsEscolha
-        v-model="periodo"
-        :opcoes="PERIODOS"
-        rotulo="Período"
-        @update:model-value="carregar"
-      />
-      <DsBotao variante="secundario" :carregando="carregando" @click="carregar">
-        <DsIcone nome="buscar" />
-        Atualizar
-      </DsBotao>
+      <div class="periodo-grupo">
+        <DsBotao
+          v-for="p in PERIODOS"
+          :key="p.dias"
+          :variante="periodoAtivo === p.dias ? 'primario' : 'secundario'"
+          tamanho="sm"
+          @click="aplicarRapido(p.dias)"
+        >
+          {{ p.rotulo }}
+        </DsBotao>
+        <DsBotao
+          :variante="personalizado ? 'primario' : 'secundario'"
+          tamanho="sm"
+          @click="personalizado = !personalizado"
+        >
+          <DsIcone nome="agenda" />
+        </DsBotao>
+      </div>
     </template>
+
+    <div v-if="personalizado" class="periodo-custom">
+      <DsInputData v-model="inicioPicker" rotulo="De" :max="fimPicker" />
+      <DsInputData v-model="fimPicker" rotulo="Até" :min="inicioPicker" />
+      <DsBotao variante="primario" tamanho="sm" :desabilitado="!inicioPicker || !fimPicker || fimPicker < inicioPicker" @click="aplicarPersonalizado">
+        Aplicar
+      </DsBotao>
+    </div>
 
     <template v-if="previsao">
       <div class="indicadores">
@@ -127,5 +178,24 @@ onMounted(carregar);
   flex-wrap: wrap;
   gap: var(--ds-espaco-md);
   margin-block-end: var(--ds-espaco-lg);
+}
+.periodo-grupo {
+  display: flex;
+  gap: var(--esp-1);
+}
+.periodo-custom {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  margin-block-end: var(--esp-4);
+  background: var(--placa);
+  border-radius: var(--raio-sm);
+  border: 1px solid var(--linha);
+}
+@media (max-width: 40rem) {
+  .periodo-custom {
+    flex-wrap: wrap;
+  }
 }
 </style>

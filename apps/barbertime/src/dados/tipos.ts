@@ -182,7 +182,7 @@ export interface Api {
       salvar: (d: Corpo) => Promise<EmJson<RecorrenciaFinanceira>>;
       encerrar: (id: number) => Promise<EmJson<RecorrenciaFinanceira>>;
     };
-    previsao: (dias?: number) => Promise<EmJson<PrevisaoFinanceira>>;
+    previsao: (inicio?: string, fim?: string) => Promise<EmJson<PrevisaoFinanceira>>;
   };
   caixa: {
     obterDoDia: () => Promise<EmJson<CaixaComResumo> | null>;

@@ -38,14 +38,14 @@ export interface ContaParaPrevisao {
 }
 
 /**
- * Agrupa contas abertas (vencidas e futuras) para a previsão de fluxo de
- * caixa. Vencidas: `vencimento < hoje`. Futuras: dentro de `dias` dias.
+ * Agrupa contas abertas para a previsão de fluxo de caixa.
+ * Vencidas: `vencimento < inicio`. Futuras: de `inicio` até `fim` (inclusive).
  * As semanas usam segunda-feira como início (via `inicioDaSemana`).
  */
 export function agruparPrevisaoPorSemana(
   contas: ContaParaPrevisao[],
-  hoje: string,
-  dias: number,
+  inicio: string,
+  fim: string,
 ): {
   semanas: SemanaDePrevisao[];
   vencidaPagar: number;
@@ -55,7 +55,6 @@ export function agruparPrevisaoPorSemana(
   saldoPrevisto: number;
   categorias: { nome: string; tipo: string; total: number }[];
 } {
-  const limite = somarDias(hoje, dias);
   const abertas = contas.filter((c) => c.situacao === 'aberta');
 
   let vencidaPagar = 0;
@@ -69,11 +68,11 @@ export function agruparPrevisaoPorSemana(
 
   for (const c of abertas) {
     const v = Math.round(c.valor * 100);
-    if (c.vencimento < hoje) {
+    if (c.vencimento < inicio) {
       if (c.tipo === 'pagar') vencidaPagar += v;
       else vencidaReceber += v;
       // Vencidas não entram nas semanas mas entram em categorias.
-    } else if (c.vencimento <= limite) {
+    } else if (c.vencimento <= fim) {
       const semana = inicioDaSemana(c.vencimento);
       if (c.tipo === 'pagar') {
         mapaSemanaPagar.set(semana, (mapaSemanaPagar.get(semana) ?? 0) + v);

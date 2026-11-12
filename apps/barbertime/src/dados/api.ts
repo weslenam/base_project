@@ -34,6 +34,7 @@ import {
   motivoParcelasInvalidas,
   documentoValido,
   agruparPrevisaoPorSemana,
+  somarDias,
   datasDeRecorrencia,
   movimentoDaBaixa,
   situacaoDaConta,
@@ -1749,7 +1750,8 @@ export function criarApi({
           return copia(completarRecorrencia(r));
         },
       },
-      async previsao(dias = 30) {
+      async previsao(inicio?: string, fim?: string) {
+        const h = hoje();
         return agruparPrevisaoPorSemana(
           banco.contas
             .filter((ct) => ct.situacao === 'aberta')
@@ -1763,8 +1765,8 @@ export function criarApi({
                   (c) => c.id === ct.categoriaId,
                 )?.nome ?? '',
             })),
-          hoje(),
-          [30, 60, 90].includes(dias) ? dias : 30,
+          inicio || h,
+          fim || somarDias(h, 30),
         );
       },
     },

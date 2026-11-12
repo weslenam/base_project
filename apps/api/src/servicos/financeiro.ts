@@ -783,10 +783,9 @@ export async function encerrarRecorrencia(
 export async function previsao(
   c: Conexao,
   barbeariaId: number,
-  dias: number,
-  hoje: string,
+  inicio: string,
+  fim: string,
 ): Promise<PrevisaoFinanceira> {
-  const diasValidos = [30, 60, 90].includes(dias) ? dias : 30;
   const linhas = await c.db
     .selectFrom('contas as ct')
     .innerJoin('categoriasFinanceiras as cf', 'cf.id', 'ct.categoriaId')
@@ -801,5 +800,5 @@ export async function previsao(
     situacao: l.situacao,
     categoriaNome: l.categoriaNome,
   }));
-  return agruparPrevisaoPorSemana(contas, hoje, diasValidos);
+  return agruparPrevisaoPorSemana(contas, inicio, fim);
 }

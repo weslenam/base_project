@@ -175,7 +175,7 @@ describe('agruparPrevisaoPorSemana', () => {
   });
 
   it('conta no período entra na semana correta', () => {
-    const r = agruparPrevisaoPorSemana([conta()], '2026-11-11', 30);
+    const r = agruparPrevisaoPorSemana([conta()], '2026-11-11', '2026-12-11');
     // 2026-11-14 é sábado; inicio da semana (segunda) = 2026-11-09
     expect(r.semanas).toHaveLength(1);
     expect(r.semanas[0].pagar).toBe(100);
@@ -189,7 +189,7 @@ describe('agruparPrevisaoPorSemana', () => {
     const r = agruparPrevisaoPorSemana(
       [conta({ vencimento: '2026-11-01' })],
       '2026-11-11',
-      30,
+      '2026-12-11',
     );
     expect(r.semanas).toHaveLength(0);
     expect(r.vencidaPagar).toBe(100);
@@ -203,7 +203,7 @@ describe('agruparPrevisaoPorSemana', () => {
         conta({ tipo: 'pagar', valor: 150, vencimento: '2026-11-14' }),
       ],
       '2026-11-11',
-      30,
+      '2026-12-11',
     );
     expect(r.saldoPrevisto).toBeCloseTo(50);
   });
@@ -212,7 +212,7 @@ describe('agruparPrevisaoPorSemana', () => {
     const r = agruparPrevisaoPorSemana(
       [conta({ vencimento: '2026-12-20' })],
       '2026-11-11',
-      30,
+      '2026-12-11',
     );
     expect(r.semanas).toHaveLength(0);
     expect(r.totalPagar).toBe(0);
@@ -222,7 +222,7 @@ describe('agruparPrevisaoPorSemana', () => {
     const r = agruparPrevisaoPorSemana(
       [conta({ situacao: 'quitada' })],
       '2026-11-11',
-      30,
+      '2026-12-11',
     );
     expect(r.totalPagar).toBe(0);
   });
