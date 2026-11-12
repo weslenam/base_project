@@ -39,7 +39,7 @@ const PAINEL = (extra = {}) => ({
         servicoNome: 'Corte',
         comandaId: 7,
       },
-      proximo: { id: 60, inicio: '15:00', clienteNome: 'Ana' },
+      proximo: { id: 60, inicio: '15:00', clienteNome: 'Ana', servicoNome: 'Corte', esperaMin: 15 },
     },
     {
       id: 2,
@@ -91,7 +91,7 @@ describe('balcão', () => {
     );
     const agora = elemento('section[aria-label="Agora"]').textContent;
     expect(agora).toMatch(/João.*Ocupado · 20 min/);
-    expect(agora).toContain('Próximo: 15:00 Ana');
+    expect(agora).toMatch(/Próximo[\s\S]*Ana[\s\S]*Corte[\s\S]*15:00/);
     expect(elemento('section[aria-label="Próximos"]').textContent).toContain(
       'Ana',
     );
