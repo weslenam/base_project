@@ -540,11 +540,22 @@ async function cancelar() {
               :rotulo="`Usar prêmio: ${nomeDoPremio} grátis`"
               :descricao="`Gasta ${fidelidade.config.selos.necessarios} selos ao receber`"
             />
-            <DsInputMoeda
-              v-if="fidelidade.saldo.cashback > 0"
-              v-model="comanda.cashbackUsado"
-              :rotulo="`Usar cashback (até ${formatarMoeda(limiteCashback)})`"
-            />
+            <div v-if="fidelidade.saldo.cashback > 0" class="cashback-linha">
+              <DsInputMoeda
+                :model-value="comanda.cashbackUsado"
+                :rotulo="`Usar cashback (até ${formatarMoeda(limiteCashback)})`"
+                limpavel
+                @update:model-value="(v) => (comanda!.cashbackUsado = v ?? 0)"
+              />
+              <DsBotao
+                variante="fantasma"
+                tamanho="sm"
+                :desabilitado="comanda.cashbackUsado >= limiteCashback"
+                @click="comanda.cashbackUsado = limiteCashback"
+              >
+                Usar cashback
+              </DsBotao>
+            </div>
           </section>
           <DsInputMoeda v-model="comanda.desconto" rotulo="Desconto" />
           <DsEscolha
@@ -671,6 +682,12 @@ async function cancelar() {
 }
 .pagamento :deep(.ds-escolha) {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.cashback-linha {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: var(--esp-2);
 }
 .acoes-secundarias {
   display: grid;

@@ -33,6 +33,7 @@ const props = defineProps({
   modoTeclado: { type: String, default: 'numeric' },
   obrigatorio: Boolean,
   desabilitado: Boolean,
+  limpavel: Boolean,
 });
 
 const { texto, aoDigitar } = useCampoMascarado(modelo, props);
@@ -66,6 +67,7 @@ const regras = computed(() => [
     :prefix="prefixo || undefined"
     :rules="regras"
     :disabled="desabilitado"
+    :clearable="limpavel"
     :inputmode="modoTeclado"
     @update:model-value="aoDigitar"
   />

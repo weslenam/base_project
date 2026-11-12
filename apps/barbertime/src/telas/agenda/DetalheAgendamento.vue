@@ -77,7 +77,7 @@ const temAcao = computed(() => {
       permite('faltou') ||
       permite('cancelado')
     );
-  if (a.estado === 'atendido') return podeComanda.value;
+  if (a.estado === 'atendido') return podeComanda.value && !a.comandaId;
   return false;
 });
 
@@ -190,7 +190,11 @@ async function removerBloqueio() {
       <section class="acoes" aria-label="Ações">
         <p class="ds-rotulo">O que fazer</p>
         <p v-if="!temAcao" class="acoes__vazio">
-          Nenhuma ação disponível para este agendamento.
+          {{
+            agendamento.estado === 'atendido'
+              ? 'Cliente já atendido, nenhuma ação disponível.'
+              : 'Nenhuma ação disponível para este agendamento.'
+          }}
         </p>
         <template v-else-if="agendamento.estado === 'pendente'">
           <DsAcao
@@ -245,7 +249,7 @@ async function removerBloqueio() {
           />
         </template>
         <DsAcao
-          v-else-if="agendamento.estado === 'atendido'"
+          v-else-if="agendamento.estado === 'atendido' && !agendamento.comandaId"
           icone="caixa"
           titulo="Abrir comanda"
           descricao="Lança serviço e produtos no caixa"
