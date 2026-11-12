@@ -91,7 +91,7 @@ describe('balcão', () => {
     );
     const agora = elemento('section[aria-label="Agora"]').textContent;
     expect(agora).toMatch(/João.*Ocupado · 20 min/);
-    expect(agora).toMatch(/Próximo[\s\S]*Ana[\s\S]*15:00/);
+    expect(agora).toMatch(/Próximo[\s\S]*Ana[\s\S]*Corte[\s\S]*15:00/);
     expect(elemento('section[aria-label="Próximos"]').textContent).toContain(
       'Ana',
     );

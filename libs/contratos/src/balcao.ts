@@ -25,7 +25,7 @@ export type BarbeiroNoBalcao = Omit<
     id: number;
     inicio: string | null;
     clienteNome: string;
-    servicoNome: string;
+    servicoNome: string | null;
     esperaMin: number;
   } | null;
   reservados: undefined;

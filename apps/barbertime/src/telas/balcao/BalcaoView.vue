@@ -243,9 +243,10 @@ const servicos = computed(() => painel.value?.servicos ?? []);
             <p class="ds-rotulo">Próximo</p>
             <p class="barbeiro__proximo-nome">{{ b.proximo.clienteNome }}</p>
             <p class="ds-corpo-sm ds-suave">
-              {{ b.proximo.servicoNome }}
+              <template v-if="b.proximo.servicoNome">{{ b.proximo.servicoNome }}</template>
               <template v-if="b.proximo.inicio">
-                · <span class="ds-hora">{{ b.proximo.inicio }}</span>
+                <template v-if="b.proximo.servicoNome"> · </template>
+                <span class="ds-hora">{{ b.proximo.inicio }}</span>
               </template>
               <template v-if="b.proximo.esperaMin > 0">
                 · ~{{ b.proximo.esperaMin }} min
