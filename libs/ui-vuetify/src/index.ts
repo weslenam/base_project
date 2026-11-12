@@ -22,6 +22,7 @@ export { default as DsBlocoAgenda } from './componentes/DsBlocoAgenda.vue';
 export { default as DsInputTelefone } from './componentes/DsInputTelefone.vue';
 export { default as DsInputCpf } from './componentes/DsInputCpf.vue';
 export { default as DsInputMoeda } from './componentes/DsInputMoeda.vue';
+export { default as DsInputData } from './componentes/DsInputData.vue';
 export { default as DsPagina } from './componentes/DsPagina.vue';
 export { default as DsAcao } from './componentes/DsAcao.vue';
 export { default as DsAbas } from './componentes/DsAbas.vue';

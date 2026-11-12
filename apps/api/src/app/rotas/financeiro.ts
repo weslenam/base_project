@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Conexao } from '../../infra/banco.ts';
 import { agora } from '../../servicos/agenda.ts';
+import { somarDias } from '@barbertime/dominio';
 import {
   baixarConta,
   cancelarConta,
@@ -33,6 +34,7 @@ import {
   query,
   texto,
 } from '../esquemas.ts';
+import { invalido } from '../../infra/erros.ts';
 
 type ComId = { Params: { id: string } };
 
@@ -196,15 +198,19 @@ export default async function (fastify: FastifyInstance) {
   );
 
   // ---- previsão ----
-  fastify.get<{ Querystring: { dias?: number } }>(
+  fastify.get<{ Querystring: { inicio?: string; fim?: string } }>(
     '/financeiro/previsao',
     {
       ...gerenciar,
-      schema: query({ dias: { type: ['integer', 'null'], enum: [30, 60, 90, null] } }),
+      schema: query({ inicio: { ...campoData, type: ['string', 'null'] }, fim: { ...campoData, type: ['string', 'null'] } }),
     },
     (req) =>
-      na(req, (c) =>
-        previsao(c, barbearia(req), req.query.dias ?? 30, hoje()),
-      ),
+      na(req, (c) => {
+        const h = hoje();
+        const inicio = req.query.inicio || h;
+        const fim = req.query.fim || somarDias(inicio, 30);
+        if (inicio > fim) throw invalido('O início não pode ser depois do fim.');
+        return previsao(c, barbearia(req), inicio, fim, h);
+      }),
   );
 }

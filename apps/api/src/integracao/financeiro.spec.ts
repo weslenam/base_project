@@ -509,7 +509,7 @@ describe('previsão', () => {
       vencimento: somarDias(hoje(), 10),
     });
 
-    const r = await b.dono.get('/api/financeiro/previsao?dias=30');
+    const r = await b.dono.get(`/api/financeiro/previsao?inicio=${hoje()}&fim=${somarDias(hoje(), 30)}`);
     expect(r.status).toBe(200);
     expect(r.corpo.vencidaPagar).toBe(500);
     expect(r.corpo.semanas.length).toBeGreaterThan(0);

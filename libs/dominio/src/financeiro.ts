@@ -38,14 +38,15 @@ export interface ContaParaPrevisao {
 }
 
 /**
- * Agrupa contas abertas (vencidas e futuras) para a previsão de fluxo de
- * caixa. Vencidas: `vencimento < hoje`. Futuras: dentro de `dias` dias.
+ * Agrupa contas abertas para a previsão de fluxo de caixa.
+ * Vencidas: `vencimento < hoje`. Futuras: de `inicio` até `fim` (inclusive).
  * As semanas usam segunda-feira como início (via `inicioDaSemana`).
  */
 export function agruparPrevisaoPorSemana(
   contas: ContaParaPrevisao[],
+  inicio: string,
+  fim: string,
   hoje: string,
-  dias: number,
 ): {
   semanas: SemanaDePrevisao[];
   vencidaPagar: number;
@@ -55,7 +56,6 @@ export function agruparPrevisaoPorSemana(
   saldoPrevisto: number;
   categorias: { nome: string; tipo: string; total: number }[];
 } {
-  const limite = somarDias(hoje, dias);
   const abertas = contas.filter((c) => c.situacao === 'aberta');
 
   let vencidaPagar = 0;
@@ -73,7 +73,7 @@ export function agruparPrevisaoPorSemana(
       if (c.tipo === 'pagar') vencidaPagar += v;
       else vencidaReceber += v;
       // Vencidas não entram nas semanas mas entram em categorias.
-    } else if (c.vencimento <= limite) {
+    } else if (c.vencimento <= fim) {
       const semana = inicioDaSemana(c.vencimento);
       if (c.tipo === 'pagar') {
         mapaSemanaPagar.set(semana, (mapaSemanaPagar.get(semana) ?? 0) + v);
@@ -103,12 +103,12 @@ export function agruparPrevisaoPorSemana(
     ...mapaSemanaPagar.keys(),
     ...mapaSemanaReceber.keys(),
   ]);
-  for (const inicio of [...todasSemanas].sort()) {
-    const pagar = (mapaSemanaPagar.get(inicio) ?? 0) / 100;
-    const receber = (mapaSemanaReceber.get(inicio) ?? 0) / 100;
+  for (const iniSemana of [...todasSemanas].sort()) {
+    const pagar = (mapaSemanaPagar.get(iniSemana) ?? 0) / 100;
+    const receber = (mapaSemanaReceber.get(iniSemana) ?? 0) / 100;
     semanas.push({
-      inicio,
-      fim: somarDias(inicio, 6),
+      inicio: iniSemana,
+      fim: somarDias(iniSemana, 6),
       pagar,
       receber,
       saldo: receber - pagar,

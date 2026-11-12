@@ -147,8 +147,12 @@ export function criarApiHttp(base: Api): Api {
         encerrar: (id) =>
           http('POST', `/api/financeiro/recorrencias/${id}/encerrar`),
       },
-      previsao: (dias = 30) =>
-        http('GET', `/api/financeiro/previsao?dias=${dias}`),
+      previsao: (inicio?: string, fim?: string) => {
+        const params = new URLSearchParams();
+        if (inicio) params.set('inicio', inicio);
+        if (fim) params.set('fim', fim);
+        return http('GET', `/api/financeiro/previsao?${params}`);
+      },
     },
     // Caixa e comandas (planejamento 0020, fase 1).
     caixa: {
