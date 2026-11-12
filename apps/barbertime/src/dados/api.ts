@@ -1752,6 +1752,7 @@ export function criarApi({
       },
       async previsao(inicio?: string, fim?: string) {
         const h = hoje();
+        const ini = inicio || h;
         return agruparPrevisaoPorSemana(
           banco.contas
             .filter((ct) => ct.situacao === 'aberta')
@@ -1765,8 +1766,9 @@ export function criarApi({
                   (c) => c.id === ct.categoriaId,
                 )?.nome ?? '',
             })),
-          inicio || h,
-          fim || somarDias(h, 30),
+          ini,
+          fim || somarDias(ini, 30),
+          h,
         );
       },
     },

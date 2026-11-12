@@ -49,6 +49,7 @@ function aplicarPersonalizado() {
   inicio.value = inicioPicker.value;
   fim.value = fimPicker.value;
   periodoAtivo.value = null;
+  personalizado.value = false;
   carregar();
 }
 

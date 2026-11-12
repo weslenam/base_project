@@ -785,6 +785,7 @@ export async function previsao(
   barbeariaId: number,
   inicio: string,
   fim: string,
+  hoje: string,
 ): Promise<PrevisaoFinanceira> {
   const linhas = await c.db
     .selectFrom('contas as ct')
@@ -801,5 +802,5 @@ export async function previsao(
     situacao: l.situacao,
     categoriaNome: l.categoriaNome,
   }));
-  return agruparPrevisaoPorSemana(contas, inicio, fim);
+  return agruparPrevisaoPorSemana(contas, inicio, fim, hoje);
 }

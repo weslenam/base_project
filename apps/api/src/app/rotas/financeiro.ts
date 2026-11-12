@@ -208,9 +208,9 @@ export default async function (fastify: FastifyInstance) {
       na(req, (c) => {
         const h = hoje();
         const inicio = req.query.inicio || h;
-        const fim = req.query.fim || somarDias(h, 30);
+        const fim = req.query.fim || somarDias(inicio, 30);
         if (inicio > fim) throw invalido('O início não pode ser depois do fim.');
-        return previsao(c, barbearia(req), inicio, fim);
+        return previsao(c, barbearia(req), inicio, fim, h);
       }),
   );
 }
