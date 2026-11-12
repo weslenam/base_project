@@ -11,6 +11,7 @@ defineProps({
   erro: { type: String, default: '' },
   obrigatorio: Boolean,
   desabilitado: Boolean,
+  limpavel: Boolean,
 });
 </script>
 
@@ -27,5 +28,6 @@ defineProps({
     :erro="erro"
     :obrigatorio="obrigatorio"
     :desabilitado="desabilitado"
+    :limpavel="limpavel"
   />
 </template>
