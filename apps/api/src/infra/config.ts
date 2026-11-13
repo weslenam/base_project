@@ -14,12 +14,9 @@ export const config = {
     process.env.DATABASE_URL_MIGRACAO ??
     'postgres://postgres:troque-me-postgres@localhost:5432/barbertime',
   /**
-   * Trava geral da página pública de agendamento (planejamento 0019): bloqueada
-   * até a análise de segurança (limite de requisições etc.). Libere com
-   * PAGINA_PUBLICA=liberada.
+   * Implementação da identidade (ADR 0016): "propria" (sessão e senha nossas,
+   * padrão) ou, a partir da S4 do planejamento 0025, "supabase" (GoTrue).
    */
-  paginaPublicaLiberada: process.env.PAGINA_PUBLICA === 'liberada',
-  /** Implementação da identidade (ADR 0016): "propria" (sessão e senha nossas). */
   auth: process.env.AUTH ?? 'propria',
   /** Validade da sessão em dias. */
   diasDeSessao: 30,

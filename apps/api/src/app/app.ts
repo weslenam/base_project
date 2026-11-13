@@ -51,7 +51,6 @@ export interface OpcoesDoApp {
   correio?: Correio;
   appUrl?: string;
   limites?: Record<string, Limite>;
-  paginaPublicaLiberada?: boolean;
   pagamentos?: Record<string, unknown>;
 }
 
@@ -89,10 +88,7 @@ export async function app(fastify: FastifyInstance, opts: OpcoesDoApp = {}) {
       api.register(rotasUsuarios);
       api.register(rotasPapeis);
       api.register(rotasModulos);
-      api.register(rotasBarbearia, {
-        paginaPublicaLiberada:
-          opts.paginaPublicaLiberada ?? config.paginaPublicaLiberada,
-      });
+      api.register(rotasBarbearia);
       api.register(rotasCadastros);
       api.register(rotasClientes);
       api.register(rotasAgenda);
@@ -102,9 +98,7 @@ export async function app(fastify: FastifyInstance, opts: OpcoesDoApp = {}) {
       api.register(rotasFidelidade);
       api.register(rotasPacotes);
       api.register(rotasFinanceiro);
-      api.register(rotasPublico, {
-        liberada: opts.paginaPublicaLiberada ?? config.paginaPublicaLiberada,
-      });
+      api.register(rotasPublico);
       api.register(rotasPagamentos, opts.pagamentos ?? {});
       // Business Center (planejamento 0028): identidade de operador, escopo próprio.
       api.register(rotasPlataforma, { prefix: '/plataforma' });

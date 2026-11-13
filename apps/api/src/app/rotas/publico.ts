@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto';
 import {
   horariosLivres,
   janelaDoAgendamentoOnline,
@@ -45,41 +44,25 @@ interface LinhaDaBarbeariaPublica {
   nome: string;
   slug: string;
   configuracoes: ConfigBarbeariaGravada;
-  token_publico: string;
 }
 
 type ComSlug = { Params: { slug: string } };
 type Codigo = { c?: string | null };
 
-const mesmoToken = (a: unknown, b: unknown): boolean => {
-  const x = Buffer.from(String(a ?? ''));
-  const y = Buffer.from(String(b ?? ''));
-  return x.length === y.length && timingSafeEqual(x, y);
-};
-
-export default async function (
-  fastify: FastifyInstance,
-  { liberada = false }: { liberada?: boolean } = {},
-) {
+export default async function (fastify: FastifyInstance) {
   /**
-   * Barbearia publicada pelo slug (+ código do link, se o modo pedir).
-   * `barbearias` é global: a busca pelo slug roda no pool (driver pg).
+   * Barbearia publicada pelo slug. Acesso controlado pelo módulo
+   * agendamento_online (por barbearia, no banco) — sem flag de ambiente.
    */
   async function publicada(req: { params: { slug: string }; query: Codigo }) {
-    // Trava geral: enquanto bloqueada, nenhuma página pública abre.
-    if (!liberada) throw naoEncontrado(NAO_ENCONTRADA);
     const {
       rows: [b],
     } = await fastify.db.query<LinhaDaBarbeariaPublica>(
-      'select id, nome, slug, configuracoes, token_publico from barbearias where slug = $1 and suspensa_em is null',
+      'select id, nome, slug, configuracoes from barbearias where slug = $1',
       [String(req.params.slug)],
     );
     if (!b) throw naoEncontrado(NAO_ENCONTRADA);
     const config = mesclarConfigBarbearia(b.configuracoes);
-    const modo = config.paginaPublica.modo;
-    if (modo === 'desativada') throw naoEncontrado(NAO_ENCONTRADA);
-    if (modo === 'com_link' && !mesmoToken(req.query.c, b.token_publico))
-      throw naoEncontrado(NAO_ENCONTRADA);
     const ativo = await fastify.comBarbearia(b.id, (c) =>
       c.db
         .selectFrom('barbeariaModulos')
