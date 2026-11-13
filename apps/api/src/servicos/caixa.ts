@@ -69,6 +69,7 @@ export const selecionarComandas = (c: Conexao) =>
       'cm.premioFidelidade',
       'cm.cashbackUsado',
     ])
+    .select(['a.inicio as atendimentoInicio', 'a.fim as atendimentoFim'])
     .select((eb) => [
       eb.fn
         .coalesce('cl.nome', 'a.clienteNome', eb.val('Cliente avulso'))

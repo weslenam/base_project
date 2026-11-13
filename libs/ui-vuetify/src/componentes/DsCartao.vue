@@ -32,22 +32,29 @@ defineProps({
   border-radius: var(--raio-md);
   box-shadow: var(--sombra-placa);
   color: var(--grafite);
+  display: flex;
+  flex-direction: column;
 }
 .ds-cartao__cabecalho {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--esp-2);
   padding: var(--esp-4) var(--esp-4) 0;
 }
 .ds-cartao__titulo {
   margin: 0;
+  min-width: 0;
   font: var(--tipo-subtitulo);
   letter-spacing: var(--tipo-subtitulo-espacamento);
   text-transform: uppercase;
 }
+.ds-cartao__cabecalho-acoes {
+  flex-shrink: 0;
+}
 .ds-cartao__conteudo {
   padding: var(--esp-4);
+  flex: 1;
 }
 .ds-cartao__acoes {
   display: flex;

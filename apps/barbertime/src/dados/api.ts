@@ -286,10 +286,14 @@ export function criarApi({
       }));
 
   /** Comanda no formato da API (ComandaDoCaixa), com os totais. */
-  const completarComanda = (c: ComandaNoBanco) => ({
+  const completarComanda = (c: ComandaNoBanco) => {
+    const ag = c.agendamentoId == null ? null : banco.agendamentos.find((a) => a.id === c.agendamentoId) ?? null;
+    return {
     ...c,
     data: banco.caixas.find((x) => x.id === c.caixaId)?.data ?? '',
     atendimentoId: c.agendamentoId,
+    atendimentoInicio: ag?.inicio ?? null,
+    atendimentoFim: ag?.fim ?? null,
     pagaAs: c.pagaAs ?? null,
     premioFidelidade: c.premioFidelidade ?? false,
     cashbackUsado: c.cashbackUsado ?? 0,
@@ -299,7 +303,8 @@ export function criarApi({
     barbeiroNome:
       banco.barbeiros.find((b) => b.id === c.barbeiroId)?.nome ?? '',
     ...totalDaComanda(c),
-  });
+  };
+  };
 
   function normalizarItens(
     itens: Corpo[] = [],
