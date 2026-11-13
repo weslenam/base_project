@@ -40,10 +40,7 @@ interface CorpoDaBarbearia {
 }
 
 /** Configurações da barbearia atual (planejamento 0017, ADR 0012). */
-export default async function (
-  fastify: FastifyInstance,
-  { paginaPublicaLiberada = false }: { paginaPublicaLiberada?: boolean } = {},
-) {
+export default async function (fastify: FastifyInstance) {
   const acesso = { preHandler: fastify.exigir('barbearia.configurar') };
 
   fastify.get(
@@ -53,10 +50,9 @@ export default async function (
       const { rows } = await fastify.db.query<LinhaDaBarbearia>(LER, [
         req.contexto.barbeariaId,
       ]);
-      // A tela avisa quando a página pública está travada no sistema todo.
       return {
         ...formatar(rows[0] as LinhaDaBarbearia),
-        paginaPublicaLiberada,
+        paginaPublicaLiberada: true,
       };
     },
   );

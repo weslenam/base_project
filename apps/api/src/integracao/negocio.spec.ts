@@ -339,20 +339,3 @@ describe('página pública', () => {
   });
 });
 
-describe('trava geral da página pública', () => {
-  it('bloqueada no sistema: nenhuma página abre, nem no modo pública', async () => {
-    const travado = await criarServidor({ paginaPublicaLiberada: false });
-    try {
-      const b = await novaBarbearia(travado);
-      const cfg = (await b.dono.get('/api/barbearia')).corpo;
-      expect(cfg.paginaPublicaLiberada).toBe(false);
-      cfg.configuracoes.paginaPublica.modo = 'publica';
-      await b.dono.put('/api/barbearia', cfg);
-      expect(
-        (await navegador(travado).get(`/api/publico/${b.slug}`)).status,
-      ).toBe(404);
-    } finally {
-      await travado.close();
-    }
-  });
-});

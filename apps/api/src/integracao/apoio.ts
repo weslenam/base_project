@@ -31,7 +31,6 @@ export const LIMITES_FOLGADOS = Object.fromEntries(
 
 export async function criarServidor(
   opcoes: {
-    paginaPublicaLiberada?: boolean;
     limites?: Record<string, Limite>;
   } = {},
 ): Promise<ServidorDeTeste> {
@@ -39,7 +38,6 @@ export async function criarServidor(
   const caixaDeEntrada: Mensagem[] = [];
   servidor.register(app, {
     databaseUrl: inject('urlApp'),
-    paginaPublicaLiberada: opcoes.paginaPublicaLiberada ?? true,
     limites: opcoes.limites ?? LIMITES_FOLGADOS,
     // Correio falso: os testes leem os e-mails em `servidor.caixaDeEntrada`.
     correio: {
