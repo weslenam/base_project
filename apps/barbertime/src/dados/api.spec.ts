@@ -411,13 +411,13 @@ describe('caixa e comandas', () => {
   });
 
   it('comanda a partir do agendamento traz cliente, barbeiro e serviço, sem duplicar', async () => {
-    const c = await api.comandas.abrirDoAgendamento(1);
+    const c = await api.comandas.abrirDoAgendamento(6);
     expect(c).toMatchObject({
-      clienteNome: 'Rafael Souza',
-      barbeiroNome: 'Zé Carlos',
-      total: 70,
+      clienteNome: 'André Martins',
+      barbeiroNome: 'Léo',
+      total: 60,
     });
-    expect((await api.comandas.abrirDoAgendamento(1)).id).toBe(c.id);
+    expect((await api.comandas.abrirDoAgendamento(6)).id).toBe(c.id);
     await recusa(api.comandas.abrirDoAgendamento(2), 'confirmado ou atendido');
   });
 });

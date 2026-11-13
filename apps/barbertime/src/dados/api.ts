@@ -162,7 +162,7 @@ export function criarApi({
       barbeiroNome: barbeiro?.nome ?? '',
       comandaId: comanda?.id ?? null,
       comandaEstado: comanda?.estado ?? null,
-      criadoPor: null,
+      criadoPor: a.criadoPor ?? null,
       barbeiroUsuarioId: barbeiro?.usuarioId ?? null,
     };
   };
