@@ -51,8 +51,8 @@ describe('agenda do dia', () => {
 
   it('cancelar agendamento confirmado passa pela advertência', async () => {
     app = await montarApp('/agenda');
-    await esperar(() => expect(texto()).toContain('Rafael Souza'));
-    await clicarContendo('Rafael Souza');
+    await esperar(() => expect(texto()).toContain('André Martins'));
+    await clicarContendo('André Martins');
     await clicarContendo('Cancelar agendamento');
     await esperar(() => {
       expect(texto()).toContain('Atenção');
@@ -63,7 +63,7 @@ describe('agenda do dia', () => {
     await esperar(() =>
       expect(
         [...document.querySelectorAll('button')].some((b) =>
-          b.textContent.includes('Rafael Souza'),
+          b.textContent.includes('André Martins'),
         ),
       ).toBe(false),
     );
@@ -79,13 +79,8 @@ describe('detalhe do agendamento (estilo PDV)', () => {
   it('informações de um lado, ações do outro, conforme o estado', async () => {
     app = await montarApp('/agenda');
     await clicarContendo('Rafael Souza');
-    await esperar(() => expect(acoes()).toHaveLength(4));
-    for (const t of [
-      'Marcar atendido',
-      'Abrir comanda',
-      'Marcar falta',
-      'Cancelar agendamento',
-    ]) {
+    await esperar(() => expect(acoes()).toHaveLength(2));
+    for (const t of ['Confirmar presença', 'Cancelar agendamento']) {
       expect(acoes().some((a) => a.startsWith(t))).toBe(true);
     }
     const info = document.querySelector(

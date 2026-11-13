@@ -119,7 +119,7 @@ describe('na comanda', () => {
   it('usar o pacote: serviço por R$ 0; repetir antes do intervalo é negado', async () => {
     app = await montarApp('/agenda');
     await clicarContendo('Diego Alves');
-    await clicarContendo('Abrir comanda');
+    await clicarContendo('Confirmar presença');
     await esperar(() => expect(texto()).toMatch(/Comanda #\d+/));
     await escolherNoSelect('Escolher serviço', 'Corte ·');
     await esperar(() =>
@@ -147,7 +147,7 @@ describe('na comanda', () => {
   it('usar cashback abate do total e o saldo é gasto ao receber (planejamento 0034)', async () => {
     app = await montarApp('/agenda');
     await clicarContendo('Rafael Souza');
-    await clicarContendo('Abrir comanda');
+    await clicarContendo('Confirmar presença');
     await esperar(() => expect(texto()).toContain('Usar cashback (até R$'));
     expect(normalizar(texto())).toContain('7 de 10 selos');
     await preencher('Usar cashback (até R$\u00a03,50)', '3,50');
@@ -167,13 +167,13 @@ describe('na comanda', () => {
     );
   });
 
-  // Planejamento 0037: o Barbeiro não tem a tela Caixa; a comanda abre na Agenda.
-  it('Barbeiro: "Abrir comanda" abre a comanda na própria Agenda', async () => {
+  // Planejamento 0037/0043: o Barbeiro não tem a tela Caixa; confirmar presença abre a comanda na Agenda.
+  it('Barbeiro: confirmar presença abre a comanda na própria Agenda', async () => {
     app = await montarApp('/agenda', {
       sessao: sessaoCom('Barbeiro', permissoesDoPapel('barbeiro')),
     });
     await clicarContendo('Rafael Souza');
-    await clicarContendo('Abrir comanda');
+    await clicarContendo('Confirmar presença');
     await esperar(() => expect(texto()).toContain('Salvar aberta'));
     expect(router.currentRoute.value.path).toBe('/agenda');
   });
@@ -181,7 +181,7 @@ describe('na comanda', () => {
   it('receber credita selo e cashback, e a notificação conta ao balcão', async () => {
     app = await montarApp('/agenda');
     await clicarContendo('Rafael Souza');
-    await clicarContendo('Abrir comanda');
+    await clicarContendo('Confirmar presença');
     await esperar(() => expect(texto()).toContain('7 selos'));
     await clicar('Pix');
     await clicarContendo('Receber R');

@@ -128,10 +128,10 @@ describe('comanda com abas e pagamento estilo PDV', () => {
 });
 
 describe('agenda → comanda', () => {
-  it('agendamento confirmado abre a comanda com o serviço', async () => {
+  it('confirmar presença abre a comanda com o serviço (planejamento 0043)', async () => {
     app = await montarApp('/agenda');
     await clicarContendo('Rafael Souza');
-    await clicarContendo('Abrir comanda');
+    await clicarContendo('Confirmar presença');
     await esperar(() => expect(texto()).toMatch(/Comanda #\d+/));
     expect(texto()).toContain('Corte + barba');
     expect(normalizar(texto())).toContain('Receber R$ 70,00');

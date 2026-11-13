@@ -73,7 +73,6 @@ const temAcao = computed(() => {
   if (a.estado === 'confirmado')
     return (
       (a.status !== 'agendado' && permite('atendido')) ||
-      podeComanda.value ||
       permite('faltou') ||
       permite('cancelado')
     );
@@ -88,11 +87,14 @@ async function mudar(estado: string, mensagemDeSucesso: string) {
     api.agendamentos.alterarEstado(id, estado),
   );
   if (!salvo) return;
-  notificar.sucesso(mensagemDeSucesso);
   emit('alterado', salvo);
-  if (estado === 'confirmado') {
+  if (estado === 'confirmado' && podeComanda.value) {
+    // Planejamento 0043: confirmar já abre a comanda em um passo só.
+    // Não exibe notificação de confirmação — a abertura da comanda é o feedback.
     agendamento.value = await api.agendamentos.obter(id);
+    agendamento.value?.comandaId ? verComanda() : await abrirComanda();
   } else {
+    notificar.sucesso(mensagemDeSucesso);
     aberto.value = false;
   }
 }
@@ -235,20 +237,6 @@ async function removerBloqueio() {
             descricao="Conclui o atendimento"
             variante="primario"
             @click="mudar('atendido', 'Atendimento concluído.')"
-          />
-          <DsAcao
-            v-if="podeComanda && !agendamento.comandaId"
-            icone="caixa"
-            titulo="Abrir comanda"
-            descricao="Lança serviço e produtos no caixa"
-            @click="abrirComanda"
-          />
-          <DsAcao
-            v-if="podeComanda && agendamento.comandaId"
-            icone="caixa"
-            titulo="Ver comanda"
-            descricao="Adicionar serviços, produtos ou receber"
-            @click="verComanda"
           />
           <DsAcao
             v-if="permite('faltou')"

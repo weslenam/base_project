@@ -223,6 +223,7 @@ export interface AgendamentoNoBanco {
   clienteId: number | null;
   estado: string;
   motivo?: string;
+  criadoPor?: number | null;
 }
 
 export interface ComissaoNoBanco {

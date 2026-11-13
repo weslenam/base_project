@@ -421,7 +421,8 @@ export function criarDadosDeExemplo(hoje: string): Banco {
         barbeiroId: 1,
         servicoId: 3,
         clienteId: 1,
-        estado: 'confirmado',
+        estado: 'pendente',
+        criadoPor: 9,
       },
       {
         id: 2,
@@ -452,7 +453,7 @@ export function criarDadosDeExemplo(hoje: string): Banco {
         barbeiroId: 2,
         servicoId: 2,
         clienteId: 3,
-        estado: 'confirmado',
+        estado: 'pendente',
       },
       {
         id: 5,
