@@ -43,5 +43,5 @@
 | [0039](0039-barbeiro-sem-abrir-caixa.md)                         | Barbeiro sem abrir o caixa                                                    | Concluído                | 2026-11-09 |
 | [0040](0040-typescript-e-kysely.md)                             | TypeScript em todo o workspace e Kysely no acesso ao banco                    | Concluído                | 2026-11-09 |
 | [0041](0041-remover-supabase-cli.md)                            | Remover o Supabase CLI e usar PostgreSQL direto                               | Concluído                | 2026-11-12 |
-| [0042](0042-comissao-por-barbeiro.md)                           | Comissão por barbeiro                                                         | Aprovado                 | 2026-11-12 |
-| [0043](0043-confirmar-presenca-abre-comanda.md)                 | Confirmar presença já abre a comanda                                          | Aprovado                 | 2026-11-12 |
+| [0042](0042-comissao-por-barbeiro.md)                           | Comissão por barbeiro                                                         | Concluído                | 2026-11-12 |
+| [0043](0043-confirmar-presenca-abre-comanda.md)                 | Confirmar presença já abre a comanda                                          | Concluído                | 2026-11-13 |
