@@ -81,6 +81,23 @@ export function totalDaComanda({
   };
 }
 
+/**
+ * Calcula o valor de comissão do barbeiro sobre uma comanda paga.
+ * Base = valor líquido (subtotal − desconto − cashback).
+ * O valor é arredondado para 2 casas decimais.
+ */
+export function calcularComissao({
+  total,
+  taxa,
+}: {
+  total: number;
+  taxa: number;
+}): { baseCalculo: number; taxa: number; valor: number } {
+  const base = Math.max(0, total);
+  const valor = Math.round((base * taxa) / 100 * 100) / 100;
+  return { baseCalculo: base, taxa, valor };
+}
+
 /** Motivo pelo qual a comanda não pode ser recebida, ou null se pode. */
 export function motivoParaNaoReceber({
   itens = [],

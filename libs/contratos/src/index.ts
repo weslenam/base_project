@@ -13,6 +13,7 @@ export type * from './financeiro.ts';
 export type * from './modulos.ts';
 export type * from './pacotes.ts';
 export type * from './papeis.ts';
+export type * from './comissao.ts';
 export type * from './plataforma.ts';
 export type * from './publico.ts';
 export type * from './senha.ts';

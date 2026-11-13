@@ -15,6 +15,7 @@ export {
 export {
   FORMAS_DE_PAGAMENTO,
   totalDaComanda,
+  calcularComissao,
   motivoParaNaoReceber,
   resumoDoCaixa,
   diferencaDeCaixa,

@@ -31,6 +31,8 @@ import type {
   PaginaPublica,
   PodeUsarPacote,
   PrevisaoFinanceira,
+  LinhaDeComissao,
+  FechamentoDeComissao,
   ProdutoNoEstoque,
   RecorrenciaFinanceira,
   ResumoDoCliente,
@@ -183,6 +185,10 @@ export interface Api {
       encerrar: (id: number) => Promise<EmJson<RecorrenciaFinanceira>>;
     };
     previsao: (inicio?: string, fim?: string) => Promise<EmJson<PrevisaoFinanceira>>;
+    comissao: {
+      listar: (de?: string, ate?: string, barbeiroId?: number) => Promise<EmJson<LinhaDeComissao>[]>;
+      fechar: (d: Corpo) => Promise<EmJson<FechamentoDeComissao>>;
+    };
   };
   caixa: {
     obterDoDia: () => Promise<EmJson<CaixaComResumo> | null>;

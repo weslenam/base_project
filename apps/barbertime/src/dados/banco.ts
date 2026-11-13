@@ -225,6 +225,28 @@ export interface AgendamentoNoBanco {
   motivo?: string;
 }
 
+export interface ComissaoNoBanco {
+  id: number;
+  barbeiroId: number;
+  comandaId: number;
+  dataComanda: string;
+  baseCalculo: number;
+  taxa: number;
+  valor: number;
+  observacao: string | null;
+  fechamentoId: number | null;
+}
+
+export interface ComissaoFechamentoNoBanco {
+  id: number;
+  barbeiroId: number;
+  de: string;
+  ate: string;
+  total: number;
+  fechadoPor: number | null;
+  fechadoEm: string;
+}
+
 /** O "banco" em memória inteiro. */
 export interface Banco {
   barbearia: BarbeariaNoBanco;
@@ -247,6 +269,8 @@ export interface Banco {
   caixas: CaixaNoBanco[];
   comandas: ComandaNoBanco[];
   agendamentos: AgendamentoNoBanco[];
+  comissoes: ComissaoNoBanco[];
+  comissoesFechamentos: ComissaoFechamentoNoBanco[];
 }
 
 /** Tabelas com `id`, para o `buscar` e o `proximoId`. */

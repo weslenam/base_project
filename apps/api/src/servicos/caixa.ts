@@ -11,6 +11,7 @@ import type { Conexao } from '../infra/banco.ts';
 import { agora } from './agenda.ts';
 import { baixarComanda } from './estoque.ts';
 import { conferirResgate, fidelidadeAoReceber } from './fidelidade.ts';
+import { comissaoAoReceber } from './comissao.ts';
 import type { FidelidadeNoPedido } from './fidelidade.ts';
 import {
   buscarPacote,
@@ -576,6 +577,8 @@ export async function receberComanda(
         hoje: agora().data,
       })
     : [];
+  // Comissão (planejamento 0042): linha por comanda paga, se módulo ativo.
+  if (barbeariaId) await comissaoAoReceber(c, barbeariaId, cm, agora().data);
   return { ...(await obterComanda(c, cm.id)), creditos };
 }
 

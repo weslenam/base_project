@@ -153,6 +153,16 @@ export function criarApiHttp(base: Api): Api {
         if (fim) params.set('fim', fim);
         return http('GET', `/api/financeiro/previsao?${params}`);
       },
+      comissao: {
+        listar: (de?: string, ate?: string, barbeiroId?: number) => {
+          const params = new URLSearchParams();
+          if (de) params.set('de', de);
+          if (ate) params.set('ate', ate);
+          if (barbeiroId) params.set('barbeiroId', String(barbeiroId));
+          return http('GET', `/api/comissao?${params}`);
+        },
+        fechar: (d) => http('POST', '/api/comissao/fechar', d),
+      },
     },
     // Caixa e comandas (planejamento 0020, fase 1).
     caixa: {

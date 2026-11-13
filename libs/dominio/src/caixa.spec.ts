@@ -5,6 +5,7 @@ import {
   motivoParaNaoReceber,
   resumoDoCaixa,
   totalDaComanda,
+  calcularComissao,
 } from './caixa.ts';
 
 const itens = [
@@ -204,5 +205,28 @@ describe('resumoDeComandas', () => {
       ticketMedio: 0,
       ultimoServico: null,
     });
+  });
+});
+
+describe('calcularComissao', () => {
+  it('calcula valor sobre o total líquido', () => {
+    expect(calcularComissao({ total: 100, taxa: 10 })).toEqual({
+      baseCalculo: 100,
+      taxa: 10,
+      valor: 10,
+    });
+  });
+
+  it('arredonda a 2 casas decimais', () => {
+    const r = calcularComissao({ total: 45.9, taxa: 15 });
+    expect(r.valor).toBe(6.89);
+  });
+
+  it('total zero gera valor zero', () => {
+    expect(calcularComissao({ total: 0, taxa: 20 }).valor).toBe(0);
+  });
+
+  it('taxa zero gera valor zero', () => {
+    expect(calcularComissao({ total: 200, taxa: 0 }).valor).toBe(0);
   });
 });
