@@ -527,5 +527,7 @@ export function criarDadosDeExemplo(hoje: string): Banco {
         estado: 'atendido',
       },
     ],
+    comissoes: [],
+    comissoesFechamentos: [],
   };
 }

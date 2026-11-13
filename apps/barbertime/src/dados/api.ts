@@ -1776,6 +1776,45 @@ export function criarApi({
           h,
         );
       },
+      comissao: {
+        async listar(de?: string, ate?: string, barbeiroId?: number) {
+          const h = hoje();
+          return banco.comissoes
+            .filter((co) => {
+              if (co.dataComanda < (de || h)) return false;
+              if (co.dataComanda > (ate || h)) return false;
+              if (barbeiroId && co.barbeiroId !== barbeiroId) return false;
+              return true;
+            })
+            .map((co) => ({
+              ...co,
+              barbeiroNome:
+                banco.barbeiros.find((b) => b.id === co.barbeiroId)?.nome ?? '',
+            }));
+        },
+        async fechar(d) {
+          const { barbeiroId, de: deRaw, ate: ateRaw } = d ?? {};
+          if (!barbeiroId || !deRaw || !ateRaw) throw new Error('barbeiroId, de e ate obrigatórios');
+          const de = String(deRaw);
+          const ate = String(ateRaw);
+          const linhas = banco.comissoes.filter(
+            (co) =>
+              co.barbeiroId === Number(barbeiroId) &&
+              co.dataComanda >= de &&
+              co.dataComanda <= ate &&
+              !co.fechamentoId,
+          );
+          const total = linhas.reduce((s, co) => s + co.valor, 0);
+          const id = proximoId(banco.comissoesFechamentos);
+          const fech = { id, barbeiroId: Number(barbeiroId), de, ate, total, fechadoPor: null, fechadoEm: new Date().toISOString() };
+          banco.comissoesFechamentos.push(fech);
+          for (const co of linhas) co.fechamentoId = id;
+          return {
+            ...fech,
+            barbeiroNome: banco.barbeiros.find((b) => b.id === Number(barbeiroId))?.nome ?? '',
+          };
+        },
+      },
     },
 
     fidelidade: {

@@ -162,6 +162,15 @@ export const rotas: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/financeiro/comissao',
+    component: () => import('../telas/financeiro/ComissaoView.vue'),
+    meta: {
+      permissoes: ['financeiro.gerenciar'],
+      modulo: 'comissoes',
+      menu: { titulo: 'Comissões', icone: 'financeiro', grupo: 'Financeiro' },
+    },
+  },
+  {
     path: '/configuracoes',
     component: () => import('../telas/administracao/ConfiguracoesView.vue'),
     meta: {

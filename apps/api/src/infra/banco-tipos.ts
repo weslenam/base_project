@@ -161,6 +161,30 @@ export interface Comandas {
   premioFidelidade: Generated<boolean>;
 }
 
+export interface Comissoes {
+  id: Generated<number>;
+  barbeariaId: number;
+  barbeiroId: number;
+  comandaId: number;
+  dataComanda: string;
+  baseCalculo: Numeric;
+  taxa: Numeric;
+  valor: Numeric;
+  observacao: string | null;
+  fechamentoId: number | null;
+}
+
+export interface ComissoesFechamentos {
+  id: Generated<number>;
+  barbeariaId: number;
+  barbeiroId: number;
+  de: string;
+  ate: string;
+  total: Numeric;
+  fechadoPor: number | null;
+  fechadoEm: Generated<Timestamp>;
+}
+
 export interface Compras {
   barbeariaId: number;
   canceladaEm: Timestamp | null;
@@ -403,6 +427,8 @@ export interface Vinculos {
 export interface DB {
   assinaturas: Assinaturas;
   atendimentos: Atendimentos;
+  comissoes: Comissoes;
+  comissoesFechamentos: ComissoesFechamentos;
   auditoriaPlataforma: AuditoriaPlataforma;
   barbeariaModulos: BarbeariaModulos;
   barbearias: Barbearias;

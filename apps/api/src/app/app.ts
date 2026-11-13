@@ -20,6 +20,7 @@ import rotasEstoque from './rotas/estoque.ts';
 import rotasFidelidade from './rotas/fidelidade.ts';
 import rotasPacotes from './rotas/pacotes.ts';
 import rotasFinanceiro from './rotas/financeiro.ts';
+import rotasComissao from './rotas/comissao.ts';
 
 // Separador: os dois blocos ficam longe um do outro para os PRs da etapa 6
 // não mexerem em linhas vizinhas.
@@ -98,6 +99,7 @@ export async function app(fastify: FastifyInstance, opts: OpcoesDoApp = {}) {
       api.register(rotasFidelidade);
       api.register(rotasPacotes);
       api.register(rotasFinanceiro);
+      api.register(rotasComissao);
       api.register(rotasPublico);
       api.register(rotasPagamentos, opts.pagamentos ?? {});
       // Business Center (planejamento 0028): identidade de operador, escopo próprio.
