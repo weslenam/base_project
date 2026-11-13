@@ -162,6 +162,7 @@ function abrir(id: number) {
             :inicio="a.inicio ?? undefined"
             :fim="a.fim ?? undefined"
             :estado="a.estado as EstadoVisual"
+            :externo="'canal' in a && a.canal === 'publico'"
             clicavel
             @selecionar="abrir(a.id)"
           />

@@ -16,7 +16,7 @@ import {
   useDialogo,
   useNotificacao,
 } from '@barbertime/ui';
-import { formatarMoeda } from '@barbertime/ui-utils';
+import { formatarDiaCurto, formatarMoeda } from '@barbertime/ui-utils';
 import {
   FORMAS_DE_PAGAMENTO,
   limiteDeCashback,
@@ -55,7 +55,7 @@ type ComandaEmEdicao = Pick<
   | 'forma'
   | 'estado'
 > &
-  Partial<Pick<Comanda, 'id' | 'hora' | 'clienteNome'>>;
+  Partial<Pick<Comanda, 'id' | 'hora' | 'clienteNome' | 'data' | 'pagaAs' | 'atendimentoInicio' | 'atendimentoFim'>>;
 type TipoDeItem = 'servico' | 'produto';
 /** Item da tabela: o da comanda, com o índice e o subtotal. */
 type LinhaDoItem = ItemComanda & { id: number; subtotal: number };
@@ -493,6 +493,22 @@ async function cancelar() {
           }}</span>
         </div>
 
+        <dl v-if="!editavel && comanda.data" class="datas-comanda">
+          <div>
+            <dt class="ds-rotulo">Data do atendimento</dt>
+            <dd>
+              {{ formatarDiaCurto(comanda.data) }}
+              <span v-if="comanda.atendimentoInicio" class="ds-suave">
+                · {{ comanda.atendimentoInicio }}{{ comanda.atendimentoFim ? `–${comanda.atendimentoFim}` : '' }}
+              </span>
+            </dd>
+          </div>
+          <div v-if="comanda.pagaAs">
+            <dt class="ds-rotulo">Pago em</dt>
+            <dd>{{ formatarDiaCurto(comanda.data) }} · {{ comanda.pagaAs }}</dd>
+          </div>
+        </dl>
+
         <dl class="resumo">
           <div>
             <dt>Serviços</dt>
@@ -705,6 +721,24 @@ async function cancelar() {
     border-top: 1px solid var(--linha);
     border-left: 0;
   }
+}
+.datas-comanda {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-sm);
+  background: var(--placa-funda);
+}
+.datas-comanda div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+.datas-comanda dt,
+.datas-comanda dd {
+  margin: 0;
 }
 .fidelidade {
   display: grid;

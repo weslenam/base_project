@@ -27,6 +27,8 @@ export interface ComandaDoCaixa {
   caixaId: number;
   data: string;
   atendimentoId: number | null;
+  atendimentoInicio: string | null;
+  atendimentoFim: string | null;
   clienteId: number | null;
   barbeiroId: number | null;
   hora: string;

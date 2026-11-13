@@ -28,6 +28,8 @@ const props = defineProps({
   },
   /** Vira botão e emite `selecionar` ao clicar. */
   clicavel: Boolean,
+  /** Indica agendamento feito pelo cliente via página pública (canal externo). */
+  externo: Boolean,
 });
 const emit = defineEmits(['selecionar']);
 
@@ -48,6 +50,12 @@ const rotuloEstado = computed(() => ROTULOS_DE_ESTADO[props.estado]);
     ]"
     @click="clicavel && emit('selecionar')"
   >
+    <span
+      v-if="externo"
+      class="ds-bloco__externo"
+      title="Agendado pelo cliente (online)"
+      aria-label="Agendamento online"
+    />
     <span v-if="horario" class="ds-bloco__hora">{{ horario }}</span>
     <span class="ds-bloco__cliente">{{ cliente }}</span>
     <span v-if="servico" class="ds-bloco__servico">{{ servico }}</span>
@@ -103,6 +111,16 @@ const rotuloEstado = computed(() => ROTULOS_DE_ESTADO[props.estado]);
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+.ds-bloco__externo {
+  position: absolute;
+  top: var(--esp-2);
+  right: var(--esp-2);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--aco);
+  flex-shrink: 0;
 }
 .ds-bloco--confirmado {
   border-top-color: var(--sucesso);

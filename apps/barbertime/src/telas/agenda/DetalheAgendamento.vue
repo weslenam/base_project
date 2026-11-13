@@ -73,11 +73,11 @@ const temAcao = computed(() => {
   if (a.estado === 'confirmado')
     return (
       (a.status !== 'agendado' && permite('atendido')) ||
-      (podeComanda.value && !a.comandaId) ||
+      podeComanda.value ||
       permite('faltou') ||
       permite('cancelado')
     );
-  if (a.estado === 'atendido') return podeComanda.value && !a.comandaId;
+  if (a.estado === 'atendido') return podeComanda.value;
   return false;
 });
 
@@ -89,8 +89,12 @@ async function mudar(estado: string, mensagemDeSucesso: string) {
   );
   if (!salvo) return;
   notificar.sucesso(mensagemDeSucesso);
-  aberto.value = false;
   emit('alterado', salvo);
+  if (estado === 'confirmado') {
+    agendamento.value = await api.agendamentos.obter(id);
+  } else {
+    aberto.value = false;
+  }
 }
 
 const nome = () => agendamento.value?.clienteNome;
@@ -133,6 +137,14 @@ async function abrirComanda() {
   // (planejamento 0037).
   if (semMenu()) emit('comanda', comanda.id);
   else router.push({ path: '/caixa', query: { comanda: comanda.id } });
+}
+
+function verComanda() {
+  const id = agendamento.value?.comandaId;
+  if (!id) return;
+  aberto.value = false;
+  if (semMenu()) emit('comanda', id);
+  else router.push({ path: '/caixa', query: { comanda: id } });
 }
 
 async function removerBloqueio() {
@@ -232,6 +244,13 @@ async function removerBloqueio() {
             @click="abrirComanda"
           />
           <DsAcao
+            v-if="podeComanda && agendamento.comandaId"
+            icone="caixa"
+            titulo="Ver comanda"
+            descricao="Adicionar serviços, produtos ou receber"
+            @click="verComanda"
+          />
+          <DsAcao
             v-if="permite('faltou')"
             icone="alerta"
             titulo="Marcar falta"
@@ -248,14 +267,24 @@ async function removerBloqueio() {
             @click="cancelar"
           />
         </template>
-        <DsAcao
-          v-else-if="agendamento.estado === 'atendido' && !agendamento.comandaId"
-          icone="caixa"
-          titulo="Abrir comanda"
-          descricao="Lança serviço e produtos no caixa"
-          variante="primario"
-          @click="abrirComanda"
-        />
+        <template v-else-if="agendamento.estado === 'atendido' && podeComanda">
+          <DsAcao
+            v-if="!agendamento.comandaId"
+            icone="caixa"
+            titulo="Abrir comanda"
+            descricao="Lança serviço e produtos no caixa"
+            variante="primario"
+            @click="abrirComanda"
+          />
+          <DsAcao
+            v-else
+            icone="caixa"
+            titulo="Ver comanda"
+            descricao="Adicionar serviços, produtos ou receber"
+            variante="primario"
+            @click="verComanda"
+          />
+        </template>
         <DsAcao
           v-else-if="bloqueio"
           icone="bloqueio"
