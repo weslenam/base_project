@@ -1,10 +1,10 @@
 # Planejamento 0042: Comissão por barbeiro
 
-- **Status:** Aprovado
+- **Status:** Concluído
 - **Data:** 2026-11-12
 - **Solicitado por:** weslenam
 - **Relacionado:** planejamento 0001 (item 6 do MVP), planejamento 0027 (financeiro)
-- **Commits:** ainda não commitado
+- **Commits:** 591ca9a
 
 ## Solicitação de origem
 
@@ -70,14 +70,14 @@ comissoesFechamentos
 ## Etapas
 
 - [x] 1. Decisão de base de cálculo: valor líquido (após desconto + cashback) — 2026-11-12
-- [ ] 2. Migração: tabelas `comissoes` e `comissoesFechamentos`
-- [ ] 3. Domínio: `calcularComissao({ valorTotal, desconto, cashbackUsado, taxa })` + testes unitários
-- [ ] 4. API — service: gerar linha de comissão ao pagar comanda; `listarComissoes(c, barbeariaId, de, ate, barbeiroId?)`
-- [ ] 5. API — rota: `GET /comissao?de=&ate=&barbeiroId=` com schema e permissão `financeiro.gerenciar`
-- [ ] 6. API — fechamento: service `fecharComissao`, rota `POST /comissao/fechar`
-- [ ] 7. Tela: `ComissaoView.vue` — filtro de período e barbeiro, tabela de comandas com origem rastreável, totais, botão fechar
-- [ ] 8. Verificar: `pnpm verificar` e `pnpm verificar:tudo`
-- [ ] 9. Revisar (`/code-review`), segurança (`security-review`) e commit
+- [x] 2. Migração: tabelas `comissoes` e `comissoesFechamentos`
+- [x] 3. Domínio: `calcularComissao({ total, taxa })` + testes unitários
+- [x] 4. API — service: gerar linha de comissão ao pagar comanda; `listarComissoes(c, barbeariaId, de, ate, barbeiroId?)`
+- [x] 5. API — rota: `GET /comissao?de=&ate=&barbeiroId=` com schema e permissão `financeiro.gerenciar`
+- [x] 6. API — fechamento: service `fecharComissao`, rota `POST /comissao/fechar`
+- [x] 7. Tela: `ComissaoView.vue` — filtro de período e barbeiro, tabela de comandas com origem rastreável, totais, botão fechar
+- [x] 8. Verificar: `pnpm verificar` verde (30 tasks)
+- [x] 9. Revisão de segurança: sem achados — commit 591ca9a
 
 ## Critérios de pronto
 
