@@ -1,0 +1,113 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: staging
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/barbertime
+
+jobs:
+  build-and-push:
+    name: Build e push imagens
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      sha_tag: ${{ steps.meta.outputs.sha_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadados da imagem
+        id: meta
+        run: echo "sha_tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Build e push — API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-api:${{ steps.meta.outputs.sha_tag }}
+            ${{ env.IMAGE_PREFIX }}-api:staging
+
+      - name: Build e push — barbertime
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/barbertime/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-app:${{ steps.meta.outputs.sha_tag }}
+            ${{ env.IMAGE_PREFIX }}-app:staging
+
+      - name: Build e push — business-center
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/business-center/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-bc:${{ steps.meta.outputs.sha_tag }}
+            ${{ env.IMAGE_PREFIX }}-bc:staging
+
+  deploy:
+    name: Deploy no Railway
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.18.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependências (migrations)
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Rodar migrations
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          DATABASE_URL_MIGRACAO: ${{ secrets.STAGING_DATABASE_URL_MIGRACAO }}
+        run: bash scripts/deploy-staging.sh migrations
+
+      - name: Deploy API
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: bash scripts/deploy-staging.sh api ${{ needs.build-and-push.outputs.sha_tag }}
+
+      - name: Deploy barbertime
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: bash scripts/deploy-staging.sh app ${{ needs.build-and-push.outputs.sha_tag }}
+
+      - name: Deploy business-center
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: bash scripts/deploy-staging.sh bc ${{ needs.build-and-push.outputs.sha_tag }}

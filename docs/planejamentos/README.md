@@ -45,3 +45,4 @@
 | [0041](0041-remover-supabase-cli.md)                            | Remover o Supabase CLI e usar PostgreSQL direto                               | Concluído                | 2026-11-12 |
 | [0042](0042-comissao-por-barbeiro.md)                           | Comissão por barbeiro                                                         | Concluído                | 2026-11-12 |
 | [0043](0043-confirmar-presenca-abre-comanda.md)                 | Confirmar presença já abre a comanda                                          | Concluído                | 2026-11-13 |
+| [0044](0044-cicd-git-flow.md)                                   | CI/CD com GitHub Actions e Git Flow clássico                                  | Em andamento             | 2026-11-14 |

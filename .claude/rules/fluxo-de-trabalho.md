@@ -38,6 +38,30 @@ Os hooks em `.claude/settings.json` (scripts em `.claude/hooks/`) **garantem** p
 - Push, merge e PR são ações externas: sempre perguntar antes.
 - Agentes do projeto (`.claude/agents/`), opcionais para delegar etapas: `planejador` (etapas 2 e 3, não escreve código), `implementador` (etapas 5 e 6, a partir de plano aprovado ou bug bem descrito) e `revisor` (complementa a etapa 7 antes do commit, não edita). Não substituem `/code-review` nem `security-review`.
 
+## Branches e Git Flow (ADR 0024)
+
+Modelo: **Git Flow clássico**. Decidido no planejamento 0044.
+
+### Branches permanentes
+
+| Branch | Finalidade |
+|---|---|
+| `main` | Produção — somente releases e hotfixes chegam aqui |
+| `develop` | Integração — base de todo desenvolvimento; dispara deploy de staging |
+
+### Branches temporárias
+
+| Prefixo | Uso | Base | Merge destino |
+|---|---|---|---|
+| `feature/NNNN-slug` | Nova funcionalidade (planejamento) | `develop` | `develop` |
+| `fix/NNNN-slug` | Correção planejada em develop | `develop` | `develop` |
+| `hotfix/<issue>-slug` | Correção de emergência em produção | `main` | `main` + backmerge `develop` |
+| `release/x.y.z` | Preparação de versão | `develop` | `main` + backmerge `develop` |
+| `chore/NNNN-slug` | Infra, deps, CI | `develop` | `develop` |
+| `docs/NNNN-slug` | Documentação pura | `develop` | `develop` |
+
+Regras: nenhum commit direto em `main` ou `develop`; merge commit (nunca squash); apagar branch local e remota após merge; voltar para `develop`.
+
 ## Bugs e branches (rastreabilidade)
 
 Decidido no planejamento 0038. O objetivo é que, depois do merge e com a branch já apagada, ainda dê para saber **o que um bug afetou** e **de onde ele veio**.
@@ -48,10 +72,8 @@ Decidido no planejamento 0038. O objetivo é que, depois do merge e com a branch
 
    Bug achado em revisão ou em teste também vira issue, mesmo que seja corrigido na hora.
 
-2. **A branch diz de onde vem:**
-   - `feat/NNNN-slug`, `chore/NNNN-slug` e `docs/NNNN-slug`, onde NNNN é o planejamento;
-   - `fix/<issue>-slug` para bug.
+2. **A branch diz de onde vem:** `fix/<issue>-slug` para bug planejado; `hotfix/<issue>-slug` para emergência em produção.
 3. **A correção de bug leva:**
    - um **teste de regressão** que falha sem a correção, com `#<issue>` no nome;
    - `Fixes #<issue>` e `Introduzido em: <sha>` no commit ou no PR.
-4. **Depois do merge**, que é feito com merge commit e não squash: apagar a branch, local e remota, e voltar para a `main` atualizada.
+4. **Depois do merge**, que é feito com merge commit e não squash: apagar a branch, local e remota, e voltar para `develop`.

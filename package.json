@@ -18,6 +18,8 @@
     "verificar:tudo": "nx run-many -t lint,typecheck,test,build && nx run api:banco-tipos-conferir && nx run api:integracao",
     "verificar:layout": "nx run e2e-layout:e2e",
     "navegador": "bash scripts/preparar-navegador.sh",
+    "subir": "bash scripts/subir.sh",
+    "subir:dev": "bash scripts/subir.sh --dev",
     "banco": "docker compose up -d --wait postgres redis mailpit && nx run api:migrar && nx run api:semear",
     "banco:parar": "docker compose stop postgres redis mailpit",
     "banco:tipos": "nx run api:banco-tipos"
